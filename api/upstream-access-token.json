@@ -1,0 +1,467 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "OAuth Access Token Generation API",
+    "version": "1",
+    "description": "This API generates OAuth-style access tokens using a client_id and client_secret. The generated token is used to authenticate subsequent API requests within the Fuel Finder ecosystem."
+  },
+  "servers": [
+    {
+      "url": "https://www.fuel-finder.service.gov.uk",
+      "description": "Production server"
+    }
+  ],
+  "paths": {
+    "/api/v1/oauth/generate_access_token": {
+      "post": {
+        "summary": "Generate OAuth access token",
+        "operationId": "generateAccessToken",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "client_id": {
+                    "type": "string"
+                  },
+                  "client_secret": {
+                    "type": "string"
+                  }
+                },
+                "required": ["client_id", "client_secret"],
+                "example": {
+                  "client_id": "laHVL2vCVCZ5wSOyDJ9ecNLcabt6FGl5",
+                  "client_secret": "nUYW4TDOme7aUKNmRcehZ8ffMevisFwLkKT9c89bGqhTJtgC4voUTn3QZPvxyQXJ"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Access token generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "access_token": {
+                          "type": "string"
+                        },
+                        "token_type": {
+                          "type": "string"
+                        },
+                        "expires_in": {
+                          "type": "integer"
+                        },
+                        "refresh_token": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "success": true,
+                    "data": {
+                      "access_token": "632ab214482946527e7d7e5f522d4019639add5ebd20795b0d5fd8d19b565153",
+                      "token_type": "Bearer",
+                      "expires_in": 3600,
+                      "refresh_token": "7ad38ea6dbcf1123aef61785b0d6a8f3455bb68734080e0befa440c6ca6ee0eb"
+                    },
+                    "message": "Operation successful"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "message": "client_id or client_secret missing or invalid"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized – Invalid client credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer"
+                        },
+                        "details": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "data": null,
+                    "message": "Invalid client credentials",
+                    "error": {
+                      "code": 401,
+                      "details": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Too many failed attempts. Try again in 15 minutes."
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "error": "Internal server error"
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad gateway. The server received an invalid response from the upstream service",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Bad gateway. The server received an invalid response from the upstream service"
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable. Please try again later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Service temporarily unavailable. Please try again later."
+                  }
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway timeout. The upstream server failed to respond in time.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Gateway timeout. The upstream server failed to respond in time."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/oauth/regenerate_access_token": {
+      "post": {
+        "summary": "Regenerate OAuth access token using refresh token",
+        "operationId": "regenerateAccessToken",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "client_id": {
+                    "type": "string"
+                  },
+                  "refresh_token": {
+                    "type": "string"
+                  }
+                },
+                "required": ["client_id", "refresh_token"],
+                "example": {
+                  "client_id": "ym4JJXEu0P7xIURgSHsP9O5881J2WaF8",
+                  "refresh_token": "4f69dcbd4692037b0614ccbc81d1f7ac0abb5b2b1d0856b0fe8ed79226c605b6"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Access token regenerated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string"
+                    },
+                    "token_type": {
+                      "type": "string"
+                    },
+                    "expires_in": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "example": {
+                  "access_token": "ca369d5e0d73a557e24d87eafad33a8b43bea97654e134feb748faeb41939f83",
+                  "token_type": "Bearer",
+                  "expires_in": 3600
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid refresh token or client id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "message": "Invalid refresh_token or client_id"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized – Invalid client credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer"
+                        },
+                        "details": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "data": null,
+                    "message": "Invalid client credentials",
+                    "error": {
+                      "code": 401,
+                      "details": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "error": "Internal server error"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Too many failed attempts. Try again in 15 minutes."
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad gateway. The server received an invalid response from the upstream service",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Bad gateway. The server received an invalid response from the upstream service"
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable. Please try again later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Service temporarily unavailable. Please try again later."
+                  }
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway timeout. The upstream server failed to respond in time.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Gateway timeout. The upstream server failed to respond in time."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,74 @@
+### Variables
+@host = http://localhost:8787
+@exampleNodeId = 9b275ab576eeba3c6677984be15ee22a74e54fdfe8e5ea700e84a03178dc4ac1
+
+### OpenAPI Documentation
+GET {{host}}/
+
+### --- Forecourts ---
+
+### List all forecourts (defaults)
+GET {{host}}/api/forecourts
+
+### List forecourts - with pagination
+GET {{host}}/api/forecourts?page=0&limit=10
+
+### List forecourts - filter by brand
+GET {{host}}/api/forecourts?brand=Shell
+
+### List forecourts - filter by postcode prefix
+GET {{host}}/api/forecourts?postcode=SW1
+
+### List forecourts - filter by fuel type
+GET {{host}}/api/forecourts?fuel_type=E10
+
+### List forecourts - geo bounding box (central London area)
+GET {{host}}/api/forecourts?sw_lat=51.48&sw_lng=-0.18&ne_lat=51.54&ne_lng=-0.07
+
+### List forecourts - include closed stations
+GET {{host}}/api/forecourts?include_closed=true
+
+### List forecourts - fuel type + geo bounding box
+GET {{host}}/api/forecourts?fuel_type=E10&sw_lat=51.48&sw_lng=-0.18&ne_lat=51.54&ne_lng=-0.07
+
+### List forecourts - combined filters
+GET {{host}}/api/forecourts?brand=Shell&fuel_type=E10&postcode=SW1&page=0&limit=20
+
+### Get a single forecourt by node ID
+GET {{host}}/api/forecourts/{{exampleNodeId}}
+
+### --- Prices ---
+
+### List current fuel prices (defaults, sorted cheapest first)
+GET {{host}}/api/prices
+
+### List prices - filter by fuel type
+GET {{host}}/api/prices?fuel_type=E10
+
+### List prices - filter by brand, sorted most expensive first
+GET {{host}}/api/prices?brand=Shell&sort=price_desc
+
+### List prices - filter by postcode prefix
+GET {{host}}/api/prices?postcode=LE11
+
+### List prices - paginated
+GET {{host}}/api/prices?page=0&limit=10&fuel_type=B7_STANDARD
+
+### --- Price History ---
+
+### Get full price history for a forecourt
+GET {{host}}/api/forecourts/{{exampleNodeId}}/prices/history
+
+### Get price history - filtered by fuel type
+GET {{host}}/api/forecourts/{{exampleNodeId}}/prices/history?fuel_type=E10
+
+### Get price history - since a specific date
+GET {{host}}/api/forecourts/{{exampleNodeId}}/prices/history?since=2026-01-01
+
+### Get price history - combined filters with limit
+GET {{host}}/api/forecourts/{{exampleNodeId}}/prices/history?fuel_type=E10&since=2026-01-01&limit=100
+
+### --- Reference ---
+
+### List available fuel types
+GET {{host}}/api/fuel-types

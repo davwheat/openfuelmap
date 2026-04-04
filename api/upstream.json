@@ -1,0 +1,2124 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "Information Recipient API's",
+    "version": "1",
+    "description": "API to fetch fuel prices and PFS station information, including incremental updates."
+  },
+  "servers": [
+    {
+      "url": "https://www.fuel-finder.service.gov.uk",
+      "description": "Production server"
+    }
+  ],
+  "security": [
+    {
+      "OAuth2": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "OAuth2": {
+        "type": "oauth2",
+        "description": "OAuth2 Client Credentials flow. First review the Access Token API, then generate a token and use it as Authorization: Bearer <access_token>.",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://www.fuel-finder.service.gov.uk/api/v1/oauth/generate_access_token",
+            "scopes": {}
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/pfs/fuel-prices?batch-number=1": {
+      "get": {
+        "description": "API used to fetch all fuel prices.",
+        "summary": "Fetch all PFS fuel prices",
+        "operationId": "getAllPFSFuelPrices",
+        "parameters": [
+          {
+            "name": "batch-number",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Batch number of fuel prices to fetch        "
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fuel prices fetched successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "node_id": {
+                            "type": "string"
+                          },
+                          "public_phone_number": {
+                            "type": "number"
+                          },
+                          "trading_name": {
+                            "type": "string"
+                          },
+                          "fuel_prices": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "price": {
+                                  "type": "string"
+                                },
+                                "fuel_type": {
+                                  "type": "string"
+                                },
+                                "price_last_updated": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "price_change_effective_timestamp": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "example": [
+                    {
+                      "node_id": "0028acef5f3afc41c7e7d56fb285a940dfb64d6fea01cb4accd79c148321112d",
+                      "public_phone_number": null,
+                      "trading_name": "Alex Fuel Station",
+                      "fuel_prices": [
+                        {
+                          "fuel_type": "E5",
+                          "price": 159.9,
+                          "price_last_updated": "2026-02-17T16:03:04.938Z",
+                          "price_change_effective_timestamp": "2026-02-17T16:00:00.000Z"
+                        },
+                        {
+                          "fuel_type": "E10",
+                          "price": 132.9,
+                          "price_last_updated": "2026-02-17T16:03:04.938Z",
+                          "price_change_effective_timestamp": "2026-02-17T16:00:00.000Z"
+                        },
+                        {
+                          "fuel_type": "B7_STANDARD",
+                          "price": 141.9,
+                          "price_last_updated": "2026-02-17T16:03:04.938Z",
+                          "price_change_effective_timestamp": "2026-02-17T16:00:00.000Z"
+                        }
+                      ]
+                    },
+                    {
+                      "node_id": "01da92125c3751767044d06b202f45da5933f0e16e256fa3e98a16af8386308d",
+                      "public_phone_number": "",
+                      "trading_name": "Star Garage",
+                      "fuel_prices": [
+                        {
+                          "fuel_type": "E5",
+                          "price": 159.9,
+                          "price_last_updated": "2026-02-17T16:03:04.938Z",
+                          "price_change_effective_timestamp": "2026-02-17T16:00:00.000Z"
+                        }
+                      ]
+                    },
+                    {
+                      "node_id": "020592cd81196efdb61ab2135f837ddf3d2bee4e64346810270f0b088b4c09d8",
+                      "public_phone_number": null,
+                      "trading_name": "Blue Hills Fuel Station",
+                      "fuel_prices": [
+                        {
+                          "fuel_type": "E5",
+                          "price": 159.9,
+                          "price_last_updated": "2026-02-17T16:03:04.938Z",
+                          "price_change_effective_timestamp": "2026-02-17T16:00:00.000Z"
+                        },
+                        {
+                          "fuel_type": "B7_STANDARD",
+                          "price": 141.9,
+                          "price_last_updated": "2026-02-17T16:03:04.938Z",
+                          "price_change_effective_timestamp": "2026-02-17T16:00:00.000Z"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "type": "boolean"
+                        },
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "success": {
+                              "type": "boolean"
+                            },
+                            "message": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "integer"
+                            },
+                            "details": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer"
+                        },
+                        "details": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer"
+                        },
+                        "details": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "integer"
+                            },
+                            "details": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "data": {
+                      "success": false,
+                      "data": {
+                        "success": false,
+                        "message": "Missing required query parameter 'batch-number'"
+                      },
+                      "message": "An error occurred",
+                      "error": {
+                        "code": 400,
+                        "details": "Error in API call"
+                      }
+                    },
+                    "message": {
+                      "code": 400,
+                      "details": "Error in API call"
+                    },
+                    "error": {
+                      "code": 400,
+                      "details": {
+                        "code": 400,
+                        "details": "Error in API call"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Indicates whether the request was successful"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "description": "Type of error"
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Detailed error message"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "General error message"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer",
+                          "description": "HTTP status code"
+                        },
+                        "details": {
+                          "type": "string",
+                          "description": "Additional error details"
+                        }
+                      }
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "data": {
+                      "error": "Unauthorized",
+                      "message": "Invalid or expired token"
+                    },
+                    "message": "Unauthorized",
+                    "error": {
+                      "code": 403,
+                      "details": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "error": "Internal server error"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Too many failed attempts. Try again in 15 minutes."
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad gateway. The server received an invalid response from the upstream service",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Bad gateway. The server received an invalid response from the upstream service"
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable. Please try again later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Service temporarily unavailable. Please try again later."
+                  }
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway timeout. The upstream server failed to respond in time.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Gateway timeout. The upstream server failed to respond in time."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pfs/fuel-prices?batch-number=1&effective-start-timestamp=<YYYY-MM-DD HH:MM:SS>": {
+      "get": {
+        "description": "API used to fetch all fuel prices incrementally based on the provided effective start timestamp.",
+        "summary": "Fetch incremental PFS fuel prices",
+        "operationId": "getIncrementalPFSFuelPrices",
+        "parameters": [
+          {
+            "name": "effective-start-timestamp",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2025-09-05"
+            },
+            "description": "Start date in YYYY-MM-DD format"
+          },
+          {
+            "name": "batch-number",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Batch number of fuel prices to fetch        "
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Incremental fuel prices fetched successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "node_id": {
+                            "type": "string"
+                          },
+                          "public_phone_number": {
+                            "type": "number"
+                          },
+                          "trading_name": {
+                            "type": "string"
+                          },
+                          "fuel_prices": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "price": {
+                                  "type": "string"
+                                },
+                                "fuel_type": {
+                                  "type": "string"
+                                },
+                                "price_last_updated": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "price_change_effective_timestamp": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "example": [
+                    {
+                      "node_id": "0028acef5f3afc41c7e7d56fb285a940dfb64d6fea01cb4accd79c148321112d",
+                      "public_phone_number": null,
+                      "trading_name": "FORECOURT 4",
+                      "fuel_prices": [
+                        {
+                          "fuel_type": "E5",
+                          "price": 159.9,
+                          "price_last_updated": "2026-02-17T16:03:04.938Z",
+                          "price_change_effective_timestamp": "2026-02-17T16:00:00.000Z"
+                        },
+                        {
+                          "fuel_type": "E10",
+                          "price": 132.9,
+                          "price_last_updated": "2026-02-17T16:03:04.938Z",
+                          "price_change_effective_timestamp": "2026-02-17T16:00:00.000Z"
+                        },
+                        {
+                          "fuel_type": "B7_STANDARD",
+                          "price": 141.9,
+                          "price_last_updated": "2026-02-17T16:03:04.938Z",
+                          "price_change_effective_timestamp": "2026-02-17T16:00:00.000Z"
+                        }
+                      ]
+                    },
+                    {
+                      "node_id": "020592cd81196efdb61ab2135f837ddf3d2bee4e64346810270f0b088b4c09d8",
+                      "public_phone_number": null,
+                      "trading_name": "Test 12",
+                      "fuel_prices": [
+                        {
+                          "fuel_type": "E5",
+                          "price": 159.9,
+                          "price_last_updated": "2026-02-17T16:03:04.938Z",
+                          "price_change_effective_timestamp": "2026-02-17T16:00:00.000Z"
+                        },
+                        {
+                          "fuel_type": "B7_STANDARD",
+                          "price": 141.9,
+                          "price_last_updated": "2026-02-17T16:03:04.938Z",
+                          "price_change_effective_timestamp": "2026-02-17T16:00:00.000Z"
+                        }
+                      ]
+                    },
+                    {
+                      "node_id": "04b39ce398e156be65e96e164024bd17e208b263628612f76293121748b151c6",
+                      "public_phone_number": "+442079460958",
+                      "trading_name": "Shell Petrol Station - Updated",
+                      "fuel_prices": [
+                        {
+                          "fuel_type": "E5",
+                          "price": 159.9,
+                          "price_last_updated": "2026-02-17T16:03:04.938Z",
+                          "price_change_effective_timestamp": "2026-02-17T16:00:00.000Z"
+                        },
+                        {
+                          "fuel_type": "E10",
+                          "price": 132.9,
+                          "price_last_updated": "2026-02-17T16:03:04.938Z",
+                          "price_change_effective_timestamp": "2026-02-17T16:00:00.000Z"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "type": "boolean"
+                        },
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "success": {
+                              "type": "boolean"
+                            },
+                            "message": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "integer"
+                            },
+                            "details": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer"
+                        },
+                        "details": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer"
+                        },
+                        "details": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "integer"
+                            },
+                            "details": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "data": {
+                      "success": false,
+                      "data": {
+                        "success": false,
+                        "message": "'effective-start-timestamp' is not a valid date"
+                      },
+                      "message": "An error occurred",
+                      "error": {
+                        "code": 400,
+                        "details": "Error in API call"
+                      }
+                    },
+                    "message": {
+                      "code": 400,
+                      "details": "Error in API call"
+                    },
+                    "error": {
+                      "code": 400,
+                      "details": {
+                        "code": 400,
+                        "details": "Error in API call"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Indicates whether the request was successful"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "description": "Type of error"
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Detailed error message"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "General error message"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer",
+                          "description": "HTTP status code"
+                        },
+                        "details": {
+                          "type": "string",
+                          "description": "Additional error details"
+                        }
+                      }
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "data": {
+                      "error": "Unauthorized",
+                      "message": "Invalid or expired token"
+                    },
+                    "message": "Unauthorized",
+                    "error": {
+                      "code": 403,
+                      "details": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "error": "Internal server error"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Too many failed attempts. Try again in 15 minutes."
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad gateway. The server received an invalid response from the upstream service",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Bad gateway. The server received an invalid response from the upstream service"
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable. Please try again later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Service temporarily unavailable. Please try again later."
+                  }
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway timeout. The upstream server failed to respond in time.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Gateway timeout. The upstream server failed to respond in time."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pfs?batch-number=1": {
+      "get": {
+        "description": "API used to fetch all the PFS (Petrol Fuel Station) information. Note: Each API response returns data for up to 500 forecourts. To retrieve additional forecourts, the consumer must pass the query parameter `batch-number`. For example, the first call returns forecourts 0-500, and the second call with `batch-number=2` returns forecourts 501-1000.",
+        "summary": "Fetch PFS information",
+        "operationId": "getPFSInfo",
+        "parameters": [
+          {
+            "name": "batch-number",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Batch number of fuel prices to fetch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PFS info fetched successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "node_id": {
+                            "type": "string"
+                          },
+                          "public_phone_number": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "trading_name": {
+                            "type": "string"
+                          },
+                          "is_same_trading_and_brand_name": {
+                            "type": "boolean"
+                          },
+                          "brand_name": {
+                            "type": "string"
+                          },
+                          "temporary_closure": {
+                            "type": "boolean"
+                          },
+                          "permanent_closure": {
+                            "type": "boolean",
+                            "nullable": true
+                          },
+                          "permanent_closure_date": {
+                            "type": "string",
+                            "format": "date",
+                            "nullable": true
+                          },
+                          "is_motorway_service_station": {
+                            "type": "boolean"
+                          },
+                          "is_supermarket_service_station": {
+                            "type": "boolean"
+                          },
+                          "location": {
+                            "type": "object",
+                            "properties": {
+                              "address_line_1": {
+                                "type": "string"
+                              },
+                              "address_line_2": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "city": {
+                                "type": "string"
+                              },
+                              "country": {
+                                "type": "string"
+                              },
+                              "county": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "postcode": {
+                                "type": "string"
+                              },
+                              "latitude": {
+                                "type": "number",
+                                "format": "double"
+                              },
+                              "longitude": {
+                                "type": "number",
+                                "format": "double"
+                              }
+                            }
+                          },
+                          "amenities": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "opening_times": {
+                            "type": "object",
+                            "properties": {
+                              "usual_days": {
+                                "type": "object",
+                                "properties": {
+                                  "monday": {
+                                    "$ref": "#/components/schemas/DayOpening"
+                                  },
+                                  "tuesday": {
+                                    "$ref": "#/components/schemas/DayOpening"
+                                  },
+                                  "wednesday": {
+                                    "$ref": "#/components/schemas/DayOpening"
+                                  },
+                                  "thursday": {
+                                    "$ref": "#/components/schemas/DayOpening"
+                                  },
+                                  "friday": {
+                                    "$ref": "#/components/schemas/DayOpening"
+                                  },
+                                  "saturday": {
+                                    "$ref": "#/components/schemas/DayOpening"
+                                  },
+                                  "sunday": {
+                                    "$ref": "#/components/schemas/DayOpening"
+                                  }
+                                }
+                              },
+                              "bank_holiday": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string"
+                                  },
+                                  "open_time": {
+                                    "type": "string",
+                                    "format": "time"
+                                  },
+                                  "close_time": {
+                                    "type": "string",
+                                    "format": "time"
+                                  },
+                                  "is_24_hours": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "fuel_types": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "example": [
+                    {
+                      "node_id": "9b275ab576eeba3c6677984be15ee22a74e54fdfe8e5ea700e84a03178dc4ac1",
+                      "public_phone_number": null,
+                      "trading_name": "TEST",
+                      "is_same_trading_and_brand_name": true,
+                      "brand_name": "TEST",
+                      "temporary_closure": false,
+                      "permanent_closure": false,
+                      "permanent_closure_date": null,
+                      "is_motorway_service_station": false,
+                      "is_supermarket_service_station": false,
+                      "location": {
+                        "address_line_1": "HALL & WOODHOUSE, TAPLOW BOATYARD, MILL LANE, TAPLOW, MAIDENHEAD, SL6 0AA",
+                        "address_line_2": null,
+                        "city": "MAIDENHEAD",
+                        "country": "England",
+                        "county": null,
+                        "postcode": "SL6 0AA",
+                        "latitude": 51.5268585,
+                        "longitude": -0.700361
+                      },
+                      "amenities": ["water_filling"],
+                      "opening_times": {
+                        "usual_days": {
+                          "monday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "tuesday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "wednesday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "thursday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "friday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "saturday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "sunday": {
+                            "open": "00:00:00",
+                            "close": "23:59:00",
+                            "is_24_hours": true
+                          }
+                        },
+                        "bank_holiday": {
+                          "type": "bank holiday",
+                          "open_time": "00:00:00",
+                          "close_time": "00:00:00",
+                          "is_24_hours": false
+                        }
+                      },
+                      "fuel_types": ["E10", "E5", "HVO", "B10"]
+                    },
+                    {
+                      "node_id": "4fd9a4c6b48358b9b5c95989fba100fdcbb87c9e909ed4ce1ad96f64ffb8b56a",
+                      "public_phone_number": "+44 7723608248",
+                      "trading_name": "TEST FORECOURT 1",
+                      "is_same_trading_and_brand_name": true,
+                      "brand_name": "TEXACO ONE",
+                      "temporary_closure": false,
+                      "permanent_closure": null,
+                      "permanent_closure_date": null,
+                      "is_motorway_service_station": false,
+                      "is_supermarket_service_station": false,
+                      "location": {
+                        "address_line_1": "NEWPORT",
+                        "address_line_2": "",
+                        "city": "BROUGH",
+                        "country": "ENGLAND",
+                        "county": "EAST YORKSHIRE",
+                        "postcode": "HU15 2RD",
+                        "latitude": 51.258503,
+                        "longitude": -3.417567
+                      },
+                      "amenities": [
+                        "adblue_packaged",
+                        "adblue_pumps",
+                        "car_wash",
+                        "customer_toilets"
+                      ],
+                      "opening_times": {
+                        "usual_days": {
+                          "monday": {
+                            "open": "06:00:01",
+                            "close": "23:00:01",
+                            "is_24_hours": false
+                          },
+                          "tuesday": {
+                            "open": "06:00:01",
+                            "close": "23:00:01",
+                            "is_24_hours": false
+                          },
+                          "wednesday": {
+                            "open": "06:00:01",
+                            "close": "23:00:01",
+                            "is_24_hours": false
+                          },
+                          "thursday": {
+                            "open": "06:00:01",
+                            "close": "23:00:01",
+                            "is_24_hours": false
+                          },
+                          "friday": {
+                            "open": "06:00:01",
+                            "close": "23:00:01",
+                            "is_24_hours": false
+                          },
+                          "saturday": {
+                            "open": "06:00:01",
+                            "close": "23:00:01",
+                            "is_24_hours": false
+                          },
+                          "sunday": {
+                            "open": "06:00:01",
+                            "close": "23:00:01",
+                            "is_24_hours": false
+                          }
+                        },
+                        "bank_holiday": {
+                          "type": "standard",
+                          "open_time": "06:00:01",
+                          "close_time": "23:00:01",
+                          "is_24_hours": false
+                        }
+                      },
+                      "fuel_types": ["B10"]
+                    },
+                    {
+                      "node_id": "91bdda1c07fa05110a31639cc66932f9ed8bd388d4f6be542a423365bcfd53e1",
+                      "public_phone_number": "+442071930000",
+                      "trading_name": "SUPERFUEL LOUGHBOROUGH 12",
+                      "is_same_trading_and_brand_name": true,
+                      "brand_name": "SUPERFUEL STATION 4",
+                      "temporary_closure": false,
+                      "permanent_closure": null,
+                      "permanent_closure_date": null,
+                      "is_motorway_service_station": false,
+                      "is_supermarket_service_station": false,
+                      "location": {
+                        "address_line_1": "14 LONDON ROAD",
+                        "address_line_2": "FUELVILLE",
+                        "city": "LOUGHBOROUGH",
+                        "country": "ENGLAND",
+                        "county": "LEICESTERSHIRE",
+                        "postcode": "LE11 9AA",
+                        "latitude": 50.503343,
+                        "longitude": -2.12444
+                      },
+                      "amenities": [
+                        "adblue_packaged",
+                        "adblue_pumps",
+                        "car_wash",
+                        "customer_toilets",
+                        "water_filling"
+                      ],
+                      "opening_times": {
+                        "usual_days": {
+                          "monday": {
+                            "open": "06:00:00",
+                            "close": "22:00:00",
+                            "is_24_hours": false
+                          },
+                          "tuesday": {
+                            "open": "06:00:00",
+                            "close": "22:00:00",
+                            "is_24_hours": false
+                          },
+                          "wednesday": {
+                            "open": "06:00:00",
+                            "close": "22:00:00",
+                            "is_24_hours": false
+                          },
+                          "thursday": {
+                            "open": "06:00:00",
+                            "close": "22:00:00",
+                            "is_24_hours": false
+                          },
+                          "friday": {
+                            "open": "06:00:00",
+                            "close": "22:00:00",
+                            "is_24_hours": false
+                          },
+                          "saturday": {
+                            "open": "06:00:00",
+                            "close": "22:00:00",
+                            "is_24_hours": false
+                          },
+                          "sunday": {
+                            "open": "06:00:00",
+                            "close": "22:00:00",
+                            "is_24_hours": false
+                          }
+                        },
+                        "bank_holiday": {
+                          "type": "standard",
+                          "open_time": "08:00:00",
+                          "close_time": "20:00:00",
+                          "is_24_hours": false
+                        }
+                      },
+                      "fuel_types": [
+                        "E5",
+                        "HVO",
+                        "B10",
+                        "B7_PREMIUM",
+                        "B7_STANDARD"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "type": "boolean"
+                        },
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "success": {
+                              "type": "boolean"
+                            },
+                            "message": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "integer"
+                            },
+                            "details": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer"
+                        },
+                        "details": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer"
+                        },
+                        "details": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "integer"
+                            },
+                            "details": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "data": {
+                      "success": false,
+                      "data": {
+                        "success": false,
+                        "message": "Missing required query parameter 'batch-number'"
+                      },
+                      "message": "An error occurred",
+                      "error": {
+                        "code": 400,
+                        "details": "Error in API call"
+                      }
+                    },
+                    "message": {
+                      "code": 400,
+                      "details": "Error in API call"
+                    },
+                    "error": {
+                      "code": 400,
+                      "details": {
+                        "code": 400,
+                        "details": "Error in API call"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Indicates whether the request was successful"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "description": "Type of error"
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Detailed error message"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "General error message"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer",
+                          "description": "HTTP status code"
+                        },
+                        "details": {
+                          "type": "string",
+                          "description": "Additional error details"
+                        }
+                      }
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "data": {
+                      "error": "Unauthorized",
+                      "message": "Invalid or expired token"
+                    },
+                    "message": "Unauthorized",
+                    "error": {
+                      "code": 403,
+                      "details": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "error": "Internal server error"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Too many failed attempts. Try again in 15 minutes."
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad gateway. The server received an invalid response from the upstream service",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Bad gateway. The server received an invalid response from the upstream service"
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable. Please try again later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Service temporarily unavailable. Please try again later."
+                  }
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway timeout. The upstream server failed to respond in time.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Gateway timeout. The upstream server failed to respond in time."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pfs?batch-number=1&effective-start-timestamp=<YYYY-MM-DD HH:MM:SS>": {
+      "get": {
+        "description": "API used to fetch PFS information incrementally based on the provided effective start timestamp.",
+        "summary": "Fetch incremental PFS information",
+        "operationId": "getIncrementalPFSInfo",
+        "parameters": [
+          {
+            "name": "effective-start-timestamp",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2025-09-05"
+            },
+            "description": "Start date in YYYY-MM-DD format"
+          },
+          {
+            "name": "batch-number",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Batch number of fuel prices to fetch        "
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Incremental PFS info fetched successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "node_id": {
+                            "type": "string"
+                          },
+                          "public_phone_number": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "trading_name": {
+                            "type": "string"
+                          },
+                          "is_same_trading_and_brand_name": {
+                            "type": "boolean"
+                          },
+                          "brand_name": {
+                            "type": "string"
+                          },
+                          "temporary_closure": {
+                            "type": "boolean"
+                          },
+                          "permanent_closure": {
+                            "type": "boolean",
+                            "nullable": true
+                          },
+                          "permanent_closure_date": {
+                            "type": "string",
+                            "format": "date",
+                            "nullable": true
+                          },
+                          "is_motorway_service_station": {
+                            "type": "boolean"
+                          },
+                          "is_supermarket_service_station": {
+                            "type": "boolean"
+                          },
+                          "location": {
+                            "type": "object",
+                            "properties": {
+                              "address_line_1": {
+                                "type": "string"
+                              },
+                              "address_line_2": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "city": {
+                                "type": "string"
+                              },
+                              "country": {
+                                "type": "string"
+                              },
+                              "county": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "postcode": {
+                                "type": "string"
+                              },
+                              "latitude": {
+                                "type": "number",
+                                "format": "double"
+                              },
+                              "longitude": {
+                                "type": "number",
+                                "format": "double"
+                              }
+                            }
+                          },
+                          "amenities": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "opening_times": {
+                            "type": "object",
+                            "properties": {
+                              "usual_days": {
+                                "type": "object",
+                                "properties": {
+                                  "monday": {
+                                    "$ref": "#/components/schemas/DayOpening"
+                                  },
+                                  "tuesday": {
+                                    "$ref": "#/components/schemas/DayOpening"
+                                  },
+                                  "wednesday": {
+                                    "$ref": "#/components/schemas/DayOpening"
+                                  },
+                                  "thursday": {
+                                    "$ref": "#/components/schemas/DayOpening"
+                                  },
+                                  "friday": {
+                                    "$ref": "#/components/schemas/DayOpening"
+                                  },
+                                  "saturday": {
+                                    "$ref": "#/components/schemas/DayOpening"
+                                  },
+                                  "sunday": {
+                                    "$ref": "#/components/schemas/DayOpening"
+                                  }
+                                }
+                              },
+                              "bank_holiday": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string"
+                                  },
+                                  "open_time": {
+                                    "type": "string",
+                                    "format": "time"
+                                  },
+                                  "close_time": {
+                                    "type": "string",
+                                    "format": "time"
+                                  },
+                                  "is_24_hours": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "fuel_types": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "example": [
+                    {
+                      "node_id": "9b275ab576eeba3c6677984be15ee22a74e54fdfe8e5ea700e84a03178dc4ac1",
+                      "public_phone_number": null,
+                      "trading_name": "TEST",
+                      "is_same_trading_and_brand_name": true,
+                      "brand_name": "TEST",
+                      "temporary_closure": false,
+                      "permanent_closure": false,
+                      "permanent_closure_date": null,
+                      "is_motorway_service_station": false,
+                      "is_supermarket_service_station": false,
+                      "location": {
+                        "address_line_1": "HALL & WOODHOUSE, TAPLOW BOATYARD, MILL LANE, TAPLOW, MAIDENHEAD, SL6 0AA",
+                        "address_line_2": null,
+                        "city": "MAIDENHEAD",
+                        "country": "England",
+                        "county": null,
+                        "postcode": "SL6 0AA",
+                        "latitude": 51.5268585,
+                        "longitude": -0.700361
+                      },
+                      "amenities": ["water_filling"],
+                      "opening_times": {
+                        "usual_days": {
+                          "monday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "tuesday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "wednesday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "thursday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "friday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "saturday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "sunday": {
+                            "open": "00:00:00",
+                            "close": "23:59:00",
+                            "is_24_hours": true
+                          }
+                        },
+                        "bank_holiday": {
+                          "type": "bank holiday",
+                          "open_time": "00:00:00",
+                          "close_time": "00:00:00",
+                          "is_24_hours": false
+                        }
+                      },
+                      "fuel_types": ["B10"]
+                    },
+                    {
+                      "node_id": "d596bd700d04e36f346661db721b7648617f120aa88a2b47fe0aed617e8533c0",
+                      "public_phone_number": null,
+                      "trading_name": "Yono",
+                      "is_same_trading_and_brand_name": true,
+                      "brand_name": "Yono",
+                      "temporary_closure": false,
+                      "permanent_closure": false,
+                      "permanent_closure_date": null,
+                      "is_motorway_service_station": false,
+                      "is_supermarket_service_station": false,
+                      "location": {
+                        "address_line_1": "SQUARE CIRCLE MEDIA, 86-90, PAUL STREET, LONDON, EC2A 4NE",
+                        "address_line_2": null,
+                        "city": "LONDON",
+                        "country": "England",
+                        "county": null,
+                        "postcode": "EC2A 4NE",
+                        "latitude": 51.5256151,
+                        "longitude": -0.0836283
+                      },
+                      "amenities": ["adblue_packaged", "adblue_pumps"],
+                      "opening_times": {
+                        "usual_days": {
+                          "monday": {
+                            "open": "00:00:00",
+                            "close": "23:59:00",
+                            "is_24_hours": true
+                          },
+                          "tuesday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "wednesday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "thursday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "friday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "saturday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "sunday": {
+                            "open": "00:00:00",
+                            "close": "23:59:00",
+                            "is_24_hours": true
+                          }
+                        },
+                        "bank_holiday": {
+                          "type": "bank holiday",
+                          "open_time": "00:00:00",
+                          "close_time": "23:59:00",
+                          "is_24_hours": true
+                        }
+                      },
+                      "fuel_types": ["E5"]
+                    },
+                    {
+                      "node_id": "126e885886a4324153aa53b714542d22b71fab0b76f843d97c58f1b1174fb152",
+                      "public_phone_number": null,
+                      "trading_name": "csvprice",
+                      "is_same_trading_and_brand_name": true,
+                      "brand_name": "csvprice",
+                      "temporary_closure": false,
+                      "permanent_closure": false,
+                      "permanent_closure_date": null,
+                      "is_motorway_service_station": false,
+                      "is_supermarket_service_station": true,
+                      "location": {
+                        "address_line_1": "THE PRINCESS OF SHOREDITCH, 76-78, PAUL STREET, LONDON, EC2A 4NE",
+                        "address_line_2": null,
+                        "city": "LONDON",
+                        "country": "England",
+                        "county": null,
+                        "postcode": "EC2A 4NE",
+                        "latitude": 51.525401,
+                        "longitude": -0.0837382
+                      },
+                      "amenities": [],
+                      "opening_times": {
+                        "usual_days": {
+                          "monday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "tuesday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "wednesday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "thursday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "friday": {
+                            "open": "00:00:00",
+                            "close": "23:59:00",
+                            "is_24_hours": true
+                          },
+                          "saturday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          },
+                          "sunday": {
+                            "open": "00:00:00",
+                            "close": "00:00:00",
+                            "is_24_hours": false
+                          }
+                        },
+                        "bank_holiday": {
+                          "type": "bank holiday",
+                          "open_time": "00:00:00",
+                          "close_time": "00:00:00",
+                          "is_24_hours": false
+                        }
+                      },
+                      "fuel_types": ["E10", "E5", "B10", "B7_PREMIUM"]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "type": "boolean"
+                        },
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "success": {
+                              "type": "boolean"
+                            },
+                            "message": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "integer"
+                            },
+                            "details": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer"
+                        },
+                        "details": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer"
+                        },
+                        "details": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "integer"
+                            },
+                            "details": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "data": {
+                      "success": false,
+                      "data": {
+                        "success": false,
+                        "message": "'effective-start-timestamp' is not a valid date"
+                      },
+                      "message": "An error occurred",
+                      "error": {
+                        "code": 400,
+                        "details": "Error in API call"
+                      }
+                    },
+                    "message": {
+                      "code": 400,
+                      "details": "Error in API call"
+                    },
+                    "error": {
+                      "code": 400,
+                      "details": {
+                        "code": 400,
+                        "details": "Error in API call"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Indicates whether the request was successful"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "description": "Type of error"
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Detailed error message"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "General error message"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer",
+                          "description": "HTTP status code"
+                        },
+                        "details": {
+                          "type": "string",
+                          "description": "Additional error details"
+                        }
+                      }
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "data": {
+                      "error": "Unauthorized",
+                      "message": "Invalid or expired token"
+                    },
+                    "message": "Unauthorized",
+                    "error": {
+                      "code": 403,
+                      "details": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "success": false,
+                    "error": "Internal server error"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Too many failed attempts. Try again in 15 minutes."
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad gateway. The server received an invalid response from the upstream service",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Bad gateway. The server received an invalid response from the upstream service"
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable. Please try again later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Service temporarily unavailable. Please try again later."
+                  }
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway timeout. The upstream server failed to respond in time.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Gateway timeout. The upstream server failed to respond in time."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

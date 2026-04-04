@@ -1,0 +1,35 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "open-fuel-map-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-04-03",
+  "observability": {
+    "enabled": true,
+  },
+  "upload_source_maps": true,
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "fuel_prices_db",
+      "database_name": "fuel-prices-db",
+      "database_id": "b78ea710-6e0c-4621-a700-6102f4e01933",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "8452f2bacfe94031ad0a5fd25269fde8",
+    },
+  ],
+  "triggers": {
+    "crons": [
+      // every 10 minutes
+      "*/10 * * * *",
+    ],
+  },
+}
