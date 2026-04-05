@@ -1,6 +1,11 @@
 import { fromHono } from "chanfana";
 import { Hono } from "hono";
 import { handleScheduled } from "./cron/handler";
+import {
+  adminCronForecourts,
+  adminCronPrices,
+  adminCronRun,
+} from "./endpoints/adminCron";
 import { BrandList } from "./endpoints/brandList";
 import { ForecourtFetch } from "./endpoints/forecourtFetch";
 import { ForecourtList } from "./endpoints/forecourtList";
@@ -9,6 +14,14 @@ import { FuelTypeList } from "./endpoints/fuelTypeList";
 import { PriceList } from "./endpoints/priceList";
 
 const app = new Hono<{ Bindings: Env }>();
+
+// Undocumented admin endpoints for manually triggering the cron job.
+// Registered on the raw Hono app (not the chanfana openapi wrapper) so they
+// do not appear in the OpenAPI schema or docs page. Guarded by a shared
+// secret via Authorization: Bearer <ADMIN_SECRET>.
+app.post("/admin/cron/run", adminCronRun);
+app.post("/admin/cron/forecourts", adminCronForecourts);
+app.post("/admin/cron/prices", adminCronPrices);
 
 const openapi = fromHono(app, {
   docs_url: "/",

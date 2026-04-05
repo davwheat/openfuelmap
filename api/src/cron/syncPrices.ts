@@ -1,12 +1,13 @@
 import { SYNC_KEY_PRICES } from "../config";
 import { upsertPrices } from "../db/prices";
 import { getLastSync, setLastSync } from "../db/syncMeta";
+import type { AccessTokenProvider } from "../upstream/auth";
 import { fetchFuelPrices } from "../upstream/client";
 
 export async function syncPrices(
   db: D1Database,
   kv: KVNamespace,
-  accessToken: string,
+  tokenProvider: AccessTokenProvider,
 ): Promise<{ fetched: number; inserted: number; skippedOrphans: number }> {
   const lastSync = await getLastSync(kv, SYNC_KEY_PRICES);
   const since = lastSync || null;
@@ -15,7 +16,7 @@ export async function syncPrices(
     `[prices] Starting ${since ? `incremental sync since ${since}` : "full sync"}`,
   );
 
-  const stations = await fetchFuelPrices(accessToken, since);
+  const stations = await fetchFuelPrices(tokenProvider, since);
   const totalPrices = stations.reduce(
     (sum, s) => sum + s.fuel_prices.length,
     0,

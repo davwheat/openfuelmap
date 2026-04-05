@@ -5,6 +5,7 @@ import {
   UPSTREAM_REQUESTS_PER_MINUTE,
   USER_AGENT,
 } from "../config";
+import type { AccessTokenProvider } from "./auth";
 import {
   UpstreamForecourtResponseSchema,
   UpstreamFuelPriceResponseSchema,
@@ -29,13 +30,24 @@ function getRequestDelayMs(): number {
  */
 async function fetchAllBatches<T>(
   basePath: string,
-  accessToken: string,
+  tokenProvider: AccessTokenProvider,
   effectiveStartTimestamp: string | null,
   parseResponse: (json: unknown) => T[],
 ): Promise<T[]> {
   const allResults: T[] = [];
   const delayMs = getRequestDelayMs();
   let lastRequestStart = 0;
+  let accessToken = await tokenProvider.get();
+
+  const rateLimit = async () => {
+    if (lastRequestStart > 0) {
+      const elapsed = Date.now() - lastRequestStart;
+      const remaining = delayMs - elapsed;
+      if (remaining > 0) {
+        await delay(remaining);
+      }
+    }
+  };
 
   for (let batch = 1; ; batch++) {
     const url = new URL(basePath, UPSTREAM_BASE_URL);
@@ -47,25 +59,31 @@ async function fetchAllBatches<T>(
       );
     }
 
-    // Rate limit: wait between requests, accounting for time
-    // already spent on the previous request
-    if (lastRequestStart > 0) {
-      const elapsed = Date.now() - lastRequestStart;
-      const remaining = delayMs - elapsed;
-      if (remaining > 0) {
-        await delay(remaining);
-      }
-    }
+    const doRequest = async () => {
+      await rateLimit();
+      console.log(`GET ${url.toString()}`);
+      lastRequestStart = Date.now();
+      return fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+          "User-Agent": USER_AGENT,
+        },
+      });
+    };
 
-    console.log(`GET ${url.toString()}`);
-    lastRequestStart = Date.now();
-    const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: "application/json",
-        "User-Agent": USER_AGENT,
-      },
-    });
+    let response = await doRequest();
+
+    // 403 usually means the token has been revoked/expired server-side
+    // since we cached it. Refresh once and retry the same batch before
+    // bailing — a persistent 403 after refresh is a real auth failure.
+    if (response.status === 403) {
+      console.warn(
+        `[upstream] Batch ${batch} returned 403; refreshing access token and retrying once`,
+      );
+      accessToken = await tokenProvider.refresh();
+      response = await doRequest();
+    }
 
     // 404 means no more batches available
     if (response.status === 404) {
@@ -96,21 +114,21 @@ async function fetchAllBatches<T>(
 }
 
 export async function fetchForecourts(
-  accessToken: string,
+  tokenProvider: AccessTokenProvider,
   since: string | null,
 ): Promise<UpstreamForecourt[]> {
-  return fetchAllBatches(UPSTREAM_PFS_PATH, accessToken, since, (json) => {
+  return fetchAllBatches(UPSTREAM_PFS_PATH, tokenProvider, since, (json) => {
     return UpstreamForecourtResponseSchema.parse(json);
   });
 }
 
 export async function fetchFuelPrices(
-  accessToken: string,
+  tokenProvider: AccessTokenProvider,
   since: string | null,
 ): Promise<UpstreamFuelPriceStation[]> {
   return fetchAllBatches(
     UPSTREAM_FUEL_PRICES_PATH,
-    accessToken,
+    tokenProvider,
     since,
     (json) => {
       return UpstreamFuelPriceResponseSchema.parse(json);

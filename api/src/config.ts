@@ -23,6 +23,20 @@ export const USER_AGENT = "OpenFuelMapAPI (+https://github.com/davwheat)";
  */
 export const UPSTREAM_REQUESTS_PER_MINUTE = 25;
 
+/**
+ * Generous UK bounding box covering GB mainland, Northern Ireland, the Isle
+ * of Man, the Channel Islands, Shetland and the Isles of Scilly. Used as a
+ * sanity check on incoming forecourt coordinates — the upstream feed should
+ * only contain UK sites, so anything outside this box is a data issue worth
+ * logging.
+ */
+export const UK_BBOX = {
+  minLat: 49.0,
+  maxLat: 61.0,
+  minLon: -9.0,
+  maxLon: 2.0,
+} as const;
+
 /** DB sync_meta keys */
 export const SYNC_KEY_FORECOURTS = "last_forecourt_sync";
 export const SYNC_KEY_PRICES = "last_price_sync";

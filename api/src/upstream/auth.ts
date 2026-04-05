@@ -95,6 +95,31 @@ export async function getAccessToken(
   return generateAccessToken(kv, clientId, clientSecret);
 }
 
+/**
+ * Stateful token provider passed to upstream clients so they can refresh
+ * the access token after a 403 without knowing about KV or credentials.
+ */
+export interface AccessTokenProvider {
+  /** Returns the current access token, fetching one if not cached. */
+  get(): Promise<string>;
+  /** Evicts the cached access token and returns a fresh one. */
+  refresh(): Promise<string>;
+}
+
+export function createAccessTokenProvider(
+  kv: KVNamespace,
+  clientId: string,
+  clientSecret: string,
+): AccessTokenProvider {
+  return {
+    get: () => getAccessToken(kv, clientId, clientSecret),
+    refresh: async () => {
+      await kv.delete(KV_OAUTH_TOKEN_KEY);
+      return getAccessToken(kv, clientId, clientSecret);
+    },
+  };
+}
+
 async function generateAccessToken(
   kv: KVNamespace,
   clientId: string,
