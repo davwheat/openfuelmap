@@ -1,0 +1,943 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "UK Fuel Prices API",
+    "version": "1.0.0",
+    "description": "REST API serving UK government fuel price data from fuel-finder.service.gov.uk"
+  },
+  "components": {
+    "schemas": {},
+    "parameters": {}
+  },
+  "paths": {
+    "/api/forecourts": {
+      "get": {
+        "tags": [
+          "Forecourts"
+        ],
+        "summary": "List forecourt stations",
+        "operationId": "get_ForecourtList",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number",
+              "default": 0,
+              "description": "Page number (0-indexed)"
+            },
+            "required": false,
+            "description": "Page number (0-indexed)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "number",
+              "description": "Results per page"
+            },
+            "required": true,
+            "description": "Results per page",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter by brand name (case-insensitive partial match)"
+            },
+            "required": false,
+            "description": "Filter by brand name (case-insensitive partial match)",
+            "name": "brand",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter by postcode prefix"
+            },
+            "required": false,
+            "description": "Filter by postcode prefix",
+            "name": "postcode",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter to stations offering this fuel type (e.g. E10, B7_STANDARD)"
+            },
+            "required": false,
+            "description": "Filter to stations offering this fuel type (e.g. E10, B7_STANDARD)",
+            "name": "fuel_type",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "number",
+              "description": "South-west corner latitude of bounding box"
+            },
+            "required": false,
+            "description": "South-west corner latitude of bounding box",
+            "name": "sw_lat",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "number",
+              "description": "South-west corner longitude of bounding box"
+            },
+            "required": false,
+            "description": "South-west corner longitude of bounding box",
+            "name": "sw_lng",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "number",
+              "description": "North-east corner latitude of bounding box"
+            },
+            "required": false,
+            "description": "North-east corner latitude of bounding box",
+            "name": "ne_lat",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "number",
+              "description": "North-east corner longitude of bounding box"
+            },
+            "required": false,
+            "description": "North-east corner longitude of bounding box",
+            "name": "ne_lng",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "description": "Include temporarily/permanently closed stations"
+            },
+            "required": false,
+            "description": "Include temporarily/permanently closed stations",
+            "name": "include_closed",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a paginated list of forecourts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "forecourts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "node_id": {
+                                "type": "string"
+                              },
+                              "trading_name": {
+                                "type": "string"
+                              },
+                              "brand_name": {
+                                "type": "string"
+                              },
+                              "postcode": {
+                                "type": "string"
+                              },
+                              "city": {
+                                "type": "string"
+                              },
+                              "latitude": {
+                                "type": "number"
+                              },
+                              "longitude": {
+                                "type": "number"
+                              },
+                              "is_motorway_service_station": {
+                                "type": "boolean"
+                              },
+                              "is_supermarket_service_station": {
+                                "type": "boolean"
+                              },
+                              "temporary_closure": {
+                                "type": "boolean"
+                              },
+                              "permanent_closure": {
+                                "type": [
+                                  "boolean",
+                                  "null"
+                                ]
+                              },
+                              "fuel_types": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "price": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "price": {
+                                    "type": "number",
+                                    "example": 132.9
+                                  },
+                                  "price_last_updated": {
+                                    "type": "string"
+                                  },
+                                  "price_change_effective_timestamp": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "price",
+                                  "price_last_updated",
+                                  "price_change_effective_timestamp"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "node_id",
+                              "trading_name",
+                              "brand_name",
+                              "postcode",
+                              "city",
+                              "latitude",
+                              "longitude",
+                              "is_motorway_service_station",
+                              "is_supermarket_service_station",
+                              "temporary_closure",
+                              "permanent_closure",
+                              "fuel_types"
+                            ]
+                          }
+                        },
+                        "total": {
+                          "type": "number"
+                        },
+                        "page": {
+                          "type": "number"
+                        },
+                        "limit": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "forecourts",
+                        "total",
+                        "page",
+                        "limit"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "result"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecourts/{nodeId}": {
+      "get": {
+        "tags": [
+          "Forecourts"
+        ],
+        "summary": "Get a single forecourt by node ID",
+        "operationId": "get_ForecourtFetch",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Forecourt node_id"
+            },
+            "required": true,
+            "description": "Forecourt node_id",
+            "name": "nodeId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the forecourt and its current prices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "forecourt": {
+                          "type": "object",
+                          "properties": {
+                            "node_id": {
+                              "type": "string",
+                              "example": "9b275ab576eeba3c6677984be15ee22a74e54fdfe8e5ea700e84a03178dc4ac1"
+                            },
+                            "trading_name": {
+                              "type": "string",
+                              "example": "Shell Hammersmith"
+                            },
+                            "brand_name": {
+                              "type": "string",
+                              "example": "Shell"
+                            },
+                            "is_same_trading_and_brand_name": {
+                              "type": "boolean"
+                            },
+                            "public_phone_number": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "temporary_closure": {
+                              "type": "boolean"
+                            },
+                            "permanent_closure": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "permanent_closure_date": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "is_motorway_service_station": {
+                              "type": "boolean"
+                            },
+                            "is_supermarket_service_station": {
+                              "type": "boolean"
+                            },
+                            "location": {
+                              "type": "object",
+                              "properties": {
+                                "address_line_1": {
+                                  "type": "string",
+                                  "example": "14 LONDON ROAD"
+                                },
+                                "address_line_2": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "city": {
+                                  "type": "string",
+                                  "example": "LONDON"
+                                },
+                                "country": {
+                                  "type": "string",
+                                  "example": "ENGLAND"
+                                },
+                                "county": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "postcode": {
+                                  "type": "string",
+                                  "example": "SW1A 1AA"
+                                },
+                                "latitude": {
+                                  "type": "number",
+                                  "example": 51.5074
+                                },
+                                "longitude": {
+                                  "type": "number",
+                                  "example": -0.1278
+                                }
+                              },
+                              "required": [
+                                "address_line_1",
+                                "address_line_2",
+                                "city",
+                                "country",
+                                "county",
+                                "postcode",
+                                "latitude",
+                                "longitude"
+                              ]
+                            },
+                            "amenities": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "opening_times": {},
+                            "fuel_types": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "updated_at": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "node_id",
+                            "trading_name",
+                            "brand_name",
+                            "is_same_trading_and_brand_name",
+                            "public_phone_number",
+                            "temporary_closure",
+                            "permanent_closure",
+                            "permanent_closure_date",
+                            "is_motorway_service_station",
+                            "is_supermarket_service_station",
+                            "location",
+                            "amenities",
+                            "fuel_types",
+                            "updated_at"
+                          ]
+                        },
+                        "current_prices": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "fuel_type": {
+                                "type": "string",
+                                "example": "E10"
+                              },
+                              "price": {
+                                "type": "number",
+                                "example": 132.9
+                              },
+                              "price_last_updated": {
+                                "type": "string"
+                              },
+                              "price_change_effective_timestamp": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "fuel_type",
+                              "price",
+                              "price_last_updated",
+                              "price_change_effective_timestamp"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "forecourt",
+                        "current_prices"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "result"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Forecourt not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/prices": {
+      "get": {
+        "tags": [
+          "Prices"
+        ],
+        "summary": "List current fuel prices",
+        "operationId": "get_PriceList",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number",
+              "default": 0,
+              "description": "Page number (0-indexed)"
+            },
+            "required": false,
+            "description": "Page number (0-indexed)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "number",
+              "description": "Results per page"
+            },
+            "required": true,
+            "description": "Results per page",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter by fuel type (e.g. E10, E5, B7_STANDARD)"
+            },
+            "required": false,
+            "description": "Filter by fuel type (e.g. E10, E5, B7_STANDARD)",
+            "name": "fuel_type",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter by brand name"
+            },
+            "required": false,
+            "description": "Filter by brand name",
+            "name": "brand",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter by postcode prefix"
+            },
+            "required": false,
+            "description": "Filter by postcode prefix",
+            "name": "postcode",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "price_asc",
+                "price_desc"
+              ],
+              "default": "price_asc",
+              "description": "Sort order"
+            },
+            "required": false,
+            "description": "Sort order",
+            "name": "sort",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns latest prices grouped by station",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "stations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "node_id": {
+                                "type": "string"
+                              },
+                              "trading_name": {
+                                "type": "string"
+                              },
+                              "brand_name": {
+                                "type": "string"
+                              },
+                              "postcode": {
+                                "type": "string"
+                              },
+                              "latitude": {
+                                "type": "number"
+                              },
+                              "longitude": {
+                                "type": "number"
+                              },
+                              "fuel_prices": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "fuel_type": {
+                                      "type": "string",
+                                      "example": "E10"
+                                    },
+                                    "price": {
+                                      "type": "number",
+                                      "example": 132.9
+                                    },
+                                    "price_last_updated": {
+                                      "type": "string"
+                                    },
+                                    "price_change_effective_timestamp": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "fuel_type",
+                                    "price",
+                                    "price_last_updated",
+                                    "price_change_effective_timestamp"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "node_id",
+                              "trading_name",
+                              "brand_name",
+                              "postcode",
+                              "latitude",
+                              "longitude",
+                              "fuel_prices"
+                            ]
+                          }
+                        },
+                        "total": {
+                          "type": "number"
+                        },
+                        "page": {
+                          "type": "number"
+                        },
+                        "limit": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "stations",
+                        "total",
+                        "page",
+                        "limit"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "result"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecourts/{nodeId}/prices/history": {
+      "get": {
+        "tags": [
+          "Prices"
+        ],
+        "summary": "Get price history for a forecourt",
+        "operationId": "get_PriceHistory",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Forecourt node_id"
+            },
+            "required": true,
+            "description": "Forecourt node_id",
+            "name": "nodeId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter to specific fuel type (e.g. E10). Omit for all types."
+            },
+            "required": false,
+            "description": "Filter to specific fuel type (e.g. E10). Omit for all types.",
+            "name": "fuel_type",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Only return prices after this date (YYYY-MM-DD)"
+            },
+            "required": false,
+            "description": "Only return prices after this date (YYYY-MM-DD)",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "number",
+              "default": 500,
+              "description": "Max number of price entries to return"
+            },
+            "required": false,
+            "description": "Max number of price entries to return",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns historical price entries ordered by timestamp",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "node_id": {
+                          "type": "string"
+                        },
+                        "prices": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "price": {
+                                "type": "number",
+                                "example": 132.9
+                              },
+                              "fuel_type": {
+                                "type": "string",
+                                "example": "E10"
+                              },
+                              "price_change_effective_timestamp": {
+                                "type": "string"
+                              },
+                              "created_at": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "price",
+                              "fuel_type",
+                              "price_change_effective_timestamp",
+                              "created_at"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "node_id",
+                        "prices"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "result"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Forecourt not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fuel-types": {
+      "get": {
+        "tags": [
+          "Reference"
+        ],
+        "summary": "List available fuel types",
+        "operationId": "get_FuelTypeList",
+        "responses": {
+          "200": {
+            "description": "Returns all fuel types currently offered by at least one forecourt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "fuel_types": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "example": "E10"
+                              },
+                              "name": {
+                                "type": "string",
+                                "example": "Unleaded (E10)"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "fuel_types"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "result"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/brands": {
+      "get": {
+        "tags": [
+          "Reference"
+        ],
+        "summary": "List available brands",
+        "operationId": "get_BrandList",
+        "responses": {
+          "200": {
+            "description": "Returns all brands currently associated with at least one active forecourt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "brands": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "example": "Shell"
+                              },
+                              "forecourt_count": {
+                                "type": "number",
+                                "example": 1042
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "forecourt_count"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "brands"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "result"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}
