@@ -1,6 +1,5 @@
 import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
-import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "../config";
 import { type AppContext, StationPriceSchema } from "../types";
 
 export class PriceList extends OpenAPIRoute {
@@ -10,10 +9,7 @@ export class PriceList extends OpenAPIRoute {
     request: {
       query: z.object({
         page: z.number().default(0).describe("Page number (0-indexed)"),
-        limit: z
-          .number()
-          .default(DEFAULT_PAGE_SIZE)
-          .describe("Results per page"),
+        limit: z.number().describe("Results per page"),
         fuel_type: z
           .string()
           .optional()
@@ -48,15 +44,7 @@ export class PriceList extends OpenAPIRoute {
 
   async handle(c: AppContext) {
     const data = await this.getValidatedData<typeof this.schema>();
-    const {
-      page,
-      limit: rawLimit,
-      fuel_type,
-      brand,
-      postcode,
-      sort,
-    } = data.query;
-    const limit = Math.min(rawLimit, MAX_PAGE_SIZE);
+    const { page, limit, fuel_type, brand, postcode, sort } = data.query;
     const offset = page * limit;
 
     const conditions: string[] = ["fp.is_latest = 1", "f.is_active = 1"];

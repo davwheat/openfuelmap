@@ -35,10 +35,7 @@ export const FUEL_TYPE_NAMES: Record<string, string> = {
   B7_PREMIUM: "Premium Diesel",
   E10: "Unleaded (E10)",
   E5: "Super Unleaded (E5)",
-  HVO: "Hydrotreated Vegetable Oil",
+  HVO: "HVO Diesel",
   B10: "B10 Diesel",
 };
 
-/** API pagination defaults */
-export const DEFAULT_PAGE_SIZE = 50;
-export const MAX_PAGE_SIZE = 200;

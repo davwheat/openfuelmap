@@ -1,6 +1,5 @@
 import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
-import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "../config";
 import { type AppContext, ForecourtSummarySchema } from "../types";
 
 export class ForecourtList extends OpenAPIRoute {
@@ -10,10 +9,7 @@ export class ForecourtList extends OpenAPIRoute {
     request: {
       query: z.object({
         page: z.number().default(0).describe("Page number (0-indexed)"),
-        limit: z
-          .number()
-          .default(DEFAULT_PAGE_SIZE)
-          .describe(`Results per page (max ${MAX_PAGE_SIZE})`),
+        limit: z.number().describe("Results per page"),
         brand: z
           .string()
           .optional()
@@ -71,7 +67,7 @@ export class ForecourtList extends OpenAPIRoute {
     const data = await this.getValidatedData<typeof this.schema>();
     const {
       page,
-      limit: rawLimit,
+      limit,
       brand,
       postcode,
       fuel_type,
@@ -81,33 +77,32 @@ export class ForecourtList extends OpenAPIRoute {
       ne_lng,
       include_closed,
     } = data.query;
-    const limit = Math.min(rawLimit, MAX_PAGE_SIZE);
     const offset = page * limit;
 
     const conditions: string[] = [];
-    const params: unknown[] = [];
+    const whereParams: unknown[] = [];
 
     if (!include_closed) {
       conditions.push(
-        "is_active = 1 AND temporary_closure = 0 AND (permanent_closure IS NULL OR permanent_closure = 0)",
+        "f.is_active = 1 AND f.temporary_closure = 0 AND (f.permanent_closure IS NULL OR f.permanent_closure = 0)",
       );
     } else {
-      conditions.push("is_active = 1");
+      conditions.push("f.is_active = 1");
     }
 
     if (brand) {
-      conditions.push("brand_name LIKE ?");
-      params.push(`%${brand}%`);
+      conditions.push("f.brand_name LIKE ?");
+      whereParams.push(`%${brand}%`);
     }
 
     if (postcode) {
-      conditions.push("postcode LIKE ?");
-      params.push(`${postcode}%`);
+      conditions.push("f.postcode LIKE ?");
+      whereParams.push(`${postcode}%`);
     }
 
     if (fuel_type) {
-      conditions.push("fuel_types LIKE ?");
-      params.push(`%"${fuel_type}"%`);
+      conditions.push("f.fuel_types LIKE ?");
+      whereParams.push(`%"${fuel_type}"%`);
     }
 
     if (
@@ -116,48 +111,77 @@ export class ForecourtList extends OpenAPIRoute {
       ne_lat !== undefined &&
       ne_lng !== undefined
     ) {
-      conditions.push("latitude BETWEEN ? AND ? AND longitude BETWEEN ? AND ?");
-      params.push(sw_lat, ne_lat, sw_lng, ne_lng);
+      conditions.push(
+        "f.latitude BETWEEN ? AND ? AND f.longitude BETWEEN ? AND ?",
+      );
+      whereParams.push(sw_lat, ne_lat, sw_lng, ne_lng);
     }
 
     const where =
       conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
     const countRow = await c.env.fuel_prices_db
-      .prepare(`SELECT COUNT(*) as total FROM forecourts ${where}`)
-      .bind(...params)
+      .prepare(`SELECT COUNT(*) as total FROM forecourts f ${where}`)
+      .bind(...whereParams)
       .first<{ total: number }>();
+
+    const priceJoin = fuel_type
+      ? "LEFT JOIN fuel_prices fp ON fp.node_id = f.node_id AND fp.is_latest = 1 AND fp.fuel_type = ?"
+      : "";
+    const priceSelect = fuel_type
+      ? ", fp.price as fp_price, fp.price_last_updated as fp_price_last_updated, fp.price_change_effective_timestamp as fp_price_change_effective_timestamp"
+      : "";
+    const joinParams: unknown[] = fuel_type ? [fuel_type] : [];
 
     const rows = await c.env.fuel_prices_db
       .prepare(
-        `SELECT node_id, trading_name, brand_name, postcode, city,
-					latitude, longitude, is_motorway_service_station,
-					is_supermarket_service_station, temporary_closure,
-					permanent_closure, fuel_types
-			 FROM forecourts ${where}
-			 ORDER BY trading_name ASC
-			 LIMIT ? OFFSET ?`,
+        `SELECT f.node_id, f.trading_name, f.brand_name, f.postcode, f.city,
+            f.latitude, f.longitude, f.is_motorway_service_station,
+            f.is_supermarket_service_station, f.temporary_closure,
+            f.permanent_closure, f.fuel_types${priceSelect}
+         FROM forecourts f
+         ${priceJoin}
+         ${where}
+         ORDER BY f.trading_name ASC
+         LIMIT ? OFFSET ?`,
       )
-      .bind(...params, limit, offset)
+      .bind(...joinParams, ...whereParams, limit, offset)
       .all();
 
-    const forecourts = rows.results.map((row: Record<string, unknown>) => ({
-      node_id: row.node_id,
-      trading_name: row.trading_name,
-      brand_name: row.brand_name,
-      postcode: row.postcode,
-      city: row.city,
-      latitude: row.latitude,
-      longitude: row.longitude,
-      is_motorway_service_station: Boolean(row.is_motorway_service_station),
-      is_supermarket_service_station: Boolean(
-        row.is_supermarket_service_station,
-      ),
-      temporary_closure: Boolean(row.temporary_closure),
-      permanent_closure:
-        row.permanent_closure === null ? null : Boolean(row.permanent_closure),
-      fuel_types: JSON.parse(row.fuel_types as string),
-    }));
+    const forecourts = rows.results.map((row: Record<string, unknown>) => {
+      const base = {
+        node_id: row.node_id,
+        trading_name: row.trading_name,
+        brand_name: row.brand_name,
+        postcode: row.postcode,
+        city: row.city,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        is_motorway_service_station: Boolean(row.is_motorway_service_station),
+        is_supermarket_service_station: Boolean(
+          row.is_supermarket_service_station,
+        ),
+        temporary_closure: Boolean(row.temporary_closure),
+        permanent_closure:
+          row.permanent_closure === null
+            ? null
+            : Boolean(row.permanent_closure),
+        fuel_types: JSON.parse(row.fuel_types as string),
+      };
+      if (!fuel_type) return base;
+      return {
+        ...base,
+        price:
+          row.fp_price != null
+            ? {
+                price: row.fp_price as number,
+                price_last_updated: row.fp_price_last_updated as string,
+                price_change_effective_timestamp:
+                  row.fp_price_change_effective_timestamp as string,
+              }
+            : null,
+      };
+    });
 
     return {
       success: true,

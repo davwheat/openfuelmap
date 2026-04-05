@@ -1,6 +1,7 @@
 import { fromHono } from "chanfana";
 import { Hono } from "hono";
 import { handleScheduled } from "./cron/handler";
+import { BrandList } from "./endpoints/brandList";
 import { ForecourtFetch } from "./endpoints/forecourtFetch";
 import { ForecourtList } from "./endpoints/forecourtList";
 import { PriceHistory } from "./endpoints/priceHistory";
@@ -26,6 +27,7 @@ openapi.get("/api/forecourts/:nodeId", ForecourtFetch);
 openapi.get("/api/prices", PriceList);
 openapi.get("/api/forecourts/:nodeId/prices/history", PriceHistory);
 openapi.get("/api/fuel-types", FuelTypeList);
+openapi.get("/api/brands", BrandList);
 
 export default {
   fetch: app.fetch,

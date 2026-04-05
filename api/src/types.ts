@@ -34,6 +34,12 @@ export const ForecourtSchema = z.object({
   updated_at: z.string(),
 });
 
+export const ForecourtFuelPriceSchema = z.object({
+  price: z.number().openapi({ example: 132.9 }),
+  price_last_updated: z.string(),
+  price_change_effective_timestamp: z.string(),
+});
+
 export const ForecourtSummarySchema = z.object({
   node_id: z.string(),
   trading_name: z.string(),
@@ -47,6 +53,7 @@ export const ForecourtSummarySchema = z.object({
   temporary_closure: z.boolean(),
   permanent_closure: z.boolean().nullable(),
   fuel_types: z.array(z.string()),
+  price: ForecourtFuelPriceSchema.nullable().optional(),
 });
 
 export const FuelPriceSchema = z.object({

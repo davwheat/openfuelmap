@@ -6,6 +6,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "open-fuel-map-api",
   "main": "src/index.ts",
+  "workers_dev": true,
   "compatibility_date": "2026-04-03",
   "observability": {
     "enabled": true,
@@ -32,4 +33,10 @@
       "*/10 * * * *",
     ],
   },
+  "routes": [
+    {
+      "pattern": "api.openfuelmap.co.uk",
+      "custom_domain": true,
+    },
+  ],
 }

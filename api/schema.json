@@ -12,7 +12,9 @@
   "paths": {
     "/api/forecourts": {
       "get": {
-        "tags": ["Forecourts"],
+        "tags": [
+          "Forecourts"
+        ],
         "summary": "List forecourt stations",
         "operationId": "get_ForecourtList",
         "parameters": [
@@ -30,11 +32,10 @@
           {
             "schema": {
               "type": "number",
-              "default": 50,
-              "description": "Results per page (max 200)"
+              "description": "Results per page"
             },
-            "required": false,
-            "description": "Results per page (max 200)",
+            "required": true,
+            "description": "Results per page",
             "name": "limit",
             "in": "query"
           },
@@ -130,7 +131,9 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [true]
+                      "enum": [
+                        true
+                      ]
                     },
                     "result": {
                       "type": "object",
@@ -171,13 +174,39 @@
                                 "type": "boolean"
                               },
                               "permanent_closure": {
-                                "type": ["boolean", "null"]
+                                "type": [
+                                  "boolean",
+                                  "null"
+                                ]
                               },
                               "fuel_types": {
                                 "type": "array",
                                 "items": {
                                   "type": "string"
                                 }
+                              },
+                              "price": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "price": {
+                                    "type": "number",
+                                    "example": 132.9
+                                  },
+                                  "price_last_updated": {
+                                    "type": "string"
+                                  },
+                                  "price_change_effective_timestamp": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "price",
+                                  "price_last_updated",
+                                  "price_change_effective_timestamp"
+                                ]
                               }
                             },
                             "required": [
@@ -206,10 +235,18 @@
                           "type": "number"
                         }
                       },
-                      "required": ["forecourts", "total", "page", "limit"]
+                      "required": [
+                        "forecourts",
+                        "total",
+                        "page",
+                        "limit"
+                      ]
                     }
                   },
-                  "required": ["success", "result"]
+                  "required": [
+                    "success",
+                    "result"
+                  ]
                 }
               }
             }
@@ -219,7 +256,9 @@
     },
     "/api/forecourts/{nodeId}": {
       "get": {
-        "tags": ["Forecourts"],
+        "tags": [
+          "Forecourts"
+        ],
         "summary": "Get a single forecourt by node ID",
         "operationId": "get_ForecourtFetch",
         "parameters": [
@@ -244,7 +283,9 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [true]
+                      "enum": [
+                        true
+                      ]
                     },
                     "result": {
                       "type": "object",
@@ -268,16 +309,25 @@
                               "type": "boolean"
                             },
                             "public_phone_number": {
-                              "type": ["string", "null"]
+                              "type": [
+                                "string",
+                                "null"
+                              ]
                             },
                             "temporary_closure": {
                               "type": "boolean"
                             },
                             "permanent_closure": {
-                              "type": ["boolean", "null"]
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
                             },
                             "permanent_closure_date": {
-                              "type": ["string", "null"]
+                              "type": [
+                                "string",
+                                "null"
+                              ]
                             },
                             "is_motorway_service_station": {
                               "type": "boolean"
@@ -293,7 +343,10 @@
                                   "example": "14 LONDON ROAD"
                                 },
                                 "address_line_2": {
-                                  "type": ["string", "null"]
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
                                 },
                                 "city": {
                                   "type": "string",
@@ -304,7 +357,10 @@
                                   "example": "ENGLAND"
                                 },
                                 "county": {
-                                  "type": ["string", "null"]
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
                                 },
                                 "postcode": {
                                   "type": "string",
@@ -393,10 +449,16 @@
                           }
                         }
                       },
-                      "required": ["forecourt", "current_prices"]
+                      "required": [
+                        "forecourt",
+                        "current_prices"
+                      ]
                     }
                   },
-                  "required": ["success", "result"]
+                  "required": [
+                    "success",
+                    "result"
+                  ]
                 }
               }
             }
@@ -410,13 +472,18 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [false]
+                      "enum": [
+                        false
+                      ]
                     },
                     "error": {
                       "type": "string"
                     }
                   },
-                  "required": ["success", "error"]
+                  "required": [
+                    "success",
+                    "error"
+                  ]
                 }
               }
             }
@@ -426,7 +493,9 @@
     },
     "/api/prices": {
       "get": {
-        "tags": ["Prices"],
+        "tags": [
+          "Prices"
+        ],
         "summary": "List current fuel prices",
         "operationId": "get_PriceList",
         "parameters": [
@@ -444,10 +513,9 @@
           {
             "schema": {
               "type": "number",
-              "default": 50,
               "description": "Results per page"
             },
-            "required": false,
+            "required": true,
             "description": "Results per page",
             "name": "limit",
             "in": "query"
@@ -485,7 +553,10 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["price_asc", "price_desc"],
+              "enum": [
+                "price_asc",
+                "price_desc"
+              ],
               "default": "price_asc",
               "description": "Sort order"
             },
@@ -505,7 +576,9 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [true]
+                      "enum": [
+                        true
+                      ]
                     },
                     "result": {
                       "type": "object",
@@ -583,10 +656,18 @@
                           "type": "number"
                         }
                       },
-                      "required": ["stations", "total", "page", "limit"]
+                      "required": [
+                        "stations",
+                        "total",
+                        "page",
+                        "limit"
+                      ]
                     }
                   },
-                  "required": ["success", "result"]
+                  "required": [
+                    "success",
+                    "result"
+                  ]
                 }
               }
             }
@@ -596,7 +677,9 @@
     },
     "/api/forecourts/{nodeId}/prices/history": {
       "get": {
-        "tags": ["Prices"],
+        "tags": [
+          "Prices"
+        ],
         "summary": "Get price history for a forecourt",
         "operationId": "get_PriceHistory",
         "parameters": [
@@ -652,7 +735,9 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [true]
+                      "enum": [
+                        true
+                      ]
                     },
                     "result": {
                       "type": "object",
@@ -689,10 +774,16 @@
                           }
                         }
                       },
-                      "required": ["node_id", "prices"]
+                      "required": [
+                        "node_id",
+                        "prices"
+                      ]
                     }
                   },
-                  "required": ["success", "result"]
+                  "required": [
+                    "success",
+                    "result"
+                  ]
                 }
               }
             }
@@ -706,13 +797,18 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [false]
+                      "enum": [
+                        false
+                      ]
                     },
                     "error": {
                       "type": "string"
                     }
                   },
-                  "required": ["success", "error"]
+                  "required": [
+                    "success",
+                    "error"
+                  ]
                 }
               }
             }
@@ -722,7 +818,9 @@
     },
     "/api/fuel-types": {
       "get": {
-        "tags": ["Reference"],
+        "tags": [
+          "Reference"
+        ],
         "summary": "List available fuel types",
         "operationId": "get_FuelTypeList",
         "responses": {
@@ -735,7 +833,9 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [true]
+                      "enum": [
+                        true
+                      ]
                     },
                     "result": {
                       "type": "object",
@@ -754,14 +854,83 @@
                                 "example": "Unleaded (E10)"
                               }
                             },
-                            "required": ["id", "name"]
+                            "required": [
+                              "id",
+                              "name"
+                            ]
                           }
                         }
                       },
-                      "required": ["fuel_types"]
+                      "required": [
+                        "fuel_types"
+                      ]
                     }
                   },
-                  "required": ["success", "result"]
+                  "required": [
+                    "success",
+                    "result"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/brands": {
+      "get": {
+        "tags": [
+          "Reference"
+        ],
+        "summary": "List available brands",
+        "operationId": "get_BrandList",
+        "responses": {
+          "200": {
+            "description": "Returns all brands currently associated with at least one active forecourt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "brands": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "example": "Shell"
+                              },
+                              "forecourt_count": {
+                                "type": "number",
+                                "example": 1042
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "forecourt_count"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "brands"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "result"
+                  ]
                 }
               }
             }
