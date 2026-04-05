@@ -14,8 +14,9 @@ class ForecourtRepositoryImpl @Inject constructor(private val apiClient: FuelPri
     override suspend fun getForecourts(
         bounds: BoundingBox,
         fuelType: String?,
+        brand: String?,
         limit: Int,
-    ): ApiResult<List<Forecourt>> = apiClient.getForecourts(bounds, fuelType, limit)
+    ): ApiResult<List<Forecourt>> = apiClient.getForecourts(bounds, fuelType, brand, limit)
 
     override suspend fun getForecourtDetail(nodeId: String): ApiResult<ForecourtDetail> =
         apiClient.getForecourtDetail(nodeId)

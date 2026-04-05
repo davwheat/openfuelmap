@@ -26,6 +26,7 @@ constructor(@param:ApplicationContext private val context: Context) {
 
     private object Keys {
         val SELECTED_FUEL_TYPE = stringPreferencesKey("selected_fuel_type")
+        val SELECTED_BRAND = stringPreferencesKey("selected_brand")
         val CAMERA_LAT = doublePreferencesKey("camera_latitude")
         val CAMERA_LNG = doublePreferencesKey("camera_longitude")
         val CAMERA_ZOOM = floatPreferencesKey("camera_zoom")
@@ -36,6 +37,16 @@ constructor(@param:ApplicationContext private val context: Context) {
 
     suspend fun setSelectedFuelType(fuelTypeId: String) {
         context.dataStore.edit { prefs -> prefs[Keys.SELECTED_FUEL_TYPE] = fuelTypeId }
+    }
+
+    val selectedBrand: Flow<String?> =
+        context.dataStore.data.map { prefs -> prefs[Keys.SELECTED_BRAND] }
+
+    suspend fun setSelectedBrand(brand: String?) {
+        context.dataStore.edit { prefs ->
+            if (brand == null) prefs.remove(Keys.SELECTED_BRAND)
+            else prefs[Keys.SELECTED_BRAND] = brand
+        }
     }
 
     val lastCameraPosition: Flow<SavedCameraPosition?> =

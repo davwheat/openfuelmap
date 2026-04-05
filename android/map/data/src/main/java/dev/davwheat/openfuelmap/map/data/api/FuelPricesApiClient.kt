@@ -27,6 +27,7 @@ constructor(
     suspend fun getForecourts(
         bounds: BoundingBox,
         fuelType: String? = null,
+        brand: String? = null,
         limit: Int = 200,
     ): ApiResult<List<Forecourt>> =
         withContext(Dispatchers.IO) {
@@ -40,7 +41,10 @@ constructor(
                         .addQueryParameter("ne_lat", bounds.neLat.toString())
                         .addQueryParameter("ne_lng", bounds.neLng.toString())
                         .addQueryParameter("limit", limit.toString())
-                        .apply { if (fuelType != null) addQueryParameter("fuel_type", fuelType) }
+                        .apply {
+                            if (fuelType != null) addQueryParameter("fuel_type", fuelType)
+                            if (brand != null) addQueryParameter("brand", brand)
+                        }
                         .build()
                 val request = Request.Builder().url(url).build()
                 val response = client.newCall(request).execute()

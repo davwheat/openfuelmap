@@ -3,7 +3,10 @@ package dev.davwheat.openfuelmap.map.impl.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.davwheat.openfuelmap.data.db.BrandEntity
 import dev.davwheat.openfuelmap.data.db.FuelTypeEntity
+import dev.davwheat.openfuelmap.data.db.FuelTypeIds
+import dev.davwheat.openfuelmap.data.repository.BrandRepository
 import dev.davwheat.openfuelmap.data.repository.FuelTypeRepository
 import dev.davwheat.openfuelmap.data.repository.SavedCameraPosition
 import dev.davwheat.openfuelmap.data.repository.UserPreferencesRepository
@@ -33,10 +36,18 @@ class MapViewModel
 constructor(
     private val forecourtRepository: ForecourtRepository,
     fuelTypeRepository: FuelTypeRepository,
+    brandRepository: BrandRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
 ) : ViewModel() {
 
     private val _stations = MutableStateFlow<List<Forecourt>>(emptyList())
+
+    val selectedBrand: StateFlow<String?> =
+        userPreferencesRepository.selectedBrand.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            null,
+        )
 
     /**
      * Display-ready markers for the currently loaded viewport. The per-station label, colour
@@ -66,23 +77,35 @@ constructor(
             .getAllFuelTypes()
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    val brands: StateFlow<List<BrandEntity>> =
+        brandRepository.getAllBrands().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     val selectedFuelType: StateFlow<String?> =
         combine(fuelTypes, userPreferencesRepository.selectedFuelType) { types, saved ->
                 when {
                     types.isEmpty() -> null
                     saved != null && types.any { it.id == saved } -> saved
-                    else -> types.first().id
+                    else ->
+                        types
+                            .minBy { type ->
+                                val idx = FuelTypeIds.PRIORITY_ORDER.indexOf(type.id)
+                                if (idx >= 0) idx else FuelTypeIds.PRIORITY_ORDER.size
+                            }
+                            .id
                 }
             }
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
-        // Auto-refetch stations whenever bounds or selected fuel type changes.
+        // Auto-refetch stations whenever bounds, selected fuel type, or selected brand changes.
         viewModelScope.launch {
-            combine(_currentBounds.filterNotNull(), selectedFuelType) { bounds, fuelType ->
-                    bounds to fuelType
+            combine(_currentBounds.filterNotNull(), selectedFuelType, selectedBrand) {
+                    bounds,
+                    fuelType,
+                    brand ->
+                    Triple(bounds, fuelType, brand)
                 }
-                .collect { (bounds, fuelType) -> fetchStations(bounds, fuelType) }
+                .collect { (bounds, fuelType, brand) -> fetchStations(bounds, fuelType, brand) }
         }
     }
 
@@ -90,11 +113,16 @@ constructor(
         _currentBounds.value = bounds
     }
 
-    private suspend fun fetchStations(bounds: BoundingBox, fuelType: String?) {
+    private suspend fun fetchStations(bounds: BoundingBox, fuelType: String?, brand: String?) {
         _isLoading.value = true
         _error.value = null
         when (
-            val result = forecourtRepository.getForecourts(bounds = bounds, fuelType = fuelType)
+            val result =
+                forecourtRepository.getForecourts(
+                    bounds = bounds,
+                    fuelType = fuelType,
+                    brand = brand,
+                )
         ) {
             is ApiResult.Success -> _stations.value = result.data
             is ApiResult.Failure -> {
@@ -107,6 +135,10 @@ constructor(
 
     fun selectFuelType(fuelTypeId: String) {
         viewModelScope.launch { userPreferencesRepository.setSelectedFuelType(fuelTypeId) }
+    }
+
+    fun selectBrand(brand: String?) {
+        viewModelScope.launch { userPreferencesRepository.setSelectedBrand(brand) }
     }
 
     suspend fun loadInitialCameraPosition(): SavedCameraPosition? =

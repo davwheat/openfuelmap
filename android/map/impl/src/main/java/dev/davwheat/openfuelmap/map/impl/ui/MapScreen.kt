@@ -23,8 +23,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -36,8 +38,10 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.ComposeMapColorScheme
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
@@ -50,9 +54,17 @@ import dev.davwheat.openfuelmap.common.ui.SimpleTooltip
 import dev.davwheat.openfuelmap.data.repository.SavedCameraPosition
 import dev.davwheat.openfuelmap.map.api.model.BoundingBox
 import dev.davwheat.openfuelmap.map.impl.viewmodel.MapViewModel
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.ln
+import kotlin.math.log2
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.sin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -82,6 +94,8 @@ fun MapScreen(viewModel: MapViewModel) {
     val error by viewModel.error.collectAsStateWithLifecycle()
     val fuelTypes by viewModel.fuelTypes.collectAsStateWithLifecycle()
     val selectedFuelType by viewModel.selectedFuelType.collectAsStateWithLifecycle()
+    val brands by viewModel.brands.collectAsStateWithLifecycle()
+    val selectedBrand by viewModel.selectedBrand.collectAsStateWithLifecycle()
 
     val fuelTypeNames = remember(fuelTypes) { fuelTypes.associate { it.id to it.name } }
 
@@ -182,24 +196,57 @@ fun MapScreen(viewModel: MapViewModel) {
     var showFilterSheet by remember { mutableStateOf(false) }
 
     val priceMarkerIcons = rememberPriceMarkerIconCache()
+    val coroutineScope = rememberCoroutineScope()
 
-    // Render any missing marker bitmaps on a background dispatcher so the main thread is only
-    // responsible for cheap descriptor lookups. Already-cached entries are skipped, so panning
-    // through areas we've already drawn does no work.
-    LaunchedEffect(markers, priceMarkerIcons) {
-        priceMarkerIcons.ensure(markers.map { it.label to it.colorPosition })
+    // Quantise zoom to the integer bucket so clusters only re-bucket when the user crosses a
+    // zoom level — not on every pixel of a pinch gesture.
+    val clusteringZoom by remember {
+        derivedStateOf { cameraPositionState.position.zoom.toInt().toFloat() }
     }
 
-    // Pair each marker with its rendered icon, filtering out any whose bitmap hasn't been
-    // produced yet. Driven by derivedStateOf so the inner marker loop doesn't need to branch
-    // on null icons — it just iterates ready-to-render entries.
-    val readyMarkers by
+    // Group nearby markers into clusters below CLUSTER_DISABLED_AT_ZOOM; at higher zooms every
+    // station is emitted as its own Single.
+    val clusters by remember { derivedStateOf { clusterMarkers(markers, clusteringZoom) } }
+
+    // Render both pill and cluster-badge bitmaps for the current set on a background dispatcher.
+    // Already-cached entries are skipped, so crossing a zoom boundary or panning back over an
+    // area we've drawn does no work.
+    LaunchedEffect(clusters, priceMarkerIcons) {
+        val pillRequests = mutableListOf<Pair<String, Float?>>()
+        val badgeRequests = mutableListOf<Pair<String, Float?>>()
+        for (cluster in clusters) {
+            when (cluster) {
+                is MapCluster.Single ->
+                    pillRequests.add(cluster.marker.label to cluster.marker.colorPosition)
+                is MapCluster.Group ->
+                    badgeRequests.add(clusterCountLabel(cluster.count) to cluster.minColorPosition)
+            }
+        }
+        priceMarkerIcons.ensure(pillRequests)
+        priceMarkerIcons.ensureClusterBadges(badgeRequests)
+    }
+
+    // Pair each cluster with its rendered icon, filtering out any whose bitmap isn't ready yet.
+    // Driven by derivedStateOf so the render loop doesn't need to branch on null — it iterates
+    // ready-to-draw entries only.
+    val readyClusters by
         remember(priceMarkerIcons) {
             derivedStateOf {
-                markers.mapNotNull { marker ->
-                    priceMarkerIcons.getOrNull(marker.label, marker.colorPosition)?.let {
-                        marker to it
-                    }
+                clusters.mapNotNull { cluster ->
+                    val icon =
+                        when (cluster) {
+                            is MapCluster.Single ->
+                                priceMarkerIcons.getOrNull(
+                                    cluster.marker.label,
+                                    cluster.marker.colorPosition,
+                                )
+                            is MapCluster.Group ->
+                                priceMarkerIcons.getClusterBadgeOrNull(
+                                    clusterCountLabel(cluster.count),
+                                    cluster.minColorPosition,
+                                )
+                        }
+                    icon?.let { cluster to it }
                 }
             }
         }
@@ -216,24 +263,56 @@ fun MapScreen(viewModel: MapViewModel) {
                 uiSettings = MapUiSettings(myLocationButtonEnabled = hasLocationPermission),
                 mapColorScheme = ComposeMapColorScheme.FOLLOW_SYSTEM,
             ) {
-                readyMarkers.forEach { (marker, icon) ->
-                    val station = marker.station
-                    val markerState =
-                        rememberUpdatedMarkerState(
-                            position = LatLng(station.latitude, station.longitude)
-                        )
-                    Marker(
-                        state = markerState,
-                        title = station.tradingName,
-                        snippet = station.brandName,
-                        anchor = Offset(0.5f, 0.5f),
-                        zIndex = marker.zIndex,
-                        icon = icon,
-                        onClick = {
-                            viewModel.selectStation(station)
-                            true
-                        },
-                    )
+                readyClusters.forEach { (cluster, icon) ->
+                    // Stable keys across cluster-list reorderings so Compose keeps each marker's
+                    // node (and its native Google Maps marker) alive when the same station or
+                    // grid cell is still present, even if the HashMap-derived list order changed.
+                    val identity =
+                        when (cluster) {
+                            is MapCluster.Single -> cluster.marker.station.nodeId
+                            is MapCluster.Group -> cluster.cellKey
+                        }
+                    key(identity) {
+                        when (cluster) {
+                            is MapCluster.Single -> {
+                                val marker = cluster.marker
+                                val station = marker.station
+                                val markerState =
+                                    rememberUpdatedMarkerState(
+                                        position = LatLng(station.latitude, station.longitude)
+                                    )
+                                Marker(
+                                    state = markerState,
+                                    title = station.tradingName,
+                                    snippet = station.brandName,
+                                    anchor = Offset(0.5f, 0.5f),
+                                    zIndex = marker.zIndex,
+                                    icon = icon,
+                                    onClick = {
+                                        viewModel.selectStation(station)
+                                        true
+                                    },
+                                )
+                            }
+                            is MapCluster.Group -> {
+                                val markerState =
+                                    rememberUpdatedMarkerState(
+                                        position = LatLng(cluster.centroidLat, cluster.centroidLng)
+                                    )
+                                Marker(
+                                    state = markerState,
+                                    anchor = Offset(0.5f, 0.5f),
+                                    icon = icon,
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            animateCameraToCluster(cameraPositionState, cluster)
+                                        }
+                                        true
+                                    },
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -265,7 +344,84 @@ fun MapScreen(viewModel: MapViewModel) {
             fuelTypes = fuelTypes,
             selectedFuelType = selectedFuelType,
             onFuelTypeSelected = { viewModel.selectFuelType(it) },
+            brands = brands,
+            selectedBrand = selectedBrand,
+            onBrandSelected = { viewModel.selectBrand(it) },
             onDismiss = { showFilterSheet = false },
         )
     }
+}
+
+/** Padding around the cluster bounds when fitting them into the viewport (in pixels). */
+private const val CLUSTER_ZOOM_PADDING_PX: Int = 120
+
+/**
+ * Maximum zoom level that tapping a cluster can land on. A tight cluster (members in one small
+ * area) would otherwise fit into street-level zoom (18–20), which is almost never what the user
+ * wants.
+ */
+private const val CLUSTER_TAP_MAX_ZOOM: Float = 15f
+
+/** Camera animation duration when zooming into a cluster, in milliseconds. */
+private const val CLUSTER_ZOOM_ANIMATION_MS: Int = 400
+
+/** Google Maps' tile size at zoom 0. The world is 256×256 px at that zoom. */
+private const val MERCATOR_WORLD_PX: Double = 256.0
+
+private suspend fun animateCameraToCluster(
+    cameraState: CameraPositionState,
+    cluster: MapCluster.Group,
+) {
+    val centroid = LatLng(cluster.centroidLat, cluster.centroidLng)
+    // Work out the zoom that would fit the cluster's bounds, clamp to the cap, then do a single
+    // clean animation. If we can't compute the fit (no projection yet, or a single-point
+    // cluster), just go to the cap.
+    val fitted = zoomToFitCluster(cameraState, cluster)
+    val targetZoom = (fitted ?: CLUSTER_TAP_MAX_ZOOM).coerceAtMost(CLUSTER_TAP_MAX_ZOOM)
+    cameraState.animate(
+        CameraUpdateFactory.newLatLngZoom(centroid, targetZoom),
+        durationMs = CLUSTER_ZOOM_ANIMATION_MS,
+    )
+}
+
+/**
+ * Mercator calculation of the zoom level at which this cluster's bounds would fit the current
+ * viewport, minus [CLUSTER_ZOOM_PADDING_PX] on each edge. Returns `null` when the projection isn't
+ * ready or the bounds degenerate to a single point — caller falls back to [CLUSTER_TAP_MAX_ZOOM].
+ */
+private fun zoomToFitCluster(cameraState: CameraPositionState, cluster: MapCluster.Group): Float? {
+    if (cluster.swLat == cluster.neLat && cluster.swLng == cluster.neLng) return null
+    val projection = cameraState.projection ?: return null
+
+    // Projection of the current viewport's screen corners gives us its pixel size, which is what
+    // the zoom-to-fit formula needs as its denominator.
+    val region = projection.visibleRegion
+    val nearLeft = projection.toScreenLocation(region.nearLeft)
+    val nearRight = projection.toScreenLocation(region.nearRight)
+    val farLeft = projection.toScreenLocation(region.farLeft)
+    val viewportWidthPx = abs(nearRight.x - nearLeft.x)
+    val viewportHeightPx = abs(nearLeft.y - farLeft.y)
+    if (viewportWidthPx <= 0 || viewportHeightPx <= 0) return null
+
+    val latFraction = (mercatorLatRad(cluster.neLat) - mercatorLatRad(cluster.swLat)) / PI
+    val lngDiff = cluster.neLng - cluster.swLng
+    val lngFraction = (if (lngDiff < 0) lngDiff + 360 else lngDiff) / 360.0
+    val availableW = (viewportWidthPx - 2 * CLUSTER_ZOOM_PADDING_PX).coerceAtLeast(1)
+    val availableH = (viewportHeightPx - 2 * CLUSTER_ZOOM_PADDING_PX).coerceAtLeast(1)
+
+    val lngZoom =
+        if (lngFraction > 0.0) log2(availableW / MERCATOR_WORLD_PX / lngFraction)
+        else Double.POSITIVE_INFINITY
+    val latZoom =
+        if (latFraction > 0.0) log2(availableH / MERCATOR_WORLD_PX / latFraction)
+        else Double.POSITIVE_INFINITY
+    if (lngZoom.isInfinite() && latZoom.isInfinite()) return null
+    return min(lngZoom, latZoom).toFloat()
+}
+
+/** Converts a latitude (degrees) to its Mercator Y coordinate, in radians, range [-π/2, π/2]. */
+private fun mercatorLatRad(lat: Double): Double {
+    val s = sin(lat * PI / 180.0)
+    val radX2 = ln((1 + s) / (1 - s)) / 2
+    return max(min(radX2, PI), -PI) / 2
 }

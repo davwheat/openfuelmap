@@ -1,8 +1,9 @@
 /** Upstream fuel-finder API base URL */
 export const UPSTREAM_BASE_URL = "https://www.fuel-finder.service.gov.uk";
 
-/** OAuth2 token endpoint */
+/** OAuth2 token endpoints */
 export const UPSTREAM_TOKEN_URL = `${UPSTREAM_BASE_URL}/api/v1/oauth/generate_access_token`;
+export const UPSTREAM_REGENERATE_TOKEN_URL = `${UPSTREAM_BASE_URL}/api/v1/oauth/regenerate_access_token`;
 
 /** Upstream API paths */
 export const UPSTREAM_PFS_PATH = "/api/v1/pfs";
@@ -28,6 +29,17 @@ export const SYNC_KEY_PRICES = "last_price_sync";
 
 /** KV key for cached OAuth token */
 export const KV_OAUTH_TOKEN_KEY = "oauth_access_token";
+
+/** KV key for cached OAuth refresh token */
+export const KV_OAUTH_REFRESH_TOKEN_KEY = "oauth_refresh_token";
+
+/**
+ * TTL for the cached refresh token. The upstream API does not publish a
+ * refresh-token lifetime; if it has been revoked sooner,
+ * `regenerate_access_token` will fail and we fall back to
+ * `generate_access_token`.
+ */
+export const OAUTH_REFRESH_TOKEN_TTL_SECONDS = 24 * 60 * 60;
 
 /** Human-readable fuel type names */
 export const FUEL_TYPE_NAMES: Record<string, string> = {

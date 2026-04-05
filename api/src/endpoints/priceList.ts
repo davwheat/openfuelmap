@@ -15,6 +15,12 @@ export class PriceList extends OpenAPIRoute {
           .optional()
           .describe("Filter by fuel type (e.g. E10, E5, B7_STANDARD)"),
         brand: z.string().optional().describe("Filter by brand name"),
+        exclude_brand: z
+          .string()
+          .optional()
+          .describe(
+            "Exclude these brands from results. Comma-separated canonical brand names (e.g. 'BP,Shell,Independent'); exact, case-insensitive match",
+          ),
         postcode: z.string().optional().describe("Filter by postcode prefix"),
         sort: z
           .enum(["price_asc", "price_desc"])
@@ -44,7 +50,8 @@ export class PriceList extends OpenAPIRoute {
 
   async handle(c: AppContext) {
     const data = await this.getValidatedData<typeof this.schema>();
-    const { page, limit, fuel_type, brand, postcode, sort } = data.query;
+    const { page, limit, fuel_type, brand, exclude_brand, postcode, sort } =
+      data.query;
     const offset = page * limit;
 
     const conditions: string[] = ["fp.is_latest = 1", "f.is_active = 1"];
@@ -57,6 +64,17 @@ export class PriceList extends OpenAPIRoute {
     if (brand) {
       conditions.push("f.brand_name LIKE ?");
       params.push(`%${brand}%`);
+    }
+    if (exclude_brand) {
+      const excluded = exclude_brand
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+      if (excluded.length > 0) {
+        const placeholders = excluded.map(() => "?").join(",");
+        conditions.push(`LOWER(f.brand_name) NOT IN (${placeholders})`);
+        params.push(...excluded.map((s) => s.toLowerCase()));
+      }
     }
     if (postcode) {
       conditions.push("f.postcode LIKE ?");

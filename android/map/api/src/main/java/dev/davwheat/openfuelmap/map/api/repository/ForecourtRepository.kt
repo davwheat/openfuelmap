@@ -9,6 +9,7 @@ interface ForecourtRepository {
     suspend fun getForecourts(
         bounds: BoundingBox,
         fuelType: String? = null,
+        brand: String? = null,
         limit: Int = 1_000,
     ): ApiResult<List<Forecourt>>
 

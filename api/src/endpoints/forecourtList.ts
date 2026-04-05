@@ -14,6 +14,12 @@ export class ForecourtList extends OpenAPIRoute {
           .string()
           .optional()
           .describe("Filter by brand name (case-insensitive partial match)"),
+        exclude_brand: z
+          .string()
+          .optional()
+          .describe(
+            "Exclude these brands from results. Comma-separated canonical brand names (e.g. 'BP,Shell,Independent'); exact, case-insensitive match",
+          ),
         postcode: z.string().optional().describe("Filter by postcode prefix"),
         fuel_type: z
           .string()
@@ -69,6 +75,7 @@ export class ForecourtList extends OpenAPIRoute {
       page,
       limit,
       brand,
+      exclude_brand,
       postcode,
       fuel_type,
       sw_lat,
@@ -93,6 +100,18 @@ export class ForecourtList extends OpenAPIRoute {
     if (brand) {
       conditions.push("f.brand_name LIKE ?");
       whereParams.push(`%${brand}%`);
+    }
+
+    if (exclude_brand) {
+      const excluded = exclude_brand
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+      if (excluded.length > 0) {
+        const placeholders = excluded.map(() => "?").join(",");
+        conditions.push(`LOWER(f.brand_name) NOT IN (${placeholders})`);
+        whereParams.push(...excluded.map((s) => s.toLowerCase()));
+      }
     }
 
     if (postcode) {

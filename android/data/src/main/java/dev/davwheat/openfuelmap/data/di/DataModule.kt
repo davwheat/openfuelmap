@@ -8,6 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.davwheat.openfuelmap.data.db.AppDatabase
+import dev.davwheat.openfuelmap.data.db.BrandDao
 import dev.davwheat.openfuelmap.data.db.FuelTypeDao
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
@@ -20,11 +21,15 @@ object DataModule {
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, "openfuelmap.db").build()
+        Room.databaseBuilder(context, AppDatabase::class.java, "openfuelmap.db")
+            .fallbackToDestructiveMigration(dropAllTables = true)
+            .build()
 
     @Provides
     @Singleton
     fun provideFuelTypeDao(database: AppDatabase): FuelTypeDao = database.fuelTypeDao()
+
+    @Provides @Singleton fun provideBrandDao(database: AppDatabase): BrandDao = database.brandDao()
 
     @Provides
     @Singleton

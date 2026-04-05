@@ -7,6 +7,11 @@ const BrandSchema = z.object({
   forecourt_count: z.number().openapi({ example: 1042 }),
 });
 
+type Brand = { name: string; forecourt_count: number };
+
+const BRANDS_CACHE_KEY = "brands:v1";
+const BRANDS_CACHE_TTL_SECONDS = 8 * 60 * 60;
+
 export class BrandList extends OpenAPIRoute {
   schema = {
     tags: ["Reference"],
@@ -30,6 +35,14 @@ export class BrandList extends OpenAPIRoute {
   };
 
   async handle(c: AppContext) {
+    const cached = await c.env.KV.get<Brand[]>(BRANDS_CACHE_KEY, "json");
+    if (cached) {
+      return {
+        success: true,
+        result: { brands: cached },
+      };
+    }
+
     const rows = await c.env.fuel_prices_db
       .prepare(
         `SELECT brand_name, COUNT(*) as forecourt_count
@@ -40,10 +53,14 @@ export class BrandList extends OpenAPIRoute {
       )
       .all<{ brand_name: string; forecourt_count: number }>();
 
-    const brands = rows.results.map((row) => ({
+    const brands: Brand[] = rows.results.map((row) => ({
       name: row.brand_name,
       forecourt_count: row.forecourt_count,
     }));
+
+    await c.env.KV.put(BRANDS_CACHE_KEY, JSON.stringify(brands), {
+      expirationTtl: BRANDS_CACHE_TTL_SECONDS,
+    });
 
     return {
       success: true,

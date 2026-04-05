@@ -52,6 +52,16 @@
           {
             "schema": {
               "type": "string",
+              "description": "Exclude these brands from results. Comma-separated canonical brand names (e.g. 'BP,Shell,Independent'); exact, case-insensitive match"
+            },
+            "required": false,
+            "description": "Exclude these brands from results. Comma-separated canonical brand names (e.g. 'BP,Shell,Independent'); exact, case-insensitive match",
+            "name": "exclude_brand",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
               "description": "Filter by postcode prefix"
             },
             "required": false,
@@ -538,6 +548,16 @@
             "required": false,
             "description": "Filter by brand name",
             "name": "brand",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Exclude these brands from results. Comma-separated canonical brand names (e.g. 'BP,Shell,Independent'); exact, case-insensitive match"
+            },
+            "required": false,
+            "description": "Exclude these brands from results. Comma-separated canonical brand names (e.g. 'BP,Shell,Independent'); exact, case-insensitive match",
+            "name": "exclude_brand",
             "in": "query"
           },
           {

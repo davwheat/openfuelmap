@@ -1,17 +1,19 @@
+import { canonicalizeBrand } from "../brands";
 import type { UpstreamForecourt } from "../upstream/types";
 
 const UPSERT_SQL = `INSERT INTO forecourts (
-	node_id, trading_name, brand_name, is_same_trading_and_brand_name,
+	node_id, trading_name, brand_name, raw_brand_name, is_same_trading_and_brand_name,
 	public_phone_number, temporary_closure, permanent_closure,
 	permanent_closure_date, is_motorway_service_station,
 	is_supermarket_service_station, address_line_1, address_line_2,
 	city, country, county, postcode, latitude, longitude,
 	amenities, opening_times, fuel_types, is_active, updated_at
 ) VALUES (
-	?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now')
+	?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now')
 ) ON CONFLICT(node_id) DO UPDATE SET
 	trading_name = excluded.trading_name,
 	brand_name = excluded.brand_name,
+	raw_brand_name = excluded.raw_brand_name,
 	is_same_trading_and_brand_name = excluded.is_same_trading_and_brand_name,
 	public_phone_number = excluded.public_phone_number,
 	temporary_closure = excluded.temporary_closure,
@@ -45,6 +47,7 @@ export async function upsertForecourts(
       .bind(
         fc.node_id,
         fc.trading_name,
+        canonicalizeBrand(fc.brand_name),
         fc.brand_name,
         fc.is_same_trading_and_brand_name ? 1 : 0,
         fc.public_phone_number,

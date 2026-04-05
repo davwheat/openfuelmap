@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -46,43 +47,50 @@ private val PriceMissingColor = Color(0xFF757575) // grey 600
 private const val COLOR_BUCKETS = 24
 
 /**
- * Builds and caches [BitmapDescriptor]s for the price-pill marker icon.
+ * Builds and caches [BitmapDescriptor]s for the price-pill and cluster-badge marker icons.
  *
  * Previously the map used `MarkerComposable` which — per marker, on the main thread — spins up a
  * `ComposeView`, runs measure/layout/draw, and captures the result to a bitmap. That was the source
  * of significant jank when the viewport's station set changed (every marker has a distinct `nodeId`
  * key so nothing was ever cached).
  *
- * This cache renders the pill directly via [CanvasDrawScope] (no view hierarchy) on
- * [Dispatchers.Default], memoises the result by `(label, quantised colour bucket)`, and exposes it
- * via a snapshot state map so the main thread only ever does cheap lookups. A fresh viewport only
- * generates a handful of unique bitmaps regardless of how many stations are visible.
+ * This cache renders icons directly via [CanvasDrawScope] (no view hierarchy) on
+ * [Dispatchers.Default], memoises the result by `(label, quantised colour bucket)`, and exposes
+ * them via a snapshot state map so the main thread only ever does cheap lookups. A fresh viewport
+ * only generates a handful of unique bitmaps regardless of how many stations are visible.
  */
 @Composable
 internal fun rememberPriceMarkerIconCache(): PriceMarkerIconCache {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer(cacheSize = 64)
-    val textStyle =
+    val pillTextStyle =
         MaterialTheme.typography.labelMedium.copy(
             fontWeight = FontWeight.SemiBold,
             color = Color.White,
         )
-    return remember(density, textMeasurer, textStyle) {
-        PriceMarkerIconCache(density, textMeasurer, textStyle)
+    val clusterTextStyle =
+        MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, color = Color.White)
+    return remember(density, textMeasurer, pillTextStyle, clusterTextStyle) {
+        PriceMarkerIconCache(density, textMeasurer, pillTextStyle, clusterTextStyle)
     }
 }
 
 internal class PriceMarkerIconCache(
     private val density: Density,
     private val textMeasurer: TextMeasurer,
-    private val textStyle: TextStyle,
+    private val pillTextStyle: TextStyle,
+    private val clusterTextStyle: TextStyle,
 ) {
     private val descriptors = mutableStateMapOf<Key, BitmapDescriptor>()
     private val renderMutex = Mutex()
 
-    /** Returns the cached descriptor for this station, or null if it's not yet rendered. */
+    /** Returns the cached pill descriptor for this station, or null if it's not yet rendered. */
     fun getOrNull(label: String, colorPosition: Float?): BitmapDescriptor? =
-        descriptors[keyFor(label, colorPosition)]
+        descriptors[pillKey(label, colorPosition)]
+
+    /** Returns the cached cluster badge descriptor, or null if it's not yet rendered. */
+    fun getClusterBadgeOrNull(countLabel: String, colorPosition: Float?): BitmapDescriptor? =
+        descriptors[clusterKey(countLabel, colorPosition)]
 
     /**
      * Render any pills not already in the cache on [Dispatchers.Default]. Completes once every
@@ -90,29 +98,46 @@ internal class PriceMarkerIconCache(
      * marker list update — already-cached entries are skipped.
      */
     suspend fun ensure(requests: List<Pair<String, Float?>>) {
-        if (requests.isEmpty()) return
-        val missing = buildSet {
-            for ((label, colorPosition) in requests) {
-                val key = keyFor(label, colorPosition)
-                if (key !in descriptors) add(key)
-            }
-        }
+        ensureAll(requests.map { (label, cp) -> pillKey(label, cp) })
+    }
+
+    /**
+     * Render any cluster badges not already in the cache on [Dispatchers.Default]. Same semantics
+     * as [ensure].
+     */
+    suspend fun ensureClusterBadges(requests: List<Pair<String, Float?>>) {
+        ensureAll(requests.map { (countLabel, cp) -> clusterKey(countLabel, cp) })
+    }
+
+    private suspend fun ensureAll(keys: List<Key>) {
+        if (keys.isEmpty()) return
+        val missing = buildSet { for (key in keys) if (key !in descriptors) add(key) }
         if (missing.isEmpty()) return
         withContext(Dispatchers.Default) {
             renderMutex.withLock {
                 for (key in missing) {
                     yield()
                     if (key in descriptors) continue
-                    val bitmap = renderBitmap(key.label, colorFor(key.colorBucket))
+                    val color = colorFor(key.colorBucket)
+                    val bitmap =
+                        when (key) {
+                            is Key.Pill -> renderPillBitmap(key.label, color)
+                            is Key.ClusterBadge -> renderClusterBadgeBitmap(key.countLabel, color)
+                        }
                     descriptors[key] = BitmapDescriptorFactory.fromBitmap(bitmap)
                 }
             }
         }
     }
 
-    private fun keyFor(label: String, colorPosition: Float?): Key {
-        val bucket = colorPosition?.let { (it.coerceIn(0f, 1f) * COLOR_BUCKETS).roundToInt() }
-        return Key(label, bucket)
+    private fun pillKey(label: String, colorPosition: Float?): Key.Pill =
+        Key.Pill(label, bucketOf(colorPosition))
+
+    private fun clusterKey(countLabel: String, colorPosition: Float?): Key.ClusterBadge =
+        Key.ClusterBadge(countLabel, bucketOf(colorPosition))
+
+    private fun bucketOf(colorPosition: Float?): Int? = colorPosition?.let {
+        (it.coerceIn(0f, 1f) * COLOR_BUCKETS).roundToInt()
     }
 
     private fun colorFor(bucket: Int?): Color =
@@ -122,8 +147,8 @@ internal class PriceMarkerIconCache(
             PriceMissingColor
         }
 
-    private fun renderBitmap(label: String, pillColor: Color): android.graphics.Bitmap {
-        val layout = textMeasurer.measure(label, textStyle)
+    private fun renderPillBitmap(label: String, pillColor: Color): android.graphics.Bitmap {
+        val layout = textMeasurer.measure(label, pillTextStyle)
         val paddingH = with(density) { 8.dp.roundToPx() }
         val paddingV = with(density) { 4.dp.roundToPx() }
         val borderPx = with(density) { 1.dp.toPx() }
@@ -157,15 +182,67 @@ internal class PriceMarkerIconCache(
             )
         }
 
-        // Bitmap.createBitmap(w, h) (used internally by ImageBitmap) leaves the bitmap's density
-        // at the default 160dpi. Google Maps interprets that as an mdpi-authored icon and
-        // upscales it to match the device density — but the bitmap is *already* in device pixels,
-        // so the extra scaling produces blurry edges. Stamping the device density makes the SDK
-        // draw the bitmap 1:1 in physical pixels.
-        return imageBitmap.asAndroidBitmap().also {
-            it.density = (density.density * DisplayMetrics.DENSITY_DEFAULT).roundToInt()
-        }
+        return stampDeviceDensity(imageBitmap.asAndroidBitmap())
     }
 
-    private data class Key(val label: String, val colorBucket: Int?)
+    private fun renderClusterBadgeBitmap(
+        countLabel: String,
+        badgeColor: Color,
+    ): android.graphics.Bitmap {
+        val layout = textMeasurer.measure(countLabel, clusterTextStyle)
+        val minDiameter = with(density) { 36.dp.roundToPx() }
+        val padding = with(density) { 10.dp.roundToPx() }
+        val borderPx = with(density) { 1.5.dp.toPx() }
+
+        // Diameter is large enough to contain the text plus padding on every side. Using the text's
+        // longest dimension keeps two- and three-character counts sitting comfortably inside the
+        // circle.
+        val contentSpan = max(layout.size.width, layout.size.height)
+        val diameter = max(minDiameter, contentSpan + padding * 2)
+
+        val imageBitmap = ImageBitmap(diameter, diameter, ImageBitmapConfig.Argb8888)
+        val canvas = Canvas(imageBitmap)
+        val size = Size(diameter.toFloat(), diameter.toFloat())
+        val center = Offset(size.width / 2f, size.height / 2f)
+
+        val halfBorder = borderPx / 2f
+        val fillRadius = size.width / 2f
+        val strokeRadius = fillRadius - halfBorder
+
+        val textTopLeft =
+            Offset((diameter - layout.size.width) / 2f, (diameter - layout.size.height) / 2f)
+
+        CanvasDrawScope().draw(density, LayoutDirection.Ltr, canvas, size) {
+            drawCircle(color = badgeColor, radius = fillRadius, center = center)
+            drawCircle(
+                color = Color.White,
+                radius = strokeRadius,
+                center = center,
+                style = Stroke(width = borderPx),
+            )
+            drawText(textLayoutResult = layout, topLeft = textTopLeft)
+        }
+
+        return stampDeviceDensity(imageBitmap.asAndroidBitmap())
+    }
+
+    /**
+     * Bitmap.createBitmap(w, h) (used internally by ImageBitmap) leaves the bitmap's density at the
+     * default 160dpi. Google Maps interprets that as an mdpi-authored icon and upscales it to match
+     * the device density — but the bitmap is *already* in device pixels, so the extra scaling
+     * produces blurry edges. Stamping the device density makes the SDK draw the bitmap 1:1 in
+     * physical pixels.
+     */
+    private fun stampDeviceDensity(bitmap: android.graphics.Bitmap): android.graphics.Bitmap =
+        bitmap.also {
+            it.density = (density.density * DisplayMetrics.DENSITY_DEFAULT).roundToInt()
+        }
+
+    private sealed interface Key {
+        val colorBucket: Int?
+
+        data class Pill(val label: String, override val colorBucket: Int?) : Key
+
+        data class ClusterBadge(val countLabel: String, override val colorBucket: Int?) : Key
+    }
 }

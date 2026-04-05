@@ -35,4 +35,19 @@ constructor(private val dao: FuelTypeDao, private val apiClient: FuelTypesApiCli
 
     fun getDisplayName(fuelTypeId: String): Flow<String> =
         dao.getById(fuelTypeId).map { it?.name ?: fuelTypeId }
+
+    /**
+     * Refreshes the fuel-type cache from the network. Intended to be called on every app launch so
+     * renamed or new fuel types are picked up over time. If the network call fails (null) or
+     * returns an empty list, the existing cache is left untouched, so offline launches fall back to
+     * whatever was last seen. IOExceptions are swallowed by [FuelTypesApiClient]; other failures
+     * (e.g. deserialization) propagate and should be handled by the caller.
+     */
+    suspend fun prefetch() {
+        val fresh = apiClient.getFuelTypes() ?: return
+        if (fresh.isEmpty()) return
+        val entities = fresh.map { FuelTypeEntity(id = it.id, name = it.name) }
+        dao.deleteAll()
+        dao.insertAll(entities)
+    }
 }

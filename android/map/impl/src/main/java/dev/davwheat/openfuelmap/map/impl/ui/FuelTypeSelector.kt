@@ -25,12 +25,11 @@ fun FuelTypeSelector(
     onFuelTypeSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val priorityOrder = listOf(FuelTypeIds.E10, FuelTypeIds.E5, FuelTypeIds.B7_STANDARD)
     val sorted =
         remember(fuelTypes) {
             fuelTypes.sortedBy { type ->
-                val idx = priorityOrder.indexOf(type.id)
-                if (idx >= 0) idx else priorityOrder.size
+                val idx = FuelTypeIds.PRIORITY_ORDER.indexOf(type.id)
+                if (idx >= 0) idx else FuelTypeIds.PRIORITY_ORDER.size
             }
         }
 
