@@ -11,10 +11,8 @@ const DailyPriceStatSchema = z.object({
 /** Earliest date to include in stats results (data before this is discarded). */
 const STATS_MIN_DATE = "2026-03-25";
 
-const ALLOWED_RANGES = [7, 28, 60, 90, 180, 365] as const;
-type AllowedRange = (typeof ALLOWED_RANGES)[number];
-
-const CACHE_TTL_SECONDS = 60 * 60;
+const MAX_RANGE_DAYS = 365;
+const CACHE_TTL_SECONDS = 2 * 60 * 60;
 
 export class DailyMedianPrices extends OpenAPIRoute {
   schema = {
@@ -57,76 +55,82 @@ export class DailyMedianPrices extends OpenAPIRoute {
   async handle(c: AppContext) {
     const data = await this.getValidatedData<typeof this.schema>();
     const { stat } = data.query;
-    const days = parseInt(data.query.range, 10) as AllowedRange;
+    const days = parseInt(data.query.range, 10);
 
-    const cacheKey = `daily-prices:v2:${stat}:${days}d`;
+    const cacheKey = `daily-prices:v3:${stat}`;
 
-    const cached = await c.env.KV.get<z.infer<typeof DailyPriceStatSchema>[]>(
+    let all = await c.env.KV.get<z.infer<typeof DailyPriceStatSchema>[]>(
       cacheKey,
       "json",
     );
-    if (cached) {
-      return { success: true, result: { stat, prices: cached } };
+
+    if (!all) {
+      const dateFloor = `MAX(DATE('now', '-' || ? || ' days'), ?)`;
+
+      const sql =
+        stat === "trimmed_mean"
+          ? `WITH daily_prices AS (
+               SELECT
+                 fuel_type,
+                 DATE(price_change_effective_timestamp) AS date,
+                 price,
+                 PERCENT_RANK() OVER (
+                   PARTITION BY fuel_type, DATE(price_change_effective_timestamp)
+                   ORDER BY price
+                 ) AS pct
+               FROM fuel_prices
+               WHERE price_change_effective_timestamp >= ${dateFloor}
+             )
+             SELECT
+               date,
+               fuel_type,
+               ROUND(AVG(price), 1) AS price
+             FROM daily_prices
+             WHERE pct >= 0.1 AND pct <= 0.9
+             GROUP BY fuel_type, date
+             ORDER BY date, fuel_type`
+          : `WITH daily_prices AS (
+               SELECT
+                 fuel_type,
+                 DATE(price_change_effective_timestamp) AS date,
+                 price,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY fuel_type, DATE(price_change_effective_timestamp)
+                   ORDER BY price
+                 ) AS rn,
+                 COUNT(*) OVER (
+                   PARTITION BY fuel_type, DATE(price_change_effective_timestamp)
+                 ) AS cnt
+               FROM fuel_prices
+               WHERE price_change_effective_timestamp >= ${dateFloor}
+             )
+             SELECT
+               date,
+               fuel_type,
+               ROUND(AVG(price), 1) AS price
+             FROM daily_prices
+             WHERE rn IN ((cnt + 1) / 2, (cnt + 2) / 2)
+             GROUP BY fuel_type, date
+             ORDER BY date, fuel_type`;
+
+      const rows = await c.env.fuel_prices_db
+        .prepare(sql)
+        .bind(MAX_RANGE_DAYS, STATS_MIN_DATE)
+        .all<{ date: string; fuel_type: string; price: number }>();
+
+      all = rows.results;
+
+      await c.env.KV.put(cacheKey, JSON.stringify(all), {
+        expirationTtl: CACHE_TTL_SECONDS,
+      });
     }
 
-    const dateFloor = `MAX(DATE('now', '-' || ? || ' days'), ?)`;
+    // Trim to the requested range
+    const cutoff = new Date();
+    cutoff.setUTCDate(cutoff.getUTCDate() - days);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
 
-    const sql =
-      stat === "trimmed_mean"
-        ? `WITH daily_prices AS (
-             SELECT
-               fuel_type,
-               DATE(price_change_effective_timestamp) AS date,
-               price,
-               PERCENT_RANK() OVER (
-                 PARTITION BY fuel_type, DATE(price_change_effective_timestamp)
-                 ORDER BY price
-               ) AS pct
-             FROM fuel_prices
-             WHERE price_change_effective_timestamp >= ${dateFloor}
-           )
-           SELECT
-             date,
-             fuel_type,
-             ROUND(AVG(price), 1) AS price
-           FROM daily_prices
-           WHERE pct >= 0.1 AND pct <= 0.9
-           GROUP BY fuel_type, date
-           ORDER BY date, fuel_type`
-        : `WITH daily_prices AS (
-             SELECT
-               fuel_type,
-               DATE(price_change_effective_timestamp) AS date,
-               price,
-               ROW_NUMBER() OVER (
-                 PARTITION BY fuel_type, DATE(price_change_effective_timestamp)
-                 ORDER BY price
-               ) AS rn,
-               COUNT(*) OVER (
-                 PARTITION BY fuel_type, DATE(price_change_effective_timestamp)
-               ) AS cnt
-             FROM fuel_prices
-             WHERE price_change_effective_timestamp >= ${dateFloor}
-           )
-           SELECT
-             date,
-             fuel_type,
-             ROUND(AVG(price), 1) AS price
-           FROM daily_prices
-           WHERE rn IN ((cnt + 1) / 2, (cnt + 2) / 2)
-           GROUP BY fuel_type, date
-           ORDER BY date, fuel_type`;
-
-    const rows = await c.env.fuel_prices_db
-      .prepare(sql)
-      .bind(days, STATS_MIN_DATE)
-      .all<{ date: string; fuel_type: string; price: number }>();
-
-    const prices = rows.results;
-
-    await c.env.KV.put(cacheKey, JSON.stringify(prices), {
-      expirationTtl: CACHE_TTL_SECONDS,
-    });
+    const prices = all.filter((p) => p.date >= cutoffStr);
 
     return { success: true, result: { stat, prices } };
   }
