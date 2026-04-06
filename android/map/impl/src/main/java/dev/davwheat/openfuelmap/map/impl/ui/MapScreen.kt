@@ -1,9 +1,6 @@
 package dev.davwheat.openfuelmap.map.impl.ui
 
-import android.Manifest
 import android.annotation.SuppressLint
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -15,6 +12,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Text
@@ -32,12 +30,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
-import androidx.core.content.PermissionChecker
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -50,21 +45,21 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
 import dev.davwheat.openfuelmap.app.api.LocalBottomNavBarProvider
+import dev.davwheat.openfuelmap.common.location.rememberLastKnownLocation
+import dev.davwheat.openfuelmap.common.location.rememberLocationPermissionState
 import dev.davwheat.openfuelmap.common.ui.SimpleTooltip
 import dev.davwheat.openfuelmap.data.repository.SavedCameraPosition
-import dev.davwheat.openfuelmap.map.api.model.BoundingBox
+import dev.davwheat.openfuelmap.forecourts.api.model.BoundingBox
+import dev.davwheat.openfuelmap.forecourts.impl.detail.ForecourtDetailSheet
+import dev.davwheat.openfuelmap.forecourts.impl.filter.StationFilterSheet
 import dev.davwheat.openfuelmap.map.impl.viewmodel.MapViewModel
-import kotlin.math.PI
-import kotlin.math.abs
-import kotlin.math.ln
 import kotlin.math.log2
-import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.sin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -84,6 +79,13 @@ internal fun MapScreenTopAppBar(modifier: Modifier = Modifier, openFilterSheet: 
     )
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Composable
+private fun MapScreenTopAppBarPreview() {
+    MaterialExpressiveTheme { MapScreenTopAppBar(openFilterSheet = {}) }
+}
+
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -95,38 +97,18 @@ fun MapScreen(viewModel: MapViewModel) {
     val fuelTypes by viewModel.fuelTypes.collectAsStateWithLifecycle()
     val selectedFuelType by viewModel.selectedFuelType.collectAsStateWithLifecycle()
     val brands by viewModel.brands.collectAsStateWithLifecycle()
-    val selectedBrand by viewModel.selectedBrand.collectAsStateWithLifecycle()
+    val excludedBrands by viewModel.excludedBrands.collectAsStateWithLifecycle()
 
     val fuelTypeNames = remember(fuelTypes) { fuelTypes.associate { it.id to it.name } }
 
     val bottomNavBar = LocalBottomNavBarProvider.current
 
-    val context = LocalContext.current
-    var hasLocationPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
-                PermissionChecker.PERMISSION_GRANTED
-        )
-    }
+    val locationPermission = rememberLocationPermissionState()
+    val hasLocationPermission = locationPermission.hasPermission
 
-    val permissionLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-            permissions ->
-            hasLocationPermission =
-                permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                    permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        }
+    LaunchedEffect(Unit) { if (!hasLocationPermission) locationPermission.request() }
 
-    LaunchedEffect(Unit) {
-        if (!hasLocationPermission) {
-            permissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                )
-            )
-        }
-    }
+    val lastKnownLocation by rememberLastKnownLocation(hasLocationPermission)
 
     val cameraPositionState = rememberCameraPositionState {
         // Default to London; overridden by saved position or last known location once available.
@@ -149,21 +131,14 @@ fun MapScreen(viewModel: MapViewModel) {
         savedPositionChecked = true
     }
 
-    LaunchedEffect(hasLocationPermission, savedPositionChecked) {
-        if (!savedPositionChecked || initialPositionApplied || !hasLocationPermission) {
+    LaunchedEffect(lastKnownLocation, savedPositionChecked) {
+        val loc = lastKnownLocation
+        if (!savedPositionChecked || initialPositionApplied || loc == null) {
             return@LaunchedEffect
         }
-        val client = LocationServices.getFusedLocationProviderClient(context)
-        client.lastLocation.addOnSuccessListener { location ->
-            if (location != null && !initialPositionApplied) {
-                cameraPositionState.position =
-                    CameraPosition.fromLatLngZoom(
-                        LatLng(location.latitude, location.longitude),
-                        10f,
-                    )
-                initialPositionApplied = true
-            }
-        }
+        cameraPositionState.position =
+            CameraPosition.fromLatLngZoom(LatLng(loc.latitude, loc.longitude), 10f)
+        initialPositionApplied = true
     }
 
     LaunchedEffect(cameraPositionState) {
@@ -331,7 +306,7 @@ fun MapScreen(viewModel: MapViewModel) {
     }
 
     selectedStation?.let { selection ->
-        StationDetailSheet(
+        ForecourtDetailSheet(
             forecourt = selection.basic,
             detail = selection.detail,
             fuelTypeNames = fuelTypeNames,
@@ -340,20 +315,27 @@ fun MapScreen(viewModel: MapViewModel) {
     }
 
     if (showFilterSheet) {
-        MapFilterSheet(
+        StationFilterSheet(
             fuelTypes = fuelTypes,
             selectedFuelType = selectedFuelType,
             onFuelTypeSelected = { viewModel.selectFuelType(it) },
             brands = brands,
-            selectedBrand = selectedBrand,
-            onBrandSelected = { viewModel.selectBrand(it) },
+            excludedBrands = excludedBrands,
+            onBrandToggled = { viewModel.toggleBrandExcluded(it) },
             onDismiss = { showFilterSheet = false },
+            fuelTypeBlurb =
+                "Only show stations offering this fuel type. Prices shown on the map will also " +
+                    "be for this fuel.",
+            brandBlurb = "Tap a brand to hide its stations from the map.",
         )
     }
 }
 
-/** Padding around the cluster bounds when fitting them into the viewport (in pixels). */
-private const val CLUSTER_ZOOM_PADDING_PX: Int = 120
+/**
+ * Fraction of the viewport the cluster's bounds should occupy after zooming. 0.78 leaves ~11%
+ * padding on each side, which sits comfortably within the marker pills' own footprint.
+ */
+private const val CLUSTER_FIT_RATIO: Double = 0.78
 
 /**
  * Maximum zoom level that tapping a cluster can land on. A tight cluster (members in one small
@@ -365,63 +347,108 @@ private const val CLUSTER_TAP_MAX_ZOOM: Float = 15f
 /** Camera animation duration when zooming into a cluster, in milliseconds. */
 private const val CLUSTER_ZOOM_ANIMATION_MS: Int = 400
 
-/** Google Maps' tile size at zoom 0. The world is 256×256 px at that zoom. */
-private const val MERCATOR_WORLD_PX: Double = 256.0
-
 private suspend fun animateCameraToCluster(
     cameraState: CameraPositionState,
     cluster: MapCluster.Group,
 ) {
-    val centroid = LatLng(cluster.centroidLat, cluster.centroidLng)
-    // Work out the zoom that would fit the cluster's bounds, clamp to the cap, then do a single
-    // clean animation. If we can't compute the fit (no projection yet, or a single-point
-    // cluster), just go to the cap.
+    // Centre on the MIDPOINT of the cluster's bounds, not the centroid. If we centre on the
+    // centroid of an asymmetric cluster (4 tight stations + 1 outlier), the centroid is pulled
+    // toward the dense side and the outlier falls outside the viewport.
+    val target =
+        LatLng((cluster.swLat + cluster.neLat) / 2.0, (cluster.swLng + cluster.neLng) / 2.0)
     val fitted = zoomToFitCluster(cameraState, cluster)
     val targetZoom = (fitted ?: CLUSTER_TAP_MAX_ZOOM).coerceAtMost(CLUSTER_TAP_MAX_ZOOM)
+    Timber.d(
+        "cluster-tap count=%d bounds=sw(%.6f,%.6f)→ne(%.6f,%.6f) mid=(%.6f,%.6f) " +
+            "fitted=%s cap=%.2f -> targetZoom=%.2f (from zoom=%.2f)",
+        cluster.count,
+        cluster.swLat,
+        cluster.swLng,
+        cluster.neLat,
+        cluster.neLng,
+        target.latitude,
+        target.longitude,
+        fitted?.let { "%.2f".format(it) } ?: "null",
+        CLUSTER_TAP_MAX_ZOOM,
+        targetZoom,
+        cameraState.position.zoom,
+    )
     cameraState.animate(
-        CameraUpdateFactory.newLatLngZoom(centroid, targetZoom),
+        CameraUpdateFactory.newLatLngZoom(target, targetZoom),
         durationMs = CLUSTER_ZOOM_ANIMATION_MS,
+    )
+    Timber.d(
+        "cluster-tap settled at zoom=%.2f target=(%.6f,%.6f)",
+        cameraState.position.zoom,
+        cameraState.position.target.latitude,
+        cameraState.position.target.longitude,
     )
 }
 
 /**
- * Mercator calculation of the zoom level at which this cluster's bounds would fit the current
- * viewport, minus [CLUSTER_ZOOM_PADDING_PX] on each edge. Returns `null` when the projection isn't
- * ready or the bounds degenerate to a single point — caller falls back to [CLUSTER_TAP_MAX_ZOOM].
+ * Compute the target zoom that makes the cluster's bounds occupy [CLUSTER_FIT_RATIO] of the current
+ * viewport's span. Works by comparing the cluster's lat/lng span to the visible region's lat/lng
+ * span at the *current* zoom, then translating the ratio into a zoom delta. Since both spans live
+ * in the same degree-space at (approximately) the same latitude, Mercator distortion cancels out
+ * and no pixel-size guesswork is needed.
+ *
+ * Returns `null` when the projection isn't ready, the current viewport is zero-size, or the cluster
+ * degenerates to a single point — caller falls back to [CLUSTER_TAP_MAX_ZOOM].
  */
 private fun zoomToFitCluster(cameraState: CameraPositionState, cluster: MapCluster.Group): Float? {
-    if (cluster.swLat == cluster.neLat && cluster.swLng == cluster.neLng) return null
-    val projection = cameraState.projection ?: return null
+    if (cluster.swLat == cluster.neLat && cluster.swLng == cluster.neLng) {
+        Timber.d("zoomToFitCluster: degenerate cluster (single point) — returning null")
+        return null
+    }
+    val projection = cameraState.projection
+    if (projection == null) {
+        Timber.d("zoomToFitCluster: projection is null — returning null")
+        return null
+    }
 
-    // Projection of the current viewport's screen corners gives us its pixel size, which is what
-    // the zoom-to-fit formula needs as its denominator.
-    val region = projection.visibleRegion
-    val nearLeft = projection.toScreenLocation(region.nearLeft)
-    val nearRight = projection.toScreenLocation(region.nearRight)
-    val farLeft = projection.toScreenLocation(region.farLeft)
-    val viewportWidthPx = abs(nearRight.x - nearLeft.x)
-    val viewportHeightPx = abs(nearLeft.y - farLeft.y)
-    if (viewportWidthPx <= 0 || viewportHeightPx <= 0) return null
+    val visible = projection.visibleRegion.latLngBounds
+    val currentLngSpan = visible.northeast.longitude - visible.southwest.longitude
+    val currentLatSpan = visible.northeast.latitude - visible.southwest.latitude
+    if (currentLngSpan <= 0 || currentLatSpan <= 0) {
+        Timber.d(
+            "zoomToFitCluster: zero viewport lng=%.6f lat=%.6f — returning null",
+            currentLngSpan,
+            currentLatSpan,
+        )
+        return null
+    }
 
-    val latFraction = (mercatorLatRad(cluster.neLat) - mercatorLatRad(cluster.swLat)) / PI
-    val lngDiff = cluster.neLng - cluster.swLng
-    val lngFraction = (if (lngDiff < 0) lngDiff + 360 else lngDiff) / 360.0
-    val availableW = (viewportWidthPx - 2 * CLUSTER_ZOOM_PADDING_PX).coerceAtLeast(1)
-    val availableH = (viewportHeightPx - 2 * CLUSTER_ZOOM_PADDING_PX).coerceAtLeast(1)
+    val clusterLngSpan = cluster.neLng - cluster.swLng
+    val clusterLatSpan = cluster.neLat - cluster.swLat
 
-    val lngZoom =
-        if (lngFraction > 0.0) log2(availableW / MERCATOR_WORLD_PX / lngFraction)
+    // `delta = log2(currentSpan * fitRatio / clusterSpan)` — positive delta means zoom IN that
+    // many levels. Take the axis-wise minimum so the tighter axis governs the framing.
+    val lngDelta =
+        if (clusterLngSpan > 0.0) log2(currentLngSpan * CLUSTER_FIT_RATIO / clusterLngSpan)
         else Double.POSITIVE_INFINITY
-    val latZoom =
-        if (latFraction > 0.0) log2(availableH / MERCATOR_WORLD_PX / latFraction)
+    val latDelta =
+        if (clusterLatSpan > 0.0) log2(currentLatSpan * CLUSTER_FIT_RATIO / clusterLatSpan)
         else Double.POSITIVE_INFINITY
-    if (lngZoom.isInfinite() && latZoom.isInfinite()) return null
-    return min(lngZoom, latZoom).toFloat()
-}
+    if (lngDelta.isInfinite() && latDelta.isInfinite()) {
+        Timber.d("zoomToFitCluster: both axis deltas infinite — returning null")
+        return null
+    }
 
-/** Converts a latitude (degrees) to its Mercator Y coordinate, in radians, range [-π/2, π/2]. */
-private fun mercatorLatRad(lat: Double): Double {
-    val s = sin(lat * PI / 180.0)
-    val radX2 = ln((1 + s) / (1 - s)) / 2
-    return max(min(radX2, PI), -PI) / 2
+    val zoomDelta = min(lngDelta, latDelta)
+    val currentZoom = cameraState.position.zoom
+    val result = (currentZoom + zoomDelta).toFloat()
+    Timber.d(
+        "zoomToFitCluster: viewport=(lng=%.6f,lat=%.6f) cluster=(lng=%.6f,lat=%.6f) " +
+            "lngDelta=%.3f latDelta=%.3f chosenDelta=%.3f currentZoom=%.2f -> %.2f",
+        currentLngSpan,
+        currentLatSpan,
+        clusterLngSpan,
+        clusterLatSpan,
+        lngDelta,
+        latDelta,
+        zoomDelta,
+        currentZoom,
+        result,
+    )
+    return result
 }

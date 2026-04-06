@@ -1,7 +1,7 @@
 package dev.davwheat.openfuelmap.map.impl.viewmodel
 
-import dev.davwheat.openfuelmap.map.api.model.Forecourt
-import dev.davwheat.openfuelmap.map.api.model.ForecourtDetail
+import dev.davwheat.openfuelmap.forecourts.api.model.Forecourt
+import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtDetail
 
 /**
  * UI state for the currently-selected station.

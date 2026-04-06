@@ -1,6 +1,6 @@
 package dev.davwheat.openfuelmap.map.impl.viewmodel
 
-import dev.davwheat.openfuelmap.map.api.model.Forecourt
+import dev.davwheat.openfuelmap.forecourts.api.model.Forecourt
 
 /**
  * Pre-computed display data for a single station marker on the map.

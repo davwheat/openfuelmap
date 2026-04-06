@@ -10,10 +10,11 @@ import dev.davwheat.openfuelmap.data.repository.BrandRepository
 import dev.davwheat.openfuelmap.data.repository.FuelTypeRepository
 import dev.davwheat.openfuelmap.data.repository.SavedCameraPosition
 import dev.davwheat.openfuelmap.data.repository.UserPreferencesRepository
-import dev.davwheat.openfuelmap.map.api.model.BoundingBox
-import dev.davwheat.openfuelmap.map.api.model.Forecourt
-import dev.davwheat.openfuelmap.map.api.repository.ForecourtRepository
-import dev.davwheat.openfuelmap.map.api.result.ApiResult
+import dev.davwheat.openfuelmap.forecourts.api.model.BoundingBox
+import dev.davwheat.openfuelmap.forecourts.api.model.Forecourt
+import dev.davwheat.openfuelmap.forecourts.api.model.PriceChange
+import dev.davwheat.openfuelmap.forecourts.api.repository.ForecourtRepository
+import dev.davwheat.openfuelmap.forecourts.api.result.ApiResult
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -42,11 +43,11 @@ constructor(
 
     private val _stations = MutableStateFlow<List<Forecourt>>(emptyList())
 
-    val selectedBrand: StateFlow<String?> =
-        userPreferencesRepository.selectedBrand.stateIn(
+    val excludedBrands: StateFlow<Set<String>> =
+        userPreferencesRepository.excludedBrands.stateIn(
             viewModelScope,
             SharingStarted.Eagerly,
-            null,
+            emptySet(),
         )
 
     /**
@@ -97,15 +98,17 @@ constructor(
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
-        // Auto-refetch stations whenever bounds, selected fuel type, or selected brand changes.
+        // Auto-refetch stations whenever bounds, selected fuel type, or excluded brands change.
         viewModelScope.launch {
-            combine(_currentBounds.filterNotNull(), selectedFuelType, selectedBrand) {
+            combine(_currentBounds.filterNotNull(), selectedFuelType, excludedBrands) {
                     bounds,
                     fuelType,
-                    brand ->
-                    Triple(bounds, fuelType, brand)
+                    excluded ->
+                    Triple(bounds, fuelType, excluded)
                 }
-                .collect { (bounds, fuelType, brand) -> fetchStations(bounds, fuelType, brand) }
+                .collect { (bounds, fuelType, excluded) ->
+                    fetchStations(bounds, fuelType, excluded)
+                }
         }
     }
 
@@ -113,7 +116,11 @@ constructor(
         _currentBounds.value = bounds
     }
 
-    private suspend fun fetchStations(bounds: BoundingBox, fuelType: String?, brand: String?) {
+    private suspend fun fetchStations(
+        bounds: BoundingBox,
+        fuelType: String?,
+        excludeBrands: Set<String>,
+    ) {
         _isLoading.value = true
         _error.value = null
         when (
@@ -121,7 +128,7 @@ constructor(
                 forecourtRepository.getForecourts(
                     bounds = bounds,
                     fuelType = fuelType,
-                    brand = brand,
+                    excludeBrands = excludeBrands,
                 )
         ) {
             is ApiResult.Success -> _stations.value = result.data
@@ -137,8 +144,12 @@ constructor(
         viewModelScope.launch { userPreferencesRepository.setSelectedFuelType(fuelTypeId) }
     }
 
-    fun selectBrand(brand: String?) {
-        viewModelScope.launch { userPreferencesRepository.setSelectedBrand(brand) }
+    fun toggleBrandExcluded(brand: String) {
+        viewModelScope.launch {
+            val current = excludedBrands.value
+            val next = if (brand in current) current - brand else current + brand
+            userPreferencesRepository.setExcludedBrands(next)
+        }
     }
 
     suspend fun loadInitialCameraPosition(): SavedCameraPosition? =
@@ -199,7 +210,13 @@ constructor(
         val span = if (rangeLow != null && rangeHigh != null) rangeHigh - rangeLow else 0.0
         return stations.map { station ->
             val stationPrice = station.price?.price
-            val label = stationPrice?.let { "${it}p" } ?: "-"
+            val arrow =
+                when (station.price?.priceChange) {
+                    PriceChange.INCREASE -> "↑"
+                    PriceChange.DECREASE -> "↓"
+                    else -> ""
+                }
+            val label = stationPrice?.let { "$arrow${it}p" } ?: "-"
             val colorPosition =
                 if (stationPrice != null && rangeLow != null) {
                     if (span > 0.0) {

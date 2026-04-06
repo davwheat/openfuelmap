@@ -28,12 +28,22 @@ include(":app")
 
 include(":app:api")
 
+include(":common:location")
+
 include(":common:ui")
 
 include(":data")
 
-include(":map:api")
+include(":forecourts:api")
 
-include(":map:data")
+include(":forecourts:data")
+
+include(":forecourts:impl")
+
+include(":list:api")
+
+include(":list:impl")
+
+include(":map:api")
 
 include(":map:impl")

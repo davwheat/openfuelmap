@@ -1,14 +1,19 @@
 package dev.davwheat.openfuelmap.app.api
 
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation3.runtime.NavKey
+import dev.davwheat.openfuelmap.list.api.ListNav
 import dev.davwheat.openfuelmap.map.api.MapNav
 
 private data class TopLevelNavMetadata(
@@ -31,7 +36,20 @@ private val topLevelNav =
                     )
                 },
                 name = "Map",
-            )
+            ),
+        ListNav.Home to
+            TopLevelNavMetadata(
+                icon = { modifier, selected ->
+                    Icon(
+                        painterResource(
+                            if (selected) R.drawable.list_filled_24dp else R.drawable.list_24dp
+                        ),
+                        contentDescription = null,
+                        modifier = modifier,
+                    )
+                },
+                name = "List",
+            ),
     )
 
 @Composable
@@ -48,4 +66,24 @@ fun BottomNavBar(modifier: Modifier = Modifier, navigator: INavigator) {
             )
         }
     }
+}
+
+private class PreviewNavigator(override val topLevelRoute: NavKey) : INavigator {
+    override fun navigate(route: NavKey, replaceExisting: Boolean) = Unit
+
+    override fun goBack() = Unit
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Composable
+private fun BottomNavBarMapSelectedPreview() {
+    MaterialExpressiveTheme { BottomNavBar(navigator = PreviewNavigator(MapNav.Home)) }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Composable
+private fun BottomNavBarListSelectedPreview() {
+    MaterialExpressiveTheme { BottomNavBar(navigator = PreviewNavigator(ListNav.Home)) }
 }

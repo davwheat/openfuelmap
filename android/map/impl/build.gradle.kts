@@ -26,11 +26,17 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.annotation.experimental)
+
     implementation(project(":common:ui"))
+    implementation(project(":common:location"))
     implementation(project(":app:api"))
     implementation(project(":map:api"))
-    implementation(project(":map:data"))
+    implementation(project(":forecourts:api"))
+    implementation(project(":forecourts:impl"))
     implementation(project(":data"))
+
+    implementation(libs.androidx.browser)
 
     implementation(libs.androidx.compose.material.iconsCore)
     implementation(libs.androidx.compose.material.iconsExtended)
@@ -45,7 +51,6 @@ dependencies {
 
     // Google Maps Compose
     implementation(libs.google.maps.compose)
-    implementation(libs.google.playServices.location)
 
     // Nav3
     implementation(libs.androidx.navigation3.runtime)

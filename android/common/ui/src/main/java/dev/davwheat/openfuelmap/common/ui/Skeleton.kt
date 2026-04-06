@@ -1,13 +1,24 @@
 package dev.davwheat.openfuelmap.common.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.valentinilk.shimmer.Shimmer
 import com.valentinilk.shimmer.ShimmerBounds
@@ -42,4 +53,23 @@ fun SkeletonBox(
                 .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                 .shimmer(shimmer)
     )
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Composable
+private fun SkeletonBoxPreview() {
+    MaterialExpressiveTheme {
+        Surface {
+            val shimmer = rememberSkeletonShimmer()
+            Column(
+                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                SkeletonBox(shimmer = shimmer, shape = CircleShape, modifier = Modifier.size(48.dp))
+                SkeletonBox(shimmer = shimmer, modifier = Modifier.fillMaxWidth().height(20.dp))
+                SkeletonBox(shimmer = shimmer, modifier = Modifier.fillMaxWidth(0.6f).height(16.dp))
+            }
+        }
+    }
 }

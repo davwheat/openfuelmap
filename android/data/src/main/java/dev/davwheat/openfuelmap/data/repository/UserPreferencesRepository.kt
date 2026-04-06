@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -19,6 +20,12 @@ private val Context.dataStore: DataStore<Preferences> by
 
 data class SavedCameraPosition(val latitude: Double, val longitude: Double, val zoom: Float)
 
+/** A user-chosen pin on the map, used by the List screen when "custom location" is selected. */
+data class SavedLocation(val latitude: Double, val longitude: Double)
+
+/** Default radius (miles) applied when the user opens the List screen for the first time. */
+const val DEFAULT_SEARCH_RADIUS_MI: Float = 10f
+
 @Singleton
 class UserPreferencesRepository
 @Inject
@@ -26,10 +33,14 @@ constructor(@param:ApplicationContext private val context: Context) {
 
     private object Keys {
         val SELECTED_FUEL_TYPE = stringPreferencesKey("selected_fuel_type")
-        val SELECTED_BRAND = stringPreferencesKey("selected_brand")
+        val EXCLUDED_BRANDS = stringSetPreferencesKey("excluded_brands")
         val CAMERA_LAT = doublePreferencesKey("camera_latitude")
         val CAMERA_LNG = doublePreferencesKey("camera_longitude")
         val CAMERA_ZOOM = floatPreferencesKey("camera_zoom")
+        val SEARCH_RADIUS_MI = floatPreferencesKey("search_radius_mi")
+        val CUSTOM_SEARCH_LAT = doublePreferencesKey("custom_search_lat")
+        val CUSTOM_SEARCH_LNG = doublePreferencesKey("custom_search_lng")
+        val LAST_TOP_LEVEL_ROUTE = stringPreferencesKey("last_top_level_route")
     }
 
     val selectedFuelType: Flow<String?> =
@@ -39,13 +50,13 @@ constructor(@param:ApplicationContext private val context: Context) {
         context.dataStore.edit { prefs -> prefs[Keys.SELECTED_FUEL_TYPE] = fuelTypeId }
     }
 
-    val selectedBrand: Flow<String?> =
-        context.dataStore.data.map { prefs -> prefs[Keys.SELECTED_BRAND] }
+    val excludedBrands: Flow<Set<String>> =
+        context.dataStore.data.map { prefs -> prefs[Keys.EXCLUDED_BRANDS] ?: emptySet() }
 
-    suspend fun setSelectedBrand(brand: String?) {
+    suspend fun setExcludedBrands(brands: Set<String>) {
         context.dataStore.edit { prefs ->
-            if (brand == null) prefs.remove(Keys.SELECTED_BRAND)
-            else prefs[Keys.SELECTED_BRAND] = brand
+            if (brands.isEmpty()) prefs.remove(Keys.EXCLUDED_BRANDS)
+            else prefs[Keys.EXCLUDED_BRANDS] = brands
         }
     }
 
@@ -67,5 +78,49 @@ constructor(@param:ApplicationContext private val context: Context) {
             prefs[Keys.CAMERA_LNG] = position.longitude
             prefs[Keys.CAMERA_ZOOM] = position.zoom
         }
+    }
+
+    /** List-screen search radius in miles. Defaults to [DEFAULT_SEARCH_RADIUS_MI]. */
+    val searchRadiusMi: Flow<Float> =
+        context.dataStore.data.map { prefs ->
+            prefs[Keys.SEARCH_RADIUS_MI] ?: DEFAULT_SEARCH_RADIUS_MI
+        }
+
+    suspend fun setSearchRadiusMi(radius: Float) {
+        context.dataStore.edit { prefs -> prefs[Keys.SEARCH_RADIUS_MI] = radius }
+    }
+
+    /**
+     * User-picked centre location for the List screen. `null` means "use current device location".
+     */
+    val customSearchLocation: Flow<SavedLocation?> =
+        context.dataStore.data.map { prefs ->
+            val lat = prefs[Keys.CUSTOM_SEARCH_LAT]
+            val lng = prefs[Keys.CUSTOM_SEARCH_LNG]
+            if (lat != null && lng != null) SavedLocation(lat, lng) else null
+        }
+
+    suspend fun setCustomSearchLocation(location: SavedLocation?) {
+        context.dataStore.edit { prefs ->
+            if (location == null) {
+                prefs.remove(Keys.CUSTOM_SEARCH_LAT)
+                prefs.remove(Keys.CUSTOM_SEARCH_LNG)
+            } else {
+                prefs[Keys.CUSTOM_SEARCH_LAT] = location.latitude
+                prefs[Keys.CUSTOM_SEARCH_LNG] = location.longitude
+            }
+        }
+    }
+
+    /**
+     * Stable identifier of the top-level route the user was on last time the app was open. Used to
+     * restore to the same tab on cold launch. The `:data` layer doesn't know the route-id
+     * vocabulary — callers in `:app` define the mapping.
+     */
+    val lastTopLevelRoute: Flow<String?> =
+        context.dataStore.data.map { prefs -> prefs[Keys.LAST_TOP_LEVEL_ROUTE] }
+
+    suspend fun setLastTopLevelRoute(id: String) {
+        context.dataStore.edit { prefs -> prefs[Keys.LAST_TOP_LEVEL_ROUTE] = id }
     }
 }

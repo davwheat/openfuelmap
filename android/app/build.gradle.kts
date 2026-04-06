@@ -53,6 +53,7 @@ android {
 secrets { propertiesFileName = "local.properties" }
 
 dependencies {
+    implementation(libs.androidx.annotation.experimental)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -96,7 +97,10 @@ dependencies {
     // Feature modules
     implementation(project(":app:api"))
     implementation(project(":data"))
+    implementation(project(":forecourts:api"))
+    implementation(project(":forecourts:data"))
     implementation(project(":map:api"))
-    implementation(project(":map:data"))
     implementation(project(":map:impl"))
+    implementation(project(":list:api"))
+    implementation(project(":list:impl"))
 }
