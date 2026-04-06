@@ -48,6 +48,10 @@ include(":map:api")
 
 include(":map:impl")
 
+include(":settings:api")
+
+include(":settings:impl")
+
 include(":stats:api")
 
 include(":stats:data")

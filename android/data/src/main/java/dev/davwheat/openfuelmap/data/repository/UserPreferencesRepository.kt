@@ -3,6 +3,7 @@ package dev.davwheat.openfuelmap.data.repository
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
@@ -41,6 +42,7 @@ constructor(@param:ApplicationContext private val context: Context) {
         val CUSTOM_SEARCH_LAT = doublePreferencesKey("custom_search_lat")
         val CUSTOM_SEARCH_LNG = doublePreferencesKey("custom_search_lng")
         val LAST_TOP_LEVEL_ROUTE = stringPreferencesKey("last_top_level_route")
+        val COLORBLIND_MODE = booleanPreferencesKey("colorblind_mode")
     }
 
     val selectedFuelType: Flow<String?> =
@@ -122,5 +124,12 @@ constructor(@param:ApplicationContext private val context: Context) {
 
     suspend fun setLastTopLevelRoute(id: String) {
         context.dataStore.edit { prefs -> prefs[Keys.LAST_TOP_LEVEL_ROUTE] = id }
+    }
+
+    val colorblindMode: Flow<Boolean> =
+        context.dataStore.data.map { prefs -> prefs[Keys.COLORBLIND_MODE] ?: false }
+
+    suspend fun setColorblindMode(enabled: Boolean) {
+        context.dataStore.edit { prefs -> prefs[Keys.COLORBLIND_MODE] = enabled }
     }
 }

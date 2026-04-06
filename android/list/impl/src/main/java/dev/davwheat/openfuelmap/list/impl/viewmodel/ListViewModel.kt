@@ -5,10 +5,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.davwheat.openfuelmap.common.location.LocationUpdatesProvider
 import dev.davwheat.openfuelmap.common.location.UserLocation
-import dev.davwheat.openfuelmap.data.db.BrandEntity
 import dev.davwheat.openfuelmap.data.db.FuelTypeEntity
 import dev.davwheat.openfuelmap.data.db.FuelTypeIds
-import dev.davwheat.openfuelmap.data.repository.BrandRepository
 import dev.davwheat.openfuelmap.data.repository.FuelTypeRepository
 import dev.davwheat.openfuelmap.data.repository.SavedLocation
 import dev.davwheat.openfuelmap.data.repository.UserPreferencesRepository
@@ -21,6 +19,7 @@ import dev.davwheat.openfuelmap.forecourts.api.repository.ForecourtRepository
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -37,6 +36,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 /** Location used as the centre of the radius search. */
@@ -64,7 +64,6 @@ class ListViewModel
 constructor(
     private val forecourtRepository: ForecourtRepository,
     fuelTypeRepository: FuelTypeRepository,
-    brandRepository: BrandRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val locationUpdatesProvider: LocationUpdatesProvider,
 ) : ViewModel() {
@@ -117,9 +116,6 @@ constructor(
         fuelTypeRepository
             .getAllFuelTypes()
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-
-    val brands: StateFlow<List<BrandEntity>> =
-        brandRepository.getAllBrands().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val selectedFuelType: StateFlow<String?> =
         combine(fuelTypes, userPreferencesRepository.selectedFuelType) { types, saved ->
@@ -215,18 +211,6 @@ constructor(
         viewModelScope.launch { userPreferencesRepository.setCustomSearchLocation(location) }
     }
 
-    fun selectFuelType(fuelTypeId: String) {
-        viewModelScope.launch { userPreferencesRepository.setSelectedFuelType(fuelTypeId) }
-    }
-
-    fun toggleBrandExcluded(brand: String) {
-        viewModelScope.launch {
-            val current = excludedBrands.value
-            val next = if (brand in current) current - brand else current + brand
-            userPreferencesRepository.setExcludedBrands(next)
-        }
-    }
-
     fun selectStation(station: Forecourt) {
         detailFetchJob?.cancel()
         _selectedStation.value = SelectedListStation(basic = station)
@@ -300,7 +284,8 @@ constructor(
                     excludeBrands = excludeBrands,
                 )
         ) {
-            is ApiResult.Success -> _results.value = sortByPriceAsc(result.data)
+            is ApiResult.Success ->
+                _results.value = withContext(Dispatchers.Default) { sortByPriceAsc(result.data) }
             is ApiResult.Failure -> {
                 logFailure("fetchForecourts", result)
                 _error.value = result.message

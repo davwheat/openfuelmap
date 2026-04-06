@@ -79,7 +79,7 @@ fun StepChart(
     rightPadding: Dp = 8.dp,
     yAxisGap: Dp = 8.dp,
 ) {
-    val textMeasurer = rememberTextMeasurer()
+    val textMeasurer = rememberTextMeasurer(cacheSize = 64)
     var scrubX by remember { mutableStateOf<Float?>(null) }
 
     val lineColor = MaterialTheme.colorScheme.primary
@@ -104,12 +104,14 @@ fun StepChart(
     val yMin = remember(priceMin, pricePad) { floor(priceMin - pricePad).coerceAtLeast(0.0) }
     val yMax = remember(priceMax, pricePad) { ceil(priceMax + pricePad) }
     val gridSteps = remember(yMin, yMax) { computeGridSteps(yMin, yMax) }
-    val maxYLabelWidth =
-        remember(gridSteps, textMeasurer, labelStyle) {
-            gridSteps.maxOfOrNull { price ->
-                textMeasurer.measure(valueFormatter(price), labelStyle).size.width
-            } ?: 0
+    val gridLabelLayouts =
+        remember(gridSteps, textMeasurer, labelStyle, valueFormatter) {
+            gridSteps.map { price ->
+                price to textMeasurer.measure(valueFormatter(price), labelStyle)
+            }
         }
+    val maxYLabelWidth =
+        remember(gridLabelLayouts) { gridLabelLayouts.maxOfOrNull { it.second.size.width } ?: 0 }
 
     Canvas(
         modifier =
@@ -120,8 +122,11 @@ fun StepChart(
                     detectTapGestures(
                         onPress = {
                             scrubX = it.x
-                            val released = tryAwaitRelease()
-                            if (released) scrubX = null
+                            try {
+                                tryAwaitRelease()
+                            } finally {
+                                scrubX = null
+                            }
                         }
                     )
                 }
@@ -158,9 +163,9 @@ fun StepChart(
 
         fun valueToY(p: Double): Float = chartBottom - ((p - yMin).toFloat() / yRange) * chartHeight
 
-        // Grid lines + Y-axis labels
+        // Grid lines + Y-axis labels (layouts pre-computed in remember block above)
         val dashEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx()))
-        for (gridPrice in gridSteps) {
+        for ((gridPrice, measured) in gridLabelLayouts) {
             val y = valueToY(gridPrice)
             drawLine(
                 color = gridColor,
@@ -169,8 +174,6 @@ fun StepChart(
                 pathEffect = dashEffect,
                 strokeWidth = 1.dp.toPx(),
             )
-            val label = valueFormatter(gridPrice)
-            val measured = textMeasurer.measure(label, labelStyle)
             drawText(
                 measured,
                 topLeft =

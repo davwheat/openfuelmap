@@ -33,6 +33,8 @@ import dev.davwheat.openfuelmap.map.impl.mapEntryBuilder
 import dev.davwheat.openfuelmap.nav.Navigator
 import dev.davwheat.openfuelmap.nav.topLevelRouteFromId
 import dev.davwheat.openfuelmap.nav.topLevelRouteId
+import dev.davwheat.openfuelmap.settings.api.SettingsNav
+import dev.davwheat.openfuelmap.settings.impl.settingsEntryBuilder
 import dev.davwheat.openfuelmap.stats.api.StatsNav
 import dev.davwheat.openfuelmap.stats.impl.statsEntryBuilder
 import dev.davwheat.openfuelmap.ui.theme.AppTheme
@@ -48,6 +50,7 @@ private val entryProvider = entryProvider {
     mapEntryBuilder()
     listEntryBuilder()
     statsEntryBuilder()
+    settingsEntryBuilder()
 }
 
 @AndroidEntryPoint
@@ -77,7 +80,8 @@ class MainActivity : ComponentActivity() {
             val navigationState =
                 rememberNavigationState(
                     startRoute = startRoute,
-                    topLevelRoutes = setOf(MapNav.Home, ListNav.Home, StatsNav.Home),
+                    topLevelRoutes =
+                        setOf(MapNav.Home, ListNav.Home, StatsNav.Home, SettingsNav.Home),
                 )
 
             val navigator = remember { Navigator(navigationState) }

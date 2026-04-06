@@ -23,13 +23,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.EditLocationAlt
-import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -60,7 +58,6 @@ import dev.davwheat.openfuelmap.app.api.LocalBottomNavBarProvider
 import dev.davwheat.openfuelmap.common.location.rememberLocationPermissionState
 import dev.davwheat.openfuelmap.common.ui.SimpleTooltip
 import dev.davwheat.openfuelmap.forecourts.impl.detail.ForecourtDetailSheet
-import dev.davwheat.openfuelmap.forecourts.impl.filter.StationFilterSheet
 import dev.davwheat.openfuelmap.list.impl.viewmodel.ListViewModel
 import dev.davwheat.openfuelmap.list.impl.viewmodel.SearchCenter
 
@@ -69,11 +66,7 @@ private val UK_CENTROID = LatLng(54.5, -2.5)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-internal fun ListScreenTopAppBar(
-    usingCustomLocation: Boolean,
-    onOpenFilter: () -> Unit,
-    onToggleCustomLocation: () -> Unit,
-) {
+internal fun ListScreenTopAppBar(usingCustomLocation: Boolean, onToggleCustomLocation: () -> Unit) {
     TopAppBar(
         titleHorizontalAlignment = Alignment.CenterHorizontally,
         title = { Text("Nearby") },
@@ -88,14 +81,6 @@ internal fun ListScreenTopAppBar(
                         contentDescription =
                             if (usingCustomLocation) "Use my location" else "Pick a location",
                     )
-                }
-            }
-            SimpleTooltip("Filter") {
-                FilledTonalIconButton(
-                    onClick = onOpenFilter,
-                    shapes = IconButtonDefaults.shapes(),
-                ) {
-                    Icon(Icons.Outlined.FilterAlt, contentDescription = "Filter")
                 }
             }
         },
@@ -113,8 +98,6 @@ fun ListScreen(viewModel: ListViewModel) {
     val error by viewModel.error.collectAsStateWithLifecycle()
     val fuelTypes by viewModel.fuelTypes.collectAsStateWithLifecycle()
     val selectedFuelType by viewModel.selectedFuelType.collectAsStateWithLifecycle()
-    val brands by viewModel.brands.collectAsStateWithLifecycle()
-    val excludedBrands by viewModel.excludedBrands.collectAsStateWithLifecycle()
     val selectedStation by viewModel.selectedStation.collectAsStateWithLifecycle()
     val priceHistory by viewModel.priceHistory.collectAsStateWithLifecycle()
     val priceHistoryLoading by viewModel.priceHistoryLoading.collectAsStateWithLifecycle()
@@ -141,14 +124,12 @@ fun ListScreen(viewModel: ListViewModel) {
 
     val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
 
-    var showFilterSheet by remember { mutableStateOf(false) }
     var showPicker by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             ListScreenTopAppBar(
                 usingCustomLocation = customLocation != null,
-                onOpenFilter = { showFilterSheet = true },
                 onToggleCustomLocation = {
                     if (customLocation != null) {
                         // Revert to current location.
@@ -246,18 +227,6 @@ fun ListScreen(viewModel: ListViewModel) {
             priceHistory = priceHistory,
             priceHistoryLoading = priceHistoryLoading,
             onRequestPriceHistory = viewModel::fetchPriceHistory,
-        )
-    }
-
-    if (showFilterSheet) {
-        StationFilterSheet(
-            fuelTypes = fuelTypes,
-            selectedFuelType = selectedFuelType,
-            onFuelTypeSelected = { viewModel.selectFuelType(it) },
-            brands = brands,
-            excludedBrands = excludedBrands,
-            onBrandToggled = { viewModel.toggleBrandExcluded(it) },
-            onDismiss = { showFilterSheet = false },
         )
     }
 
@@ -371,11 +340,7 @@ private fun SearchContextHeader(
 @Composable
 private fun ListScreenTopAppBarMyLocationPreview() {
     MaterialExpressiveTheme {
-        ListScreenTopAppBar(
-            usingCustomLocation = false,
-            onOpenFilter = {},
-            onToggleCustomLocation = {},
-        )
+        ListScreenTopAppBar(usingCustomLocation = false, onToggleCustomLocation = {})
     }
 }
 
@@ -384,11 +349,7 @@ private fun ListScreenTopAppBarMyLocationPreview() {
 @Composable
 private fun ListScreenTopAppBarCustomLocationPreview() {
     MaterialExpressiveTheme {
-        ListScreenTopAppBar(
-            usingCustomLocation = true,
-            onOpenFilter = {},
-            onToggleCustomLocation = {},
-        )
+        ListScreenTopAppBar(usingCustomLocation = true, onToggleCustomLocation = {})
     }
 }
 

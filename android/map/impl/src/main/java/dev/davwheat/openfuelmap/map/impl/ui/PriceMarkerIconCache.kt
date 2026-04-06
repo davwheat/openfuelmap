@@ -35,8 +35,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 
-private val PriceCheapColor = Color(0xFF2E7D32) // green 800
-private val PriceExpensiveColor = Color(0xFFC62828) // red 800
+private val DefaultCheapColor = Color(0xFF2E7D32) // green 800
+private val DefaultExpensiveColor = Color(0xFFC62828) // red 800
+private val ColorblindCheapColor = Color(0xFF1565C0) // blue 800
+private val ColorblindExpensiveColor = Color(0xFFEF6C00) // orange 800
 private val PriceMissingColor = Color(0xFF757575) // grey 600
 
 /**
@@ -60,9 +62,11 @@ private const val COLOR_BUCKETS = 24
  * only generates a handful of unique bitmaps regardless of how many stations are visible.
  */
 @Composable
-internal fun rememberPriceMarkerIconCache(): PriceMarkerIconCache {
+internal fun rememberPriceMarkerIconCache(colorblindMode: Boolean = false): PriceMarkerIconCache {
+    val cheapColor = if (colorblindMode) ColorblindCheapColor else DefaultCheapColor
+    val expensiveColor = if (colorblindMode) ColorblindExpensiveColor else DefaultExpensiveColor
     val density = LocalDensity.current
-    val textMeasurer = rememberTextMeasurer(cacheSize = 64)
+    val textMeasurer = rememberTextMeasurer(cacheSize = 256)
     val pillTextStyle =
         MaterialTheme.typography.labelMedium.copy(
             fontWeight = FontWeight.SemiBold,
@@ -70,8 +74,22 @@ internal fun rememberPriceMarkerIconCache(): PriceMarkerIconCache {
         )
     val clusterTextStyle =
         MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, color = Color.White)
-    return remember(density, textMeasurer, pillTextStyle, clusterTextStyle) {
-        PriceMarkerIconCache(density, textMeasurer, pillTextStyle, clusterTextStyle)
+    return remember(
+        density,
+        textMeasurer,
+        pillTextStyle,
+        clusterTextStyle,
+        cheapColor,
+        expensiveColor,
+    ) {
+        PriceMarkerIconCache(
+            density,
+            textMeasurer,
+            pillTextStyle,
+            clusterTextStyle,
+            cheapColor,
+            expensiveColor,
+        )
     }
 }
 
@@ -80,6 +98,8 @@ internal class PriceMarkerIconCache(
     private val textMeasurer: TextMeasurer,
     private val pillTextStyle: TextStyle,
     private val clusterTextStyle: TextStyle,
+    private val cheapColor: Color,
+    private val expensiveColor: Color,
 ) {
     private val descriptors = mutableStateMapOf<Key, BitmapDescriptor>()
     private val renderMutex = Mutex()
@@ -142,7 +162,7 @@ internal class PriceMarkerIconCache(
 
     private fun colorFor(bucket: Int?): Color =
         if (bucket != null) {
-            lerp(PriceCheapColor, PriceExpensiveColor, bucket.toFloat() / COLOR_BUCKETS)
+            lerp(cheapColor, expensiveColor, bucket.toFloat() / COLOR_BUCKETS)
         } else {
             PriceMissingColor
         }

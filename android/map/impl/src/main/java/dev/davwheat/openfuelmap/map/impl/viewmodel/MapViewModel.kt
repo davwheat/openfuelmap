@@ -3,10 +3,8 @@ package dev.davwheat.openfuelmap.map.impl.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.davwheat.openfuelmap.data.db.BrandEntity
 import dev.davwheat.openfuelmap.data.db.FuelTypeEntity
 import dev.davwheat.openfuelmap.data.db.FuelTypeIds
-import dev.davwheat.openfuelmap.data.repository.BrandRepository
 import dev.davwheat.openfuelmap.data.repository.FuelTypeRepository
 import dev.davwheat.openfuelmap.data.repository.SavedCameraPosition
 import dev.davwheat.openfuelmap.data.repository.UserPreferencesRepository
@@ -28,6 +26,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
@@ -42,7 +41,6 @@ class MapViewModel
 constructor(
     private val forecourtRepository: ForecourtRepository,
     fuelTypeRepository: FuelTypeRepository,
-    brandRepository: BrandRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
 ) : ViewModel() {
 
@@ -56,6 +54,13 @@ constructor(
             emptySet(),
         )
 
+    val colorblindMode: StateFlow<Boolean> =
+        userPreferencesRepository.colorblindMode.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            false,
+        )
+
     /**
      * Display-ready markers for the currently loaded viewport. The per-station label, colour
      * position and z-index are computed off the main thread on [Dispatchers.Default].
@@ -63,6 +68,7 @@ constructor(
     val markers: StateFlow<List<StationMarker>> =
         _forecourtResult
             .map { buildMarkers(it.forecourts, it.pricePercentiles) }
+            .distinctUntilChanged()
             .flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -90,9 +96,6 @@ constructor(
             .getAllFuelTypes()
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val brands: StateFlow<List<BrandEntity>> =
-        brandRepository.getAllBrands().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-
     val selectedFuelType: StateFlow<String?> =
         combine(fuelTypes, userPreferencesRepository.selectedFuelType) { types, saved ->
                 when {
@@ -110,12 +113,28 @@ constructor(
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
+        Timber.d("MapViewModel: init, selectedFuelType=%s", selectedFuelType.value)
+
+        // Log when selectedFuelType resolves.
+        viewModelScope.launch {
+            selectedFuelType.filterNotNull().first().also {
+                Timber.d("MapViewModel: selectedFuelType resolved to %s", it)
+            }
+        }
+
         // Auto-refetch stations whenever bounds, selected fuel type, or excluded brands change.
         viewModelScope.launch {
-            combine(_currentBounds.filterNotNull(), selectedFuelType, excludedBrands) {
-                    bounds,
-                    fuelType,
-                    excluded ->
+            combine(
+                    _currentBounds.filterNotNull(),
+                    selectedFuelType.filterNotNull(),
+                    excludedBrands,
+                ) { bounds, fuelType, excluded ->
+                    Timber.d(
+                        "MapViewModel: combine emitting bounds=%s fuelType=%s excludedCount=%d",
+                        bounds,
+                        fuelType,
+                        excluded.size,
+                    )
                     Triple(bounds, fuelType, excluded)
                 }
                 .collect { (bounds, fuelType, excluded) ->
@@ -125,6 +144,7 @@ constructor(
     }
 
     fun loadStationsInBounds(bounds: BoundingBox) {
+        Timber.d("MapViewModel: loadStationsInBounds %s", bounds)
         _currentBounds.value = bounds
     }
 
@@ -133,6 +153,11 @@ constructor(
         fuelType: String?,
         excludeBrands: Set<String>,
     ) {
+        Timber.d(
+            "MapViewModel: fetchStations start fuelType=%s excludeCount=%d",
+            fuelType,
+            excludeBrands.size,
+        )
         _isLoading.value = true
         _error.value = null
         when (
@@ -143,25 +168,19 @@ constructor(
                     excludeBrands = excludeBrands,
                 )
         ) {
-            is ApiResult.Success -> _forecourtResult.value = result.data
+            is ApiResult.Success -> {
+                Timber.d(
+                    "MapViewModel: fetchStations success count=%d",
+                    result.data.forecourts.size,
+                )
+                _forecourtResult.value = result.data
+            }
             is ApiResult.Failure -> {
                 logFailure("fetchStations", result)
                 _error.value = result.message
             }
         }
         _isLoading.value = false
-    }
-
-    fun selectFuelType(fuelTypeId: String) {
-        viewModelScope.launch { userPreferencesRepository.setSelectedFuelType(fuelTypeId) }
-    }
-
-    fun toggleBrandExcluded(brand: String) {
-        viewModelScope.launch {
-            val current = excludedBrands.value
-            val next = if (brand in current) current - brand else current + brand
-            userPreferencesRepository.setExcludedBrands(next)
-        }
     }
 
     suspend fun loadInitialCameraPosition(): SavedCameraPosition? =
@@ -174,6 +193,8 @@ constructor(
     fun selectStation(station: Forecourt) {
         detailFetchJob?.cancel()
         _selectedStation.value = SelectedStation(basic = station)
+        _priceHistory.value = emptyMap()
+        _priceHistoryLoading.value = emptySet()
         detailFetchJob = viewModelScope.launch {
             when (val result = forecourtRepository.getForecourtDetail(station.nodeId)) {
                 is ApiResult.Success -> {

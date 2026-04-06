@@ -4,7 +4,9 @@ import dev.davwheat.openfuelmap.data.api.BrandDto
 import dev.davwheat.openfuelmap.data.api.BrandsApiClient
 import dev.davwheat.openfuelmap.data.db.BrandDao
 import dev.davwheat.openfuelmap.data.db.BrandEntity
-import dev.davwheat.openfuelmap.data.utils.NetworkBoundResource
+import dev.davwheat.openfuelmap.data.utils.DispatcherProvider
+import dev.davwheat.openfuelmap.data.utils.NetworkBoundFlowResource
+import dev.davwheat.openfuelmap.data.utils.RepositoryWithUpdaterChannel
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -12,35 +14,36 @@ import kotlinx.coroutines.flow.Flow
 @Singleton
 class BrandRepository
 @Inject
-constructor(private val dao: BrandDao, private val apiClient: BrandsApiClient) {
+constructor(
+    private val dao: BrandDao,
+    private val apiClient: BrandsApiClient,
+    private val dispatchers: DispatcherProvider,
+) : RepositoryWithUpdaterChannel(dispatchers) {
 
     fun getAllBrands(): Flow<List<BrandEntity>> =
-        object : NetworkBoundResource<List<BrandEntity>, List<BrandDto>>() {
-                override fun loadFromDb(): Flow<List<BrandEntity>> = dao.getAll()
+        object :
+                NetworkBoundFlowResource<List<BrandEntity>, List<BrandDto>>(
+                    updaterChannel = updaterChannel,
+                    dispatchers = dispatchers,
+                    debugTag = "BrandRepository",
+                ) {
+                override fun loadFlowFromDb(): Flow<List<BrandEntity>> = dao.getAll()
 
-                override suspend fun shouldFetch(data: List<BrandEntity>?): Boolean =
-                    data.isNullOrEmpty()
+                override suspend fun shouldFetch(data: List<BrandEntity>?): Boolean = true
 
                 override suspend fun fetchFromNetwork(): List<BrandDto> =
                     apiClient.getBrands() ?: emptyList()
 
-                override suspend fun saveCallResult(data: List<BrandDto>) {
-                    val entities = data.map {
+                override suspend fun saveCallResult(entries: List<BrandDto>) {
+                    val entities = entries.map {
                         BrandEntity(name = it.name, forecourtCount = it.forecourt_count)
                     }
                     dao.deleteAll()
                     dao.insertAll(entities)
                 }
             }
-            .asFlow()
+            .fetchAsFlow(filterLocal = { it.isNotEmpty() })
 
-    /**
-     * Refreshes the brand cache from the network. Intended to be called on every app launch so
-     * newly-added brands are picked up over time. If the network call fails (null) or returns an
-     * empty list, the existing cache is left untouched, so offline launches fall back to whatever
-     * was last seen. IOExceptions are swallowed by [BrandsApiClient]; other failures (e.g.
-     * deserialization) propagate and should be handled by the caller.
-     */
     suspend fun prefetch() {
         val fresh = apiClient.getBrands() ?: return
         if (fresh.isEmpty()) return

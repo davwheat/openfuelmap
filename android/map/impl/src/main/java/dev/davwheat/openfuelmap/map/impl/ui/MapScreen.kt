@@ -4,14 +4,9 @@ import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
@@ -47,38 +42,26 @@ import com.google.maps.android.compose.rememberUpdatedMarkerState
 import dev.davwheat.openfuelmap.app.api.LocalBottomNavBarProvider
 import dev.davwheat.openfuelmap.common.location.rememberLastKnownLocation
 import dev.davwheat.openfuelmap.common.location.rememberLocationPermissionState
-import dev.davwheat.openfuelmap.common.ui.SimpleTooltip
 import dev.davwheat.openfuelmap.data.repository.SavedCameraPosition
 import dev.davwheat.openfuelmap.forecourts.api.model.BoundingBox
 import dev.davwheat.openfuelmap.forecourts.impl.detail.ForecourtDetailSheet
-import dev.davwheat.openfuelmap.forecourts.impl.filter.StationFilterSheet
 import dev.davwheat.openfuelmap.map.impl.viewmodel.MapViewModel
 import kotlin.math.log2
 import kotlin.math.min
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-internal fun MapScreenTopAppBar(modifier: Modifier = Modifier, openFilterSheet: () -> Unit) {
+internal fun MapScreenTopAppBar(modifier: Modifier = Modifier) {
     TopAppBar(
         modifier = modifier,
         titleHorizontalAlignment = Alignment.CenterHorizontally,
         title = { Text("Open Fuel Map") },
         subtitle = {},
-        actions = {
-            SimpleTooltip("Filter") {
-                FilledTonalIconButton(
-                    onClick = openFilterSheet,
-                    shapes = IconButtonDefaults.shapes(),
-                ) {
-                    Icon(Icons.Outlined.FilterAlt, contentDescription = "Filter")
-                }
-            }
-        },
     )
 }
 
@@ -86,7 +69,7 @@ internal fun MapScreenTopAppBar(modifier: Modifier = Modifier, openFilterSheet: 
 @Preview
 @Composable
 private fun MapScreenTopAppBarPreview() {
-    MaterialExpressiveTheme { MapScreenTopAppBar(openFilterSheet = {}) }
+    MaterialExpressiveTheme { MapScreenTopAppBar() }
 }
 
 @SuppressLint("MissingPermission")
@@ -99,8 +82,7 @@ fun MapScreen(viewModel: MapViewModel) {
     val error by viewModel.error.collectAsStateWithLifecycle()
     val fuelTypes by viewModel.fuelTypes.collectAsStateWithLifecycle()
     val selectedFuelType by viewModel.selectedFuelType.collectAsStateWithLifecycle()
-    val brands by viewModel.brands.collectAsStateWithLifecycle()
-    val excludedBrands by viewModel.excludedBrands.collectAsStateWithLifecycle()
+    val colorblindMode by viewModel.colorblindMode.collectAsStateWithLifecycle()
     val priceHistory by viewModel.priceHistory.collectAsStateWithLifecycle()
     val priceHistoryLoading by viewModel.priceHistoryLoading.collectAsStateWithLifecycle()
 
@@ -147,13 +129,39 @@ fun MapScreen(viewModel: MapViewModel) {
     }
 
     LaunchedEffect(cameraPositionState) {
-        snapshotFlow { !cameraPositionState.isMoving && cameraPositionState.projection != null }
+        Timber.d("map-idle: LaunchedEffect started")
+        snapshotFlow {
+                val isMoving = cameraPositionState.isMoving
+                val projection = cameraPositionState.projection
+                val bounds = if (!isMoving) projection?.visibleRegion?.latLngBounds else null
+                Timber.d(
+                    "map-idle: snapshotFlow eval isMoving=%s projection=%s bounds=%s",
+                    isMoving,
+                    if (projection != null) "present" else "null",
+                    bounds?.let {
+                        "sw(%.4f,%.4f)->ne(%.4f,%.4f)"
+                            .format(
+                                it.southwest.latitude,
+                                it.southwest.longitude,
+                                it.northeast.latitude,
+                                it.northeast.longitude,
+                            )
+                    } ?: "null",
+                )
+                bounds
+            }
+            .filterNotNull()
             .distinctUntilChanged()
-            .filter { it }
-            .collect {
+            .collect { bounds ->
+                Timber.d(
+                    "map-idle: collect hit, delaying 100ms bounds=sw(%.4f,%.4f)->ne(%.4f,%.4f)",
+                    bounds.southwest.latitude,
+                    bounds.southwest.longitude,
+                    bounds.northeast.latitude,
+                    bounds.northeast.longitude,
+                )
                 delay(100)
-                val projection = cameraPositionState.projection ?: return@collect
-                val bounds = projection.visibleRegion.latLngBounds
+                Timber.d("map-idle: calling loadStationsInBounds")
                 viewModel.loadStationsInBounds(
                     BoundingBox(
                         swLat = bounds.southwest.latitude,
@@ -173,9 +181,7 @@ fun MapScreen(viewModel: MapViewModel) {
             }
     }
 
-    var showFilterSheet by remember { mutableStateOf(false) }
-
-    val priceMarkerIcons = rememberPriceMarkerIconCache()
+    val priceMarkerIcons = rememberPriceMarkerIconCache(colorblindMode = colorblindMode)
     val coroutineScope = rememberCoroutineScope()
 
     // Quantise zoom to the integer bucket so clusters only re-bucket when the user crosses a
@@ -231,10 +237,7 @@ fun MapScreen(viewModel: MapViewModel) {
             }
         }
 
-    Scaffold(
-        bottomBar = bottomNavBar,
-        topBar = { MapScreenTopAppBar(openFilterSheet = { showFilterSheet = true }) },
-    ) { contentPadding ->
+    Scaffold(bottomBar = bottomNavBar, topBar = { MapScreenTopAppBar() }) { contentPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
@@ -320,22 +323,6 @@ fun MapScreen(viewModel: MapViewModel) {
             priceHistory = priceHistory,
             priceHistoryLoading = priceHistoryLoading,
             onRequestPriceHistory = viewModel::fetchPriceHistory,
-        )
-    }
-
-    if (showFilterSheet) {
-        StationFilterSheet(
-            fuelTypes = fuelTypes,
-            selectedFuelType = selectedFuelType,
-            onFuelTypeSelected = { viewModel.selectFuelType(it) },
-            brands = brands,
-            excludedBrands = excludedBrands,
-            onBrandToggled = { viewModel.toggleBrandExcluded(it) },
-            onDismiss = { showFilterSheet = false },
-            fuelTypeBlurb =
-                "Only show stations offering this fuel type. Prices shown on the map will also " +
-                    "be for this fuel.",
-            brandBlurb = "Tap a brand to hide its stations from the map.",
         )
     }
 }

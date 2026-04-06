@@ -75,16 +75,15 @@ constructor(
                 val response = client.newCall(request).execute()
                 val body = response.body.string()
 
-                if (response.code == 404) {
-                    val parsed = json.decodeFromString<ForecourtDetailResponse>(body)
-                    return@withContext ApiResult.ApiError(parsed.error ?: "Forecourt not found")
-                }
-
                 val parsed = json.decodeFromString<ForecourtDetailResponse>(body)
                 if (parsed.success && parsed.result != null) {
                     ApiResult.Success(parsed.result.toDomain())
                 } else {
-                    ApiResult.ApiError(parsed.error ?: "Unknown API error")
+                    ApiResult.ApiError(
+                        parsed.error
+                            ?: if (response.code == 404) "Forecourt not found"
+                            else "Unknown API error"
+                    )
                 }
             } catch (e: IOException) {
                 ApiResult.NetworkError("Network error: ${e.message}", e)
@@ -113,16 +112,15 @@ constructor(
                 val response = client.newCall(request).execute()
                 val body = response.body.string()
 
-                if (response.code == 404) {
-                    val parsed = json.decodeFromString<PriceHistoryResponse>(body)
-                    return@withContext ApiResult.ApiError(parsed.error ?: "Forecourt not found")
-                }
-
                 val parsed = json.decodeFromString<PriceHistoryResponse>(body)
                 if (parsed.success && parsed.result != null) {
                     ApiResult.Success(parsed.result.prices.map { it.toDomain() })
                 } else {
-                    ApiResult.ApiError(parsed.error ?: "Unknown API error")
+                    ApiResult.ApiError(
+                        parsed.error
+                            ?: if (response.code == 404) "Forecourt not found"
+                            else "Unknown API error"
+                    )
                 }
             } catch (e: IOException) {
                 ApiResult.NetworkError("Network error: ${e.message}", e)

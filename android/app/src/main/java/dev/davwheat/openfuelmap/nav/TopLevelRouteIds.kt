@@ -3,6 +3,7 @@ package dev.davwheat.openfuelmap.nav
 import androidx.navigation3.runtime.NavKey
 import dev.davwheat.openfuelmap.list.api.ListNav
 import dev.davwheat.openfuelmap.map.api.MapNav
+import dev.davwheat.openfuelmap.settings.api.SettingsNav
 import dev.davwheat.openfuelmap.stats.api.StatsNav
 
 /**
@@ -16,6 +17,7 @@ import dev.davwheat.openfuelmap.stats.api.StatsNav
 private const val ROUTE_MAP = "map"
 private const val ROUTE_LIST = "list"
 private const val ROUTE_STATS = "stats"
+private const val ROUTE_SETTINGS = "settings"
 
 /** NavKey → persisted ID. Returns null for any non-top-level key (shouldn't happen in practice). */
 fun topLevelRouteId(key: NavKey): String? =
@@ -23,6 +25,7 @@ fun topLevelRouteId(key: NavKey): String? =
         MapNav.Home -> ROUTE_MAP
         ListNav.Home -> ROUTE_LIST
         StatsNav.Home -> ROUTE_STATS
+        SettingsNav.Home -> ROUTE_SETTINGS
         else -> null
     }
 
@@ -34,5 +37,6 @@ fun topLevelRouteFromId(id: String?): NavKey? =
         ROUTE_MAP -> MapNav.Home
         ROUTE_LIST -> ListNav.Home
         ROUTE_STATS -> StatsNav.Home
+        ROUTE_SETTINGS -> SettingsNav.Home
         else -> null
     }
