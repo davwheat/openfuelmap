@@ -7,6 +7,7 @@ import {
   adminCronRun,
 } from "./endpoints/adminCron";
 import { BrandList } from "./endpoints/brandList";
+import { DailyMedianPrices } from "./endpoints/dailyMedianPrices";
 import { ForecourtFetch } from "./endpoints/forecourtFetch";
 import { ForecourtList } from "./endpoints/forecourtList";
 import { PriceHistory } from "./endpoints/priceHistory";
@@ -41,6 +42,7 @@ openapi.get("/api/prices", PriceList);
 openapi.get("/api/forecourts/:nodeId/prices/history", PriceHistory);
 openapi.get("/api/fuel-types", FuelTypeList);
 openapi.get("/api/brands", BrandList);
+openapi.get("/api/stats/daily-median-prices", DailyMedianPrices);
 
 export default {
   fetch: app.fetch,

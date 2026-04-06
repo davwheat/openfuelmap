@@ -976,6 +976,73 @@
           }
         }
       }
+    },
+    "/api/stats/daily-median-prices": {
+      "get": {
+        "tags": [
+          "Stats"
+        ],
+        "summary": "Daily median fuel prices",
+        "description": "Returns the daily median price for each fuel type over the last 28 days",
+        "operationId": "get_DailyMedianPrices",
+        "responses": {
+          "200": {
+            "description": "Daily median prices per fuel type for the last 28 days",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "prices": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "date": {
+                                "type": "string",
+                                "example": "2025-03-15"
+                              },
+                              "fuel_type": {
+                                "type": "string",
+                                "example": "E10"
+                              },
+                              "median_price": {
+                                "type": "number",
+                                "example": 132.9
+                              }
+                            },
+                            "required": [
+                              "date",
+                              "fuel_type",
+                              "median_price"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "prices"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "result"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "webhooks": {}
