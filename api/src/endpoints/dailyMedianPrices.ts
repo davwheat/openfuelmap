@@ -65,21 +65,44 @@ export class DailyMedianPrices extends OpenAPIRoute {
     );
 
     if (!all) {
-      const dateFloor = `MAX(DATE('now', '-' || ? || ' days'), ?)`;
+      // Shared CTEs: generate a date series and compute the active period for
+      // every price row so we can find all prices in effect on each day.
+      const sharedCtes = `
+        RECURSIVE dates(date) AS (
+          SELECT MAX(DATE('now', '-' || ? || ' days'), ?)
+          UNION ALL
+          SELECT DATE(date, '+1 day') FROM dates WHERE date < DATE('now')
+        ),
+        price_periods AS (
+          SELECT
+            fp.fuel_type,
+            fp.price,
+            DATE(fp.price_change_effective_timestamp) AS start_date,
+            COALESCE(
+              DATE(LEAD(fp.price_change_effective_timestamp) OVER (
+                PARTITION BY fp.node_id, fp.fuel_type
+                ORDER BY fp.price_change_effective_timestamp
+              )),
+              DATE('now', '+1 day')
+            ) AS end_date
+          FROM fuel_prices fp
+          JOIN forecourts f ON f.node_id = fp.node_id AND f.is_active = 1
+        )`;
 
       const sql =
         stat === "trimmed_mean"
-          ? `WITH daily_prices AS (
+          ? `WITH ${sharedCtes},
+             daily_prices AS (
                SELECT
-                 fuel_type,
-                 DATE(price_change_effective_timestamp) AS date,
-                 price,
+                 d.date,
+                 pp.fuel_type,
+                 pp.price,
                  PERCENT_RANK() OVER (
-                   PARTITION BY fuel_type, DATE(price_change_effective_timestamp)
-                   ORDER BY price
+                   PARTITION BY pp.fuel_type, d.date
+                   ORDER BY pp.price
                  ) AS pct
-               FROM fuel_prices
-               WHERE price_change_effective_timestamp >= ${dateFloor}
+               FROM dates d
+               JOIN price_periods pp ON d.date >= pp.start_date AND d.date < pp.end_date
              )
              SELECT
                date,
@@ -89,20 +112,21 @@ export class DailyMedianPrices extends OpenAPIRoute {
              WHERE pct >= 0.1 AND pct <= 0.9
              GROUP BY fuel_type, date
              ORDER BY date, fuel_type`
-          : `WITH daily_prices AS (
+          : `WITH ${sharedCtes},
+             daily_prices AS (
                SELECT
-                 fuel_type,
-                 DATE(price_change_effective_timestamp) AS date,
-                 price,
+                 d.date,
+                 pp.fuel_type,
+                 pp.price,
                  ROW_NUMBER() OVER (
-                   PARTITION BY fuel_type, DATE(price_change_effective_timestamp)
-                   ORDER BY price
+                   PARTITION BY pp.fuel_type, d.date
+                   ORDER BY pp.price
                  ) AS rn,
                  COUNT(*) OVER (
-                   PARTITION BY fuel_type, DATE(price_change_effective_timestamp)
+                   PARTITION BY pp.fuel_type, d.date
                  ) AS cnt
-               FROM fuel_prices
-               WHERE price_change_effective_timestamp >= ${dateFloor}
+               FROM dates d
+               JOIN price_periods pp ON d.date >= pp.start_date AND d.date < pp.end_date
              )
              SELECT
                date,
