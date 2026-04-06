@@ -12,8 +12,8 @@ data class StationMarker(
     val station: Forecourt,
     val label: String,
     /**
-     * Normalised position of this station's price within the currently loaded viewport: `0f` for
-     * cheapest, `1f` for most expensive, `null` when the station has no price.
+     * Normalised position of this station's price within the 10th–90th percentile range returned by
+     * the API: `0f` for cheapest, `1f` for most expensive, `null` when the station has no price.
      */
     val colorPosition: Float?,
     val zIndex: Float,

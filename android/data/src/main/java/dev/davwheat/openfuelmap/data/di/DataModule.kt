@@ -7,9 +7,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import dev.davwheat.openfuelmap.data.ApiConstants
 import dev.davwheat.openfuelmap.data.db.AppDatabase
 import dev.davwheat.openfuelmap.data.db.BrandDao
 import dev.davwheat.openfuelmap.data.db.FuelTypeDao
+import javax.inject.Named
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
@@ -48,4 +50,6 @@ object DataModule {
                 HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
             )
             .build()
+
+    @Provides @Named("baseUrl") fun provideBaseUrl(): String = ApiConstants.BASE_URL
 }

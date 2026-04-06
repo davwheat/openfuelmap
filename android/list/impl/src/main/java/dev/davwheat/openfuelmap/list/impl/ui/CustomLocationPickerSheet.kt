@@ -101,7 +101,7 @@ fun CustomLocationPickerSheet(
                 Icon(
                     imageVector = Icons.Outlined.Place,
                     contentDescription = "Selected location",
-                    modifier = Modifier.align(Alignment.Center).size(48.dp).offset(y = 48.dp),
+                    modifier = Modifier.align(Alignment.Center).size(48.dp).offset(y = (-48).dp),
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }

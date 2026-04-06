@@ -10,11 +10,16 @@ import dev.davwheat.openfuelmap.data.repository.BrandRepository
 import dev.davwheat.openfuelmap.data.repository.FuelTypeRepository
 import dev.davwheat.openfuelmap.data.repository.SavedCameraPosition
 import dev.davwheat.openfuelmap.data.repository.UserPreferencesRepository
+import dev.davwheat.openfuelmap.data.result.ApiResult
 import dev.davwheat.openfuelmap.forecourts.api.model.BoundingBox
 import dev.davwheat.openfuelmap.forecourts.api.model.Forecourt
+import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtListResult
 import dev.davwheat.openfuelmap.forecourts.api.model.PriceChange
+import dev.davwheat.openfuelmap.forecourts.api.model.PriceHistoryEntry
+import dev.davwheat.openfuelmap.forecourts.api.model.PricePercentiles
 import dev.davwheat.openfuelmap.forecourts.api.repository.ForecourtRepository
-import dev.davwheat.openfuelmap.forecourts.api.result.ApiResult
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -41,7 +46,8 @@ constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
 ) : ViewModel() {
 
-    private val _stations = MutableStateFlow<List<Forecourt>>(emptyList())
+    private val _forecourtResult =
+        MutableStateFlow(ForecourtListResult(emptyList(), pricePercentiles = null))
 
     val excludedBrands: StateFlow<Set<String>> =
         userPreferencesRepository.excludedBrands.stateIn(
@@ -55,8 +61,8 @@ constructor(
      * position and z-index are computed off the main thread on [Dispatchers.Default].
      */
     val markers: StateFlow<List<StationMarker>> =
-        _stations
-            .map { buildMarkers(it) }
+        _forecourtResult
+            .map { buildMarkers(it.forecourts, it.pricePercentiles) }
             .flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -64,6 +70,12 @@ constructor(
     val selectedStation: StateFlow<SelectedStation?> = _selectedStation.asStateFlow()
 
     private var detailFetchJob: Job? = null
+
+    private val _priceHistory = MutableStateFlow<Map<String, List<PriceHistoryEntry>>>(emptyMap())
+    val priceHistory: StateFlow<Map<String, List<PriceHistoryEntry>>> = _priceHistory.asStateFlow()
+
+    private val _priceHistoryLoading = MutableStateFlow<Set<String>>(emptySet())
+    val priceHistoryLoading: StateFlow<Set<String>> = _priceHistoryLoading.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -131,7 +143,7 @@ constructor(
                     excludeBrands = excludeBrands,
                 )
         ) {
-            is ApiResult.Success -> _stations.value = result.data
+            is ApiResult.Success -> _forecourtResult.value = result.data
             is ApiResult.Failure -> {
                 logFailure("fetchStations", result)
                 _error.value = result.message
@@ -178,35 +190,40 @@ constructor(
         }
     }
 
+    fun fetchPriceHistory(fuelType: String) {
+        val nodeId = _selectedStation.value?.basic?.nodeId ?: return
+        if (fuelType in _priceHistoryLoading.value || fuelType in _priceHistory.value) return
+        _priceHistoryLoading.value = _priceHistoryLoading.value + fuelType
+        viewModelScope.launch {
+            val since = LocalDate.now().minusDays(90).format(DateTimeFormatter.ISO_LOCAL_DATE)
+            when (val result = forecourtRepository.getPriceHistory(nodeId, fuelType, since)) {
+                is ApiResult.Success -> {
+                    _priceHistory.value = _priceHistory.value + (fuelType to result.data)
+                }
+                is ApiResult.Failure -> {
+                    logFailure("fetchPriceHistory(fuelType=$fuelType)", result)
+                    _priceHistory.value = _priceHistory.value + (fuelType to emptyList())
+                }
+            }
+            _priceHistoryLoading.value = _priceHistoryLoading.value - fuelType
+        }
+    }
+
     fun clearSelection() {
         detailFetchJob?.cancel()
         detailFetchJob = null
         _selectedStation.value = null
+        _priceHistory.value = emptyMap()
+        _priceHistoryLoading.value = emptySet()
     }
 
-    private fun buildMarkers(stations: List<Forecourt>): List<StationMarker> {
+    private fun buildMarkers(
+        stations: List<Forecourt>,
+        percentiles: PricePercentiles?,
+    ): List<StationMarker> {
         if (stations.isEmpty()) return emptyList()
-        // Normalise colour position against the 10th-90th percentile range so a single
-        // unusually-cheap or unusually-expensive station can't compress the rest of the
-        // markers into a narrow slice of the gradient. Outliers clamp to the ends.
-        val sortedPrices = stations.mapNotNull { it.price?.price }.sorted()
-        val rangeLow: Double?
-        val rangeHigh: Double?
-        when {
-            sortedPrices.isEmpty() -> {
-                rangeLow = null
-                rangeHigh = null
-            }
-            sortedPrices.size < 5 -> {
-                // Too few samples for meaningful percentiles — fall back to min/max.
-                rangeLow = sortedPrices.first()
-                rangeHigh = sortedPrices.last()
-            }
-            else -> {
-                rangeLow = percentile(sortedPrices, 0.1)
-                rangeHigh = percentile(sortedPrices, 0.9)
-            }
-        }
+        val rangeLow = percentiles?.low
+        val rangeHigh = percentiles?.high
         val span = if (rangeLow != null && rangeHigh != null) rangeHigh - rangeLow else 0.0
         return stations.map { station ->
             val stationPrice = station.price?.price
@@ -233,16 +250,6 @@ constructor(
                 zIndex = zIndex,
             )
         }
-    }
-
-    /** Linear-interpolated percentile over an already-sorted, non-empty list. */
-    private fun percentile(sorted: List<Double>, p: Double): Double {
-        if (sorted.size == 1) return sorted[0]
-        val idx = p * (sorted.size - 1)
-        val lo = idx.toInt()
-        val hi = (lo + 1).coerceAtMost(sorted.size - 1)
-        val frac = idx - lo
-        return sorted[lo] * (1.0 - frac) + sorted[hi] * frac
     }
 
     private fun logFailure(operation: String, failure: ApiResult.Failure) {

@@ -1,5 +1,13 @@
 package dev.davwheat.openfuelmap.list.impl.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
@@ -33,7 +42,11 @@ internal val RADIUS_STOPS: List<Float> = listOf(1f, 2f, 3f, 5f, 10f, 15f, 20f, 3
  * translate to/from miles for the caller. This keeps the slider's `steps` simple and snaps touch to
  * the nearest advertised value.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalAnimationApi::class,
+    ExperimentalMaterial3ExpressiveApi::class,
+)
 @Composable
 fun RadiusSlider(radiusMi: Float, onRadiusChanged: (Float) -> Unit, modifier: Modifier = Modifier) {
     val currentIndex =
@@ -50,11 +63,36 @@ fun RadiusSlider(radiusMi: Float, onRadiusChanged: (Float) -> Unit, modifier: Mo
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
-            Text(
-                text = "${formatRadiusMi(radiusMi)} mi",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
+            val motionScheme = MaterialTheme.motionScheme
+            AnimatedContent(
+                radiusMi,
+                transitionSpec = {
+                    // Slide up/down depending on value change
+                    if (targetState > initialState) {
+                        slideInVertically(motionScheme.defaultSpatialSpec()) { height -> height } +
+                            fadeIn(motionScheme.defaultEffectsSpec()) togetherWith
+                            slideOutVertically(motionScheme.defaultSpatialSpec()) { height ->
+                                -height
+                            } + fadeOut(motionScheme.defaultEffectsSpec()) using
+                            SizeTransform(clip = false)
+                    } else {
+                        slideInVertically(motionScheme.defaultSpatialSpec()) { height -> -height } +
+                            fadeIn(motionScheme.defaultEffectsSpec()) togetherWith
+                            slideOutVertically(motionScheme.defaultSpatialSpec()) { height ->
+                                height
+                            } + fadeOut(motionScheme.defaultEffectsSpec()) using
+                            SizeTransform(clip = false)
+                    }
+                },
+                contentAlignment = Alignment.CenterEnd,
+            ) { radiusMi ->
+                Text(
+                    text = "${formatRadiusMi(radiusMi)} mi",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.End,
+                )
+            }
         }
         Spacer(modifier = Modifier.height(4.dp))
         Slider(

@@ -10,4 +10,5 @@ data class ForecourtFuelPrice(
     val priceLastUpdated: String,
     val priceChangeEffectiveTimestamp: String,
     val priceChange: PriceChange? = null,
+    val possiblyInaccurate: PriceInaccuracyReason? = null,
 )

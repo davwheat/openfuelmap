@@ -24,4 +24,5 @@ android {
 dependencies {
     implementation(libs.androidx.annotation.experimental)
     implementation(libs.kotlinx.serialization.core)
+    implementation(project(":data"))
 }

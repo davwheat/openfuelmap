@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
 import dev.davwheat.openfuelmap.list.api.ListNav
 import dev.davwheat.openfuelmap.map.api.MapNav
+import dev.davwheat.openfuelmap.stats.api.StatsNav
 
 private data class TopLevelNavMetadata(
     val icon: @Composable (Modifier, selected: Boolean) -> Unit,
@@ -49,6 +50,20 @@ private val topLevelNav =
                     )
                 },
                 name = "List",
+            ),
+        StatsNav.Home to
+            TopLevelNavMetadata(
+                icon = { modifier, selected ->
+                    Icon(
+                        painterResource(
+                            if (selected) R.drawable.bar_chart_4_bars_filled_24dp
+                            else R.drawable.bar_chart_4_bars_24dp
+                        ),
+                        contentDescription = null,
+                        modifier = modifier,
+                    )
+                },
+                name = "Stats",
             ),
     )
 

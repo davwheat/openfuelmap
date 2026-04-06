@@ -1,6 +1,8 @@
 package dev.davwheat.openfuelmap.list.impl.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -9,8 +11,10 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,20 +25,22 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.EditLocationAlt
 import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.outlined.MyLocation
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.maps.model.LatLng
 import dev.davwheat.openfuelmap.app.api.LocalBottomNavBarProvider
@@ -84,7 +91,10 @@ internal fun ListScreenTopAppBar(
                 }
             }
             SimpleTooltip("Filter") {
-                IconButton(onClick = onOpenFilter, shapes = IconButtonDefaults.shapes()) {
+                FilledTonalIconButton(
+                    onClick = onOpenFilter,
+                    shapes = IconButtonDefaults.shapes(),
+                ) {
                     Icon(Icons.Outlined.FilterAlt, contentDescription = "Filter")
                 }
             }
@@ -106,6 +116,8 @@ fun ListScreen(viewModel: ListViewModel) {
     val brands by viewModel.brands.collectAsStateWithLifecycle()
     val excludedBrands by viewModel.excludedBrands.collectAsStateWithLifecycle()
     val selectedStation by viewModel.selectedStation.collectAsStateWithLifecycle()
+    val priceHistory by viewModel.priceHistory.collectAsStateWithLifecycle()
+    val priceHistoryLoading by viewModel.priceHistoryLoading.collectAsStateWithLifecycle()
 
     val fuelTypeNames = remember(fuelTypes) { fuelTypes.associate { it.id to it.name } }
 
@@ -165,7 +177,7 @@ fun ListScreen(viewModel: ListViewModel) {
                         searchCenter == null && !isLoading -> ListEmptyReason.NoLocation
                         error != null && results.isEmpty() ->
                             ListEmptyReason.Error(message = error ?: "Unknown error")
-                        results.isEmpty() && !isLoading && searchCenter != null ->
+                        results.isEmpty() && !isLoading ->
                             ListEmptyReason.NoneInRadius(radiusMi = radiusMi)
                         else -> null
                     }
@@ -229,7 +241,11 @@ fun ListScreen(viewModel: ListViewModel) {
             forecourt = selection.basic,
             detail = selection.detail,
             fuelTypeNames = fuelTypeNames,
+            selectedFuelType = selectedFuelType,
             onDismiss = { viewModel.clearSelection() },
+            priceHistory = priceHistory,
+            priceHistoryLoading = priceHistoryLoading,
+            onRequestPriceHistory = viewModel::fetchPriceHistory,
         )
     }
 
@@ -262,6 +278,7 @@ fun ListScreen(viewModel: ListViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SearchContextHeader(
     radiusMi: Float,
@@ -273,43 +290,56 @@ private fun SearchContextHeader(
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
             RadiusSlider(radiusMi = radiusMi, onRadiusChanged = onRadiusChanged)
             Spacer(modifier = Modifier.height(8.dp))
-            AnimatedContent(
-                targetState = searchCenter,
-                // Animate only when the MODE changes; dragging the custom pin mutates the lat/lng
-                // but shouldn't retrigger the transition.
-                contentKey = {
-                    when (it) {
-                        null -> 0
-                        is SearchCenter.CurrentLocation -> 1
-                        is SearchCenter.Custom -> 2
-                    }
-                },
-                transitionSpec = {
-                    (slideInVertically { h -> h / 2 } + fadeIn()) togetherWith
-                        (slideOutVertically { h -> -h / 2 } + fadeOut())
-                },
-                label = "searchCenterMode",
-            ) { center ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Crossfade(
+                    targetState =
+                        when (searchCenter) {
+                            is SearchCenter.Custom -> Icons.Outlined.EditLocationAlt
+                            else -> Icons.Outlined.MyLocation
+                        },
+                    animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                    label = "searchCenterIcon",
+                ) { icon ->
                     Icon(
-                        imageVector =
-                            when (center) {
-                                is SearchCenter.Custom -> Icons.Outlined.EditLocationAlt
-                                else -> Icons.Outlined.MyLocation
-                            },
+                        imageVector = icon,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = MaterialTheme.colorScheme.secondary,
                     )
-                    Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                    Column(modifier = Modifier.weight(1f)) {
+                }
+                Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                val motionScheme = MaterialTheme.motionScheme
+                AnimatedContent(
+                    targetState = searchCenter,
+                    contentKey = {
+                        when (it) {
+                            null -> 0
+                            is SearchCenter.CurrentLocation -> 1
+                            is SearchCenter.Custom -> 2
+                        }
+                    },
+                    transitionSpec = {
+                        (slideInVertically(motionScheme.defaultSpatialSpec()) { h -> h / 2 } +
+                            fadeIn(motionScheme.defaultEffectsSpec())) togetherWith
+                            (slideOutVertically(motionScheme.defaultSpatialSpec()) { h -> -h / 2 } +
+                                fadeOut(motionScheme.defaultEffectsSpec())) using
+                            SizeTransform(clip = true)
+                    },
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    label = "searchCenterText",
+                    contentAlignment = Alignment.CenterStart,
+                ) { center ->
+                    Column(
+                        modifier = Modifier.fillMaxHeight(),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
                         Text(
                             text =
                                 when (center) {
                                     is SearchCenter.Custom -> "Custom location"
-                                    is SearchCenter.CurrentLocation -> "Your location"
+                                    is SearchCenter.CurrentLocation -> "Current location"
                                     null -> "No location yet"
                                 },
                             style = MaterialTheme.typography.bodyMedium,
@@ -323,9 +353,13 @@ private fun SearchContextHeader(
                             )
                         }
                     }
-                    if (center is SearchCenter.Custom) {
-                        TextButton(onClick = onChangePickedLocation) { Text("Change") }
-                    }
+                }
+                OutlinedButton(
+                    onClick = onChangePickedLocation,
+                    shapes = ButtonDefaults.shapes(),
+                    modifier = Modifier.zIndex(1f),
+                ) {
+                    Text("Change")
                 }
             }
         }

@@ -103,4 +103,7 @@ dependencies {
     implementation(project(":map:impl"))
     implementation(project(":list:api"))
     implementation(project(":list:impl"))
+    implementation(project(":stats:api"))
+    implementation(project(":stats:data"))
+    implementation(project(":stats:impl"))
 }

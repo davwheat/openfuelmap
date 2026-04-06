@@ -22,7 +22,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Fuel Prices Map"
+rootProject.name = "Open Fuel Map"
 
 include(":app")
 
@@ -47,3 +47,9 @@ include(":list:impl")
 include(":map:api")
 
 include(":map:impl")
+
+include(":stats:api")
+
+include(":stats:data")
+
+include(":stats:impl")

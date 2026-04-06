@@ -34,21 +34,23 @@ fun BrandSelector(
     modifier: Modifier = Modifier,
 ) {
     FlowRow(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        brands.sortedBy { it.name }.forEach { brand ->
-            val included = brand.name !in excludedBrands
-            FilterChip(
-                selected = included,
-                onClick = { onBrandToggled(brand.name) },
-                label = { Text(brand.name) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = if (included) Icons.Rounded.Done else Icons.Rounded.Block,
-                        contentDescription = null,
-                        modifier = Modifier.size(FilterChipDefaults.IconSize),
-                    )
-                },
-            )
-        }
+        brands
+            .sortedBy { it.name }
+            .forEach { brand ->
+                val included = brand.name !in excludedBrands
+                FilterChip(
+                    selected = included,
+                    onClick = { onBrandToggled(brand.name) },
+                    label = { Text(brand.name) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = if (included) Icons.Rounded.Done else Icons.Rounded.Block,
+                            contentDescription = null,
+                            modifier = Modifier.size(FilterChipDefaults.IconSize),
+                        )
+                    },
+                )
+            }
     }
 }
 

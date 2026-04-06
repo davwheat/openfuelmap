@@ -2,7 +2,9 @@ package dev.davwheat.openfuelmap.forecourts.data.api.dto
 
 import dev.davwheat.openfuelmap.forecourts.api.model.Forecourt
 import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtFuelPrice
+import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtListResult
 import dev.davwheat.openfuelmap.forecourts.api.model.PriceChange
+import dev.davwheat.openfuelmap.forecourts.api.model.PricePercentiles
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -16,10 +18,22 @@ data class ForecourtListResponse(
 @Serializable
 data class ForecourtListResultDto(
     val forecourts: List<ForecourtDto>,
+    @SerialName("price_percentiles") val pricePercentiles: PricePercentilesDto? = null,
     val total: Int,
     val page: Int,
     val limit: Int,
-)
+) {
+    fun toDomain(): ForecourtListResult =
+        ForecourtListResult(
+            forecourts = forecourts.map { it.toDomain() },
+            pricePercentiles = pricePercentiles?.toDomain(),
+        )
+}
+
+@Serializable
+data class PricePercentilesDto(val low: Double, val high: Double) {
+    fun toDomain(): PricePercentiles = PricePercentiles(low = low, high = high)
+}
 
 @Serializable
 data class ForecourtDto(
@@ -61,6 +75,7 @@ data class ForecourtFuelPriceDto(
     @SerialName("price_last_updated") val priceLastUpdated: String,
     @SerialName("price_change_effective_timestamp") val priceChangeEffectiveTimestamp: String,
     @SerialName("price_change") val priceChange: String? = null,
+    @SerialName("possibly_inaccurate") val possiblyInaccurate: String? = null,
 ) {
     fun toDomain(): ForecourtFuelPrice =
         ForecourtFuelPrice(
@@ -73,5 +88,6 @@ data class ForecourtFuelPriceDto(
                     "decrease" -> PriceChange.DECREASE
                     else -> null
                 },
+            possiblyInaccurate = possiblyInaccurate.toInaccuracyReason(),
         )
 }

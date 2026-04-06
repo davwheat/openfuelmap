@@ -33,6 +33,8 @@ import dev.davwheat.openfuelmap.map.impl.mapEntryBuilder
 import dev.davwheat.openfuelmap.nav.Navigator
 import dev.davwheat.openfuelmap.nav.topLevelRouteFromId
 import dev.davwheat.openfuelmap.nav.topLevelRouteId
+import dev.davwheat.openfuelmap.stats.api.StatsNav
+import dev.davwheat.openfuelmap.stats.impl.statsEntryBuilder
 import dev.davwheat.openfuelmap.ui.theme.AppTheme
 import dev.davwheat.smartpromptpilot.nav.rememberNavigationState
 import dev.davwheat.smartpromptpilot.nav.toEntries
@@ -45,6 +47,7 @@ import kotlinx.coroutines.launch
 private val entryProvider = entryProvider {
     mapEntryBuilder()
     listEntryBuilder()
+    statsEntryBuilder()
 }
 
 @AndroidEntryPoint
@@ -74,7 +77,7 @@ class MainActivity : ComponentActivity() {
             val navigationState =
                 rememberNavigationState(
                     startRoute = startRoute,
-                    topLevelRoutes = setOf(MapNav.Home, ListNav.Home),
+                    topLevelRoutes = setOf(MapNav.Home, ListNav.Home, StatsNav.Home),
                 )
 
             val navigator = remember { Navigator(navigationState) }

@@ -12,11 +12,14 @@ import dev.davwheat.openfuelmap.data.repository.BrandRepository
 import dev.davwheat.openfuelmap.data.repository.FuelTypeRepository
 import dev.davwheat.openfuelmap.data.repository.SavedLocation
 import dev.davwheat.openfuelmap.data.repository.UserPreferencesRepository
+import dev.davwheat.openfuelmap.data.result.ApiResult
 import dev.davwheat.openfuelmap.forecourts.api.model.Forecourt
 import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtDetail
 import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtWithDistance
+import dev.davwheat.openfuelmap.forecourts.api.model.PriceHistoryEntry
 import dev.davwheat.openfuelmap.forecourts.api.repository.ForecourtRepository
-import dev.davwheat.openfuelmap.forecourts.api.result.ApiResult
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -148,6 +151,12 @@ constructor(
 
     private var detailFetchJob: Job? = null
 
+    private val _priceHistory = MutableStateFlow<Map<String, List<PriceHistoryEntry>>>(emptyMap())
+    val priceHistory: StateFlow<Map<String, List<PriceHistoryEntry>>> = _priceHistory.asStateFlow()
+
+    private val _priceHistoryLoading = MutableStateFlow<Set<String>>(emptySet())
+    val priceHistoryLoading: StateFlow<Set<String>> = _priceHistoryLoading.asStateFlow()
+
     /**
      * After the first successful result we sort by ascending price. Before that first result
      * arrives, [results] is empty and the screen shows its loading/empty state.
@@ -237,10 +246,31 @@ constructor(
         }
     }
 
+    fun fetchPriceHistory(fuelType: String) {
+        val nodeId = _selectedStation.value?.basic?.nodeId ?: return
+        if (fuelType in _priceHistoryLoading.value || fuelType in _priceHistory.value) return
+        _priceHistoryLoading.value = _priceHistoryLoading.value + fuelType
+        viewModelScope.launch {
+            val since = LocalDate.now().minusDays(90).format(DateTimeFormatter.ISO_LOCAL_DATE)
+            when (val result = forecourtRepository.getPriceHistory(nodeId, fuelType, since)) {
+                is ApiResult.Success -> {
+                    _priceHistory.value = _priceHistory.value + (fuelType to result.data)
+                }
+                is ApiResult.Failure -> {
+                    logFailure("fetchPriceHistory(fuelType=$fuelType)", result)
+                    _priceHistory.value = _priceHistory.value + (fuelType to emptyList())
+                }
+            }
+            _priceHistoryLoading.value = _priceHistoryLoading.value - fuelType
+        }
+    }
+
     fun clearSelection() {
         detailFetchJob?.cancel()
         detailFetchJob = null
         _selectedStation.value = null
+        _priceHistory.value = emptyMap()
+        _priceHistoryLoading.value = emptySet()
     }
 
     /**

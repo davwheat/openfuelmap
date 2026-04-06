@@ -1,4 +1,4 @@
-package dev.davwheat.openfuelmap.forecourts.api.result
+package dev.davwheat.openfuelmap.data.result
 
 sealed interface ApiResult<out T> {
     data class Success<T>(val data: T) : ApiResult<T>

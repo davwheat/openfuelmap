@@ -5,4 +5,5 @@ data class FuelPrice(
     val price: Double,
     val priceLastUpdated: String,
     val priceChangeEffectiveTimestamp: String,
+    val possiblyInaccurate: PriceInaccuracyReason? = null,
 )

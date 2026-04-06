@@ -9,8 +9,8 @@ import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.Scaffold
@@ -71,7 +71,10 @@ internal fun MapScreenTopAppBar(modifier: Modifier = Modifier, openFilterSheet: 
         subtitle = {},
         actions = {
             SimpleTooltip("Filter") {
-                IconButton(onClick = openFilterSheet, shapes = IconButtonDefaults.shapes()) {
+                FilledTonalIconButton(
+                    onClick = openFilterSheet,
+                    shapes = IconButtonDefaults.shapes(),
+                ) {
                     Icon(Icons.Outlined.FilterAlt, contentDescription = "Filter")
                 }
             }
@@ -98,6 +101,8 @@ fun MapScreen(viewModel: MapViewModel) {
     val selectedFuelType by viewModel.selectedFuelType.collectAsStateWithLifecycle()
     val brands by viewModel.brands.collectAsStateWithLifecycle()
     val excludedBrands by viewModel.excludedBrands.collectAsStateWithLifecycle()
+    val priceHistory by viewModel.priceHistory.collectAsStateWithLifecycle()
+    val priceHistoryLoading by viewModel.priceHistoryLoading.collectAsStateWithLifecycle()
 
     val fuelTypeNames = remember(fuelTypes) { fuelTypes.associate { it.id to it.name } }
 
@@ -310,7 +315,11 @@ fun MapScreen(viewModel: MapViewModel) {
             forecourt = selection.basic,
             detail = selection.detail,
             fuelTypeNames = fuelTypeNames,
+            selectedFuelType = selectedFuelType,
             onDismiss = { viewModel.clearSelection() },
+            priceHistory = priceHistory,
+            priceHistoryLoading = priceHistoryLoading,
+            onRequestPriceHistory = viewModel::fetchPriceHistory,
         )
     }
 

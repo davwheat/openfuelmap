@@ -1,10 +1,11 @@
 package dev.davwheat.openfuelmap.forecourts.api.repository
 
+import dev.davwheat.openfuelmap.data.result.ApiResult
 import dev.davwheat.openfuelmap.forecourts.api.model.BoundingBox
-import dev.davwheat.openfuelmap.forecourts.api.model.Forecourt
 import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtDetail
+import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtListResult
 import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtWithDistance
-import dev.davwheat.openfuelmap.forecourts.api.result.ApiResult
+import dev.davwheat.openfuelmap.forecourts.api.model.PriceHistoryEntry
 
 interface ForecourtRepository {
     suspend fun getForecourts(
@@ -12,7 +13,7 @@ interface ForecourtRepository {
         fuelType: String? = null,
         excludeBrands: Set<String> = emptySet(),
         limit: Int = 1_000,
-    ): ApiResult<List<Forecourt>>
+    ): ApiResult<ForecourtListResult>
 
     /**
      * Fetch forecourts within [radiusMiles] of [centerLat], [centerLng], sorted nearest-first.
@@ -31,4 +32,11 @@ interface ForecourtRepository {
     ): ApiResult<List<ForecourtWithDistance>>
 
     suspend fun getForecourtDetail(nodeId: String): ApiResult<ForecourtDetail>
+
+    suspend fun getPriceHistory(
+        nodeId: String,
+        fuelType: String,
+        since: String? = null,
+        limit: Int = 500,
+    ): ApiResult<List<PriceHistoryEntry>>
 }

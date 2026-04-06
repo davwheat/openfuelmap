@@ -5,6 +5,10 @@ import android.content.Intent
 import android.telephony.PhoneNumberUtils
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -16,13 +20,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialExpressiveTheme
@@ -31,9 +40,13 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
@@ -43,10 +56,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import com.valentinilk.shimmer.Shimmer
+import dev.davwheat.openfuelmap.common.ui.R as CommonUiR
 import dev.davwheat.openfuelmap.common.ui.SimpleTooltip
 import dev.davwheat.openfuelmap.common.ui.SkeletonBox
 import dev.davwheat.openfuelmap.common.ui.Tag
+import dev.davwheat.openfuelmap.common.ui.chart.ChartDataPoint
+import dev.davwheat.openfuelmap.common.ui.chart.ChartStyle
+import dev.davwheat.openfuelmap.common.ui.chart.StepChart
+import dev.davwheat.openfuelmap.common.ui.onWarningContainer
 import dev.davwheat.openfuelmap.common.ui.rememberSkeletonShimmer
+import dev.davwheat.openfuelmap.common.ui.warning
+import dev.davwheat.openfuelmap.common.ui.warningContainer
 import dev.davwheat.openfuelmap.forecourts.api.model.BankHolidayHours
 import dev.davwheat.openfuelmap.forecourts.api.model.DayHours
 import dev.davwheat.openfuelmap.forecourts.api.model.Forecourt
@@ -54,6 +75,8 @@ import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtDetail
 import dev.davwheat.openfuelmap.forecourts.api.model.FuelPrice
 import dev.davwheat.openfuelmap.forecourts.api.model.Location
 import dev.davwheat.openfuelmap.forecourts.api.model.OpeningTimes
+import dev.davwheat.openfuelmap.forecourts.api.model.PriceHistoryEntry
+import dev.davwheat.openfuelmap.forecourts.api.model.PriceInaccuracyReason
 import dev.davwheat.openfuelmap.forecourts.impl.R
 import java.time.DayOfWeek
 import java.time.Duration
@@ -74,10 +97,15 @@ fun ForecourtDetailSheet(
     forecourt: Forecourt,
     detail: ForecourtDetail?,
     fuelTypeNames: Map<String, String>,
+    selectedFuelType: String? = null,
     onDismiss: () -> Unit,
+    priceHistory: Map<String, List<PriceHistoryEntry>> = emptyMap(),
+    priceHistoryLoading: Set<String> = emptySet(),
+    onRequestPriceHistory: (String) -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val shimmer = rememberSkeletonShimmer()
+    var expandedFuelType by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
     val isSameTradingAndBrandName =
@@ -85,16 +113,24 @@ fun ForecourtDetailSheet(
             ?: forecourt.tradingName.equals(forecourt.brandName, ignoreCase = true)
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(vertical = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f).align(Alignment.CenterVertically)) {
                     Text(
                         text = forecourt.tradingName.toTitleCase(),
                         style = MaterialTheme.typography.headlineSmall,
                     )
                     if (!isSameTradingAndBrandName) {
                         Text(
-                            text = forecourt.brandName.toTitleCase(),
+                            text = forecourt.brandName,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -102,10 +138,11 @@ fun ForecourtDetailSheet(
                 }
 
                 SimpleTooltip("Navigate") {
-                    FilledTonalIconButton(
+                    FilledIconButton(
                         onClick = {
                             val gmmIntentUri =
-                                "geo:${forecourt.latitude},${forecourt.longitude}".toUri()
+                                "geo:${forecourt.latitude},${forecourt.longitude}?q=${forecourt.latitude},${forecourt.longitude}"
+                                    .toUri()
                             val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
                             runCatching { context.startActivity(mapIntent) }
                         },
@@ -121,54 +158,140 @@ fun ForecourtDetailSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(text = "Current prices", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-
             val pricesByFuelType =
                 remember(detail) { detail?.currentPrices?.associateBy { it.fuelType }.orEmpty() }
 
-            forecourt.fuelTypes.forEach { fuelType ->
+            val otherFuelTypes =
+                remember(forecourt.fuelTypes, selectedFuelType) {
+                    forecourt.fuelTypes.filter { it != selectedFuelType }
+                }
+
+            // Selected fuel in a filled container
+            if (selectedFuelType != null && selectedFuelType in forecourt.fuelTypes) {
+                Surface(
+                    tonalElevation = 2.dp,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                ) {
+                    FuelPriceRow(
+                        fuelType = selectedFuelType,
+                        fuelTypeNames = fuelTypeNames,
+                        price = pricesByFuelType[selectedFuelType],
+                        detailLoaded = detail != null,
+                        shimmer = shimmer,
+                        expandedFuelType = expandedFuelType,
+                        onToggleExpanded = { checked ->
+                            expandedFuelType = if (checked) selectedFuelType else null
+                            if (checked) onRequestPriceHistory(selectedFuelType)
+                        },
+                        priceHistory = priceHistory,
+                        priceHistoryLoading = priceHistoryLoading,
+                        modifier =
+                            Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                .padding(start = 4.dp),
+                    )
+                }
+            }
+
+            // Other fuels in a collapsible section
+            if (otherFuelTypes.isNotEmpty()) {
+                var otherFuelsExpanded by remember { mutableStateOf(selectedFuelType == null) }
+
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .clickable { otherFuelsExpanded = !otherFuelsExpanded }
+                            .padding(start = 32.dp, end = 40.dp, top = 6.dp, bottom = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(text = fuelTypeNames[fuelType] ?: fuelType)
-                    val price = pricesByFuelType[fuelType]
-                    when {
-                        price != null ->
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = "${price.price}p",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                formatRelativeTime(price.priceLastUpdated)?.let {
-                                    Text(
-                                        text = it,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                        detail == null ->
-                            SkeletonBox(
+                    Text(
+                        text = if (selectedFuelType != null) "Other fuels" else "Current prices",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (selectedFuelType != null) {
+                        Icon(
+                            imageVector =
+                                if (otherFuelsExpanded) Icons.Outlined.KeyboardArrowUp
+                                else Icons.Outlined.KeyboardArrowDown,
+                            contentDescription = if (otherFuelsExpanded) "Collapse" else "Expand",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                AnimatedVisibility(
+                    visible = otherFuelsExpanded,
+                    enter =
+                        expandVertically(
+                            animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
+                        ),
+                    exit =
+                        shrinkVertically(
+                            animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
+                        ),
+                ) {
+                    Column {
+                        otherFuelTypes.forEach { fuelType ->
+                            FuelPriceRow(
+                                fuelType = fuelType,
+                                fuelTypeNames = fuelTypeNames,
+                                price = pricesByFuelType[fuelType],
+                                detailLoaded = detail != null,
                                 shimmer = shimmer,
-                                modifier = Modifier.width(56.dp).height(20.dp),
+                                expandedFuelType = expandedFuelType,
+                                onToggleExpanded = { checked ->
+                                    expandedFuelType = if (checked) fuelType else null
+                                    if (checked) onRequestPriceHistory(fuelType)
+                                },
+                                priceHistory = priceHistory,
+                                priceHistoryLoading = priceHistoryLoading,
+                                modifier = Modifier.padding(start = 16.dp, end = 8.dp),
                             )
-                        else ->
-                            Text(
-                                text = "No price",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                        }
+                    }
+                }
+            }
+
+            val inaccuracyReasons =
+                remember(detail) {
+                    detail?.currentPrices?.mapNotNull { it.possiblyInaccurate }?.toSet().orEmpty()
+                }
+            if (inaccuracyReasons.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.warningContainer,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(CommonUiR.drawable.warning_24dp),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.warning,
+                            modifier = Modifier.size(24.dp),
+                        )
+                        Text(
+                            text = inaccuracyBannerText(inaccuracyReasons),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onWarningContainer,
+                            modifier = Modifier.align(Alignment.CenterVertically),
+                        )
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
             val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()
-            TextButton(onClick = { launchPriceReport(context, toolbarColor) }) {
+            TextButton(
+                onClick = { launchPriceReport(context, toolbarColor) },
+                modifier = Modifier.padding(horizontal = 16.dp),
+            ) {
                 Icon(
                     imageVector = Icons.Outlined.Flag,
                     contentDescription = null,
@@ -183,18 +306,27 @@ fun ForecourtDetailSheet(
                 ?.takeIf { it.usualDays.isNotEmpty() || it.bankHoliday != null }
                 ?.let { openingTimes ->
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = "Opening hours", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = "Opening hours",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
-                    OpeningHoursList(openingTimes)
+                    OpeningHoursList(openingTimes, modifier = Modifier.padding(horizontal = 16.dp))
                 }
 
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "Amenities", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = "Amenities",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
             Spacer(modifier = Modifier.height(8.dp))
 
             if (detail != null) {
                 if (detail.amenities.isNotEmpty()) {
                     FlowRow(
+                        modifier = Modifier.padding(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
@@ -213,10 +345,12 @@ fun ForecourtDetailSheet(
                         text = "None listed",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp),
                     )
                 }
             } else {
                 FlowRow(
+                    modifier = Modifier.padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -239,7 +373,11 @@ fun ForecourtDetailSheet(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "Address", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = "Address",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
             Spacer(modifier = Modifier.height(8.dp))
 
             if (detail != null) {
@@ -255,18 +393,21 @@ fun ForecourtDetailSheet(
                             )
                             .joinToString("\n"),
                     style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp),
                 )
             } else {
-                // Street address lines aren't available without detail — shimmer while loading.
-                SkeletonBox(shimmer = shimmer, modifier = Modifier.width(180.dp).height(16.dp))
-                Spacer(modifier = Modifier.height(4.dp))
-                SkeletonBox(shimmer = shimmer, modifier = Modifier.width(140.dp).height(16.dp))
-                Spacer(modifier = Modifier.height(4.dp))
-                // ...but city & postcode come from the list payload, so show them immediately.
-                Text(
-                    text = listOf(forecourt.city, forecourt.postcode).joinToString("\n"),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    // Street address lines aren't available without detail — shimmer while loading.
+                    SkeletonBox(shimmer = shimmer, modifier = Modifier.width(180.dp).height(16.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
+                    SkeletonBox(shimmer = shimmer, modifier = Modifier.width(140.dp).height(16.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
+                    // ...but city & postcode come from the list payload, so show them immediately.
+                    Text(
+                        text = listOf(forecourt.city, forecourt.postcode).joinToString("\n"),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
             }
 
             detail
@@ -278,7 +419,8 @@ fun ForecourtDetailSheet(
                         onClick = {
                             val intent = Intent(Intent.ACTION_DIAL, "tel:$phone".toUri())
                             runCatching { context.startActivity(intent) }
-                        }
+                        },
+                        modifier = Modifier.padding(horizontal = 16.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Phone,
@@ -292,11 +434,19 @@ fun ForecourtDetailSheet(
 
             if (forecourt.temporaryClosure) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = "Temporarily closed", color = MaterialTheme.colorScheme.error)
+                Text(
+                    text = "Temporarily closed",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
             }
             if (forecourt.permanentClosure == true) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = "Permanently closed", color = MaterialTheme.colorScheme.error)
+                Text(
+                    text = "Permanently closed",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
             }
 
             detail?.updatedAt?.let { updatedAt ->
@@ -306,6 +456,7 @@ fun ForecourtDetailSheet(
                         text = "Station details updated $relative",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp),
                     )
                 }
             }
@@ -315,10 +466,136 @@ fun ForecourtDetailSheet(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun OpeningHoursList(openingTimes: OpeningTimes) {
+private fun FuelPriceRow(
+    fuelType: String,
+    fuelTypeNames: Map<String, String>,
+    price: FuelPrice?,
+    detailLoaded: Boolean,
+    shimmer: Shimmer,
+    expandedFuelType: String?,
+    onToggleExpanded: (Boolean) -> Unit,
+    priceHistory: Map<String, List<PriceHistoryEntry>>,
+    priceHistoryLoading: Set<String>,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = fuelTypeNames[fuelType] ?: fuelType)
+            when {
+                price != null ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (price.possiblyInaccurate != null) {
+                            SimpleTooltip("Price may be inaccurate") {
+                                Icon(
+                                    painter = painterResource(CommonUiR.drawable.warning_20dp),
+                                    contentDescription = "Price may be inaccurate",
+                                    tint = MaterialTheme.colorScheme.warning,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "${price.price}p",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            formatRelativeTime(price.priceLastUpdated)?.let {
+                                Text(
+                                    text = it,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        SimpleTooltip("Price history") {
+                            FilledTonalIconToggleButton(
+                                checked = expandedFuelType == fuelType,
+                                onCheckedChange = onToggleExpanded,
+                                modifier =
+                                    Modifier.minimumInteractiveComponentSize()
+                                        .size(IconButtonDefaults.smallContainerSize()),
+                                shapes =
+                                    IconButtonDefaults.toggleableShapes(
+                                        shape = IconButtonDefaults.smallRoundShape,
+                                        pressedShape = IconButtonDefaults.smallPressedShape,
+                                        checkedShape = IconButtonDefaults.smallSquareShape,
+                                    ),
+                            ) {
+                                Icon(
+                                    if (expandedFuelType == fuelType)
+                                        painterResource(R.drawable.chart_data_filled_24dp)
+                                    else painterResource(R.drawable.chart_data_24dp),
+                                    contentDescription = "Price history",
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                        }
+                    }
+                !detailLoaded ->
+                    SkeletonBox(shimmer = shimmer, modifier = Modifier.width(56.dp).height(20.dp))
+                else ->
+                    Text(
+                        text = "No price",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+            }
+        }
+        AnimatedVisibility(
+            visible = expandedFuelType == fuelType,
+            enter =
+                expandVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
+            exit = shrinkVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
+        ) {
+            val history = priceHistory[fuelType]
+            val isLoading = fuelType in priceHistoryLoading
+            when {
+                isLoading || history == null ->
+                    SkeletonBox(
+                        shimmer = shimmer,
+                        modifier = Modifier.fillMaxWidth().height(180.dp).padding(vertical = 8.dp),
+                        shape = MaterialTheme.shapes.small,
+                    )
+                history.isEmpty() ->
+                    Text(
+                        text = "No price history available",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                else -> {
+                    val chartData =
+                        remember(history) {
+                            history.mapNotNull { entry ->
+                                parseInstant(entry.priceChangeEffectiveTimestamp)?.let { ts ->
+                                    ChartDataPoint(value = entry.price, timestamp = ts)
+                                }
+                            }
+                        }
+                    StepChart(
+                        data = chartData,
+                        chartStyle = ChartStyle.STEP,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OpeningHoursList(openingTimes: OpeningTimes, modifier: Modifier = Modifier) {
     val groups = remember(openingTimes) { groupConsecutiveDays(openingTimes.usualDays) }
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         groups.forEach { group ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -393,6 +670,20 @@ private fun formatDayHours(hours: DayHours): String =
     else "${trimSeconds(hours.open)} – ${trimSeconds(hours.close)}"
 
 private fun trimSeconds(time: String): String = time.take(5)
+
+private fun inaccuracyBannerText(reasons: Set<PriceInaccuracyReason>): String =
+    when {
+        reasons.size == 1 ->
+            when (reasons.single()) {
+                PriceInaccuracyReason.PRICE_TOO_LOW ->
+                    "One or more prices at this station look suspiciously low and may be incorrect."
+                PriceInaccuracyReason.STALE_PRICE ->
+                    "One or more prices at this station haven't been updated recently and may be out of date."
+                PriceInaccuracyReason.UNKNOWN ->
+                    "One or more prices at this station may be inaccurate."
+            }
+        else -> "Some prices at this station may be inaccurate."
+    }
 
 private fun formatPhoneNumber(raw: String): String =
     PhoneNumberUtils.formatNumber(raw, Locale.getDefault().country.ifEmpty { "GB" }) ?: raw
@@ -557,6 +848,7 @@ private fun ForecourtDetailSheetLoadedPreview() {
                 forecourt = previewForecourt,
                 detail = previewDetail,
                 fuelTypeNames = previewFuelTypeNames,
+                selectedFuelType = "E10",
                 onDismiss = {},
             )
         }

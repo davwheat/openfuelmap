@@ -33,4 +33,5 @@ dependencies {
 
     implementation(project(":map:api"))
     implementation(project(":list:api"))
+    implementation(project(":stats:api"))
 }
