@@ -32,9 +32,9 @@ const BRAND_RULES: BrandRule[] = [
   { keyword: "bp", canonical: "BP" },
   { keyword: "esso", canonical: "Esso" },
   { keyword: "texaco", canonical: "Texaco" },
-  { keyword: "totalenergies", canonical: "TotalEnergies" },
-  { keyword: "total energies", canonical: "TotalEnergies" },
-  { keyword: "total", canonical: "TotalEnergies" },
+  { keyword: "totalenergies", canonical: "Total" },
+  { keyword: "total energies", canonical: "Total" },
+  { keyword: "total", canonical: "Total" },
   { keyword: "gulf", canonical: "Gulf" },
   { keyword: "valero", canonical: "Valero" },
   { keyword: "essar", canonical: "Essar" },
@@ -43,7 +43,7 @@ const BRAND_RULES: BrandRule[] = [
 
   // Motorway / convenience / forecourt operators
   { keyword: "welcome break", canonical: "Welcome Break" },
-  { keyword: "eg on the move", canonical: "EG On The Move" },
+  { keyword: "eg on the move", canonical: "EG" },
   { keyword: "circle k", canonical: "Circle K" },
   { keyword: "applegreen", canonical: "Applegreen" },
   { keyword: "co-op", canonical: "Co-op" },
@@ -86,12 +86,34 @@ function normalize(raw: string): string {
   return raw.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-export function canonicalizeBrand(raw: string | null | undefined): string {
-  if (!raw) return INDEPENDENT_BRAND;
-  const normalized = normalize(raw);
-  if (!normalized) return INDEPENDENT_BRAND;
+function matchBrand(normalized: string): string | null {
   for (const { pattern, canonical } of COMPILED_RULES) {
     if (pattern.test(normalized)) return canonical;
   }
+  return null;
+}
+
+export function canonicalizeBrand(
+  raw: string | null | undefined,
+  addressLine1?: string | null,
+): string {
+  if (raw) {
+    const normalized = normalize(raw);
+    if (normalized) {
+      const match = matchBrand(normalized);
+      if (match) return match;
+    }
+  }
+
+  // Fallback: some forecourts embed the brand at the start of address line 1
+  // (e.g. "Shell Service Station" or "BP Acacia Avenue").
+  if (addressLine1) {
+    const normalizedAddr = normalize(addressLine1);
+    if (normalizedAddr) {
+      const match = matchBrand(normalizedAddr);
+      if (match) return match;
+    }
+  }
+
   return INDEPENDENT_BRAND;
 }

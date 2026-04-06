@@ -47,7 +47,7 @@ export async function upsertForecourts(
       .bind(
         fc.node_id,
         fc.trading_name,
-        canonicalizeBrand(fc.brand_name),
+        canonicalizeBrand(fc.brand_name, fc.location.address_line_1),
         fc.brand_name,
         fc.is_same_trading_and_brand_name ? 1 : 0,
         fc.public_phone_number,
