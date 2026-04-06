@@ -1,6 +1,10 @@
 import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
-import { type AppContext, ForecourtSummarySchema } from "../types";
+import {
+  type AppContext,
+  ForecourtSummarySchema,
+  getInaccuracyReason,
+} from "../types";
 
 export class ForecourtList extends OpenAPIRoute {
   schema = {
@@ -201,11 +205,11 @@ export class ForecourtList extends OpenAPIRoute {
             row.fp_price_change_effective_timestamp as string,
           previous_price: prev ?? null,
           price_change:
-            prev != null
-              ? current > prev
-                ? "increase"
-                : "decrease"
-              : null,
+            prev != null ? (current > prev ? "increase" : "decrease") : null,
+          possibly_inaccurate: getInaccuracyReason(
+            current,
+            row.fp_price_last_updated as string,
+          ),
         };
       }
 

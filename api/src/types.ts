@@ -3,6 +3,43 @@ import { z } from "zod";
 
 export type AppContext = Context<{ Bindings: Env }>;
 
+// --- Inaccuracy thresholds (adjust these to tune the possibly_inaccurate flag) ---
+
+/** Prices below this value (in pence) are flagged as possibly inaccurate. */
+export const INACCURACY_PRICE_THRESHOLD = 20;
+
+/** Prices not updated within this many days are flagged as possibly inaccurate. */
+export const STALE_PRICE_DAYS = 14;
+
+export type InaccuracyReason = "price_too_low" | "stale_price" | null;
+
+/**
+ * Returns the reason a price may be inaccurate, or null if it looks fine.
+ * Pass `priceLastUpdated` for current-price endpoints; omit it for
+ * historical entries where staleness is expected.
+ */
+export function getInaccuracyReason(
+  price: number,
+  priceLastUpdated?: string,
+): InaccuracyReason {
+  if (price < INACCURACY_PRICE_THRESHOLD) return "price_too_low";
+  if (priceLastUpdated) {
+    const updatedMs = new Date(priceLastUpdated).getTime();
+    const cutoffMs = Date.now() - STALE_PRICE_DAYS * 24 * 60 * 60 * 1000;
+    if (updatedMs < cutoffMs) return "stale_price";
+  }
+  return null;
+}
+
+const InaccuracyReasonSchema = z
+  .enum(["price_too_low", "stale_price"])
+  .nullable()
+  .openapi({
+    description:
+      "Reason the price may be inaccurate: price_too_low (below 20p), stale_price (not updated in 14+ days), or null if no issues detected",
+    example: null,
+  });
+
 export const LocationSchema = z.object({
   address_line_1: z.string().openapi({ example: "14 LONDON ROAD" }),
   address_line_2: z.string().nullable(),
@@ -44,6 +81,7 @@ export const ForecourtFuelPriceSchema = z.object({
     .nullable()
     .optional()
     .openapi({ example: "decrease" }),
+  possibly_inaccurate: InaccuracyReasonSchema,
 });
 
 export const ForecourtSummarySchema = z.object({
@@ -67,6 +105,7 @@ export const FuelPriceSchema = z.object({
   price: z.number().openapi({ example: 132.9 }),
   price_last_updated: z.string(),
   price_change_effective_timestamp: z.string(),
+  possibly_inaccurate: InaccuracyReasonSchema,
 });
 
 export const StationPriceSchema = z.object({
@@ -84,4 +123,5 @@ export const PriceHistoryEntrySchema = z.object({
   fuel_type: z.string().openapi({ example: "E10" }),
   price_change_effective_timestamp: z.string(),
   created_at: z.string(),
+  possibly_inaccurate: InaccuracyReasonSchema,
 });

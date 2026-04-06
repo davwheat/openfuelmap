@@ -64,4 +64,3 @@ export const FUEL_TYPE_NAMES: Record<string, string> = {
   HVO: "HVO Diesel",
   B10: "B10 Diesel",
 };
-

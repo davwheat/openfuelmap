@@ -12,9 +12,7 @@
   "paths": {
     "/api/forecourts": {
       "get": {
-        "tags": [
-          "Forecourts"
-        ],
+        "tags": ["Forecourts"],
         "summary": "List forecourt stations",
         "operationId": "get_ForecourtList",
         "parameters": [
@@ -141,9 +139,7 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "enum": [true]
                     },
                     "result": {
                       "type": "object",
@@ -184,10 +180,7 @@
                                 "type": "boolean"
                               },
                               "permanent_closure": {
-                                "type": [
-                                  "boolean",
-                                  "null"
-                                ]
+                                "type": ["boolean", "null"]
                               },
                               "fuel_types": {
                                 "type": "array",
@@ -196,10 +189,7 @@
                                 }
                               },
                               "price": {
-                                "type": [
-                                  "object",
-                                  "null"
-                                ],
+                                "type": ["object", "null"],
                                 "properties": {
                                   "price": {
                                     "type": "number",
@@ -212,29 +202,30 @@
                                     "type": "string"
                                   },
                                   "previous_price": {
-                                    "type": [
-                                      "number",
-                                      "null"
-                                    ],
+                                    "type": ["number", "null"],
                                     "example": 134.9
                                   },
                                   "price_change": {
-                                    "type": [
-                                      "string",
-                                      "null"
-                                    ],
+                                    "type": ["string", "null"],
+                                    "enum": ["increase", "decrease", null],
+                                    "example": "decrease"
+                                  },
+                                  "possibly_inaccurate": {
+                                    "type": ["string", "null"],
                                     "enum": [
-                                      "increase",
-                                      "decrease",
+                                      "price_too_low",
+                                      "stale_price",
                                       null
                                     ],
-                                    "example": "decrease"
+                                    "description": "Reason the price may be inaccurate: price_too_low (below 20p), stale_price (not updated in 14+ days), or null if no issues detected",
+                                    "example": null
                                   }
                                 },
                                 "required": [
                                   "price",
                                   "price_last_updated",
-                                  "price_change_effective_timestamp"
+                                  "price_change_effective_timestamp",
+                                  "possibly_inaccurate"
                                 ]
                               }
                             },
@@ -264,18 +255,10 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "forecourts",
-                        "total",
-                        "page",
-                        "limit"
-                      ]
+                      "required": ["forecourts", "total", "page", "limit"]
                     }
                   },
-                  "required": [
-                    "success",
-                    "result"
-                  ]
+                  "required": ["success", "result"]
                 }
               }
             }
@@ -285,9 +268,7 @@
     },
     "/api/forecourts/{nodeId}": {
       "get": {
-        "tags": [
-          "Forecourts"
-        ],
+        "tags": ["Forecourts"],
         "summary": "Get a single forecourt by node ID",
         "operationId": "get_ForecourtFetch",
         "parameters": [
@@ -312,9 +293,7 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "enum": [true]
                     },
                     "result": {
                       "type": "object",
@@ -338,25 +317,16 @@
                               "type": "boolean"
                             },
                             "public_phone_number": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
+                              "type": ["string", "null"]
                             },
                             "temporary_closure": {
                               "type": "boolean"
                             },
                             "permanent_closure": {
-                              "type": [
-                                "boolean",
-                                "null"
-                              ]
+                              "type": ["boolean", "null"]
                             },
                             "permanent_closure_date": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
+                              "type": ["string", "null"]
                             },
                             "is_motorway_service_station": {
                               "type": "boolean"
@@ -372,10 +342,7 @@
                                   "example": "14 LONDON ROAD"
                                 },
                                 "address_line_2": {
-                                  "type": [
-                                    "string",
-                                    "null"
-                                  ]
+                                  "type": ["string", "null"]
                                 },
                                 "city": {
                                   "type": "string",
@@ -386,10 +353,7 @@
                                   "example": "ENGLAND"
                                 },
                                 "county": {
-                                  "type": [
-                                    "string",
-                                    "null"
-                                  ]
+                                  "type": ["string", "null"]
                                 },
                                 "postcode": {
                                   "type": "string",
@@ -467,27 +431,28 @@
                               },
                               "price_change_effective_timestamp": {
                                 "type": "string"
+                              },
+                              "possibly_inaccurate": {
+                                "type": ["string", "null"],
+                                "enum": ["price_too_low", "stale_price", null],
+                                "description": "Reason the price may be inaccurate: price_too_low (below 20p), stale_price (not updated in 14+ days), or null if no issues detected",
+                                "example": null
                               }
                             },
                             "required": [
                               "fuel_type",
                               "price",
                               "price_last_updated",
-                              "price_change_effective_timestamp"
+                              "price_change_effective_timestamp",
+                              "possibly_inaccurate"
                             ]
                           }
                         }
                       },
-                      "required": [
-                        "forecourt",
-                        "current_prices"
-                      ]
+                      "required": ["forecourt", "current_prices"]
                     }
                   },
-                  "required": [
-                    "success",
-                    "result"
-                  ]
+                  "required": ["success", "result"]
                 }
               }
             }
@@ -501,18 +466,13 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                      "enum": [false]
                     },
                     "error": {
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
+                  "required": ["success", "error"]
                 }
               }
             }
@@ -522,9 +482,7 @@
     },
     "/api/prices": {
       "get": {
-        "tags": [
-          "Prices"
-        ],
+        "tags": ["Prices"],
         "summary": "List current fuel prices",
         "operationId": "get_PriceList",
         "parameters": [
@@ -592,10 +550,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": [
-                "price_asc",
-                "price_desc"
-              ],
+              "enum": ["price_asc", "price_desc"],
               "default": "price_asc",
               "description": "Sort order"
             },
@@ -615,9 +570,7 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "enum": [true]
                     },
                     "result": {
                       "type": "object",
@@ -663,13 +616,24 @@
                                     },
                                     "price_change_effective_timestamp": {
                                       "type": "string"
+                                    },
+                                    "possibly_inaccurate": {
+                                      "type": ["string", "null"],
+                                      "enum": [
+                                        "price_too_low",
+                                        "stale_price",
+                                        null
+                                      ],
+                                      "description": "Reason the price may be inaccurate: price_too_low (below 20p), stale_price (not updated in 14+ days), or null if no issues detected",
+                                      "example": null
                                     }
                                   },
                                   "required": [
                                     "fuel_type",
                                     "price",
                                     "price_last_updated",
-                                    "price_change_effective_timestamp"
+                                    "price_change_effective_timestamp",
+                                    "possibly_inaccurate"
                                   ]
                                 }
                               }
@@ -695,18 +659,10 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "stations",
-                        "total",
-                        "page",
-                        "limit"
-                      ]
+                      "required": ["stations", "total", "page", "limit"]
                     }
                   },
-                  "required": [
-                    "success",
-                    "result"
-                  ]
+                  "required": ["success", "result"]
                 }
               }
             }
@@ -716,9 +672,7 @@
     },
     "/api/forecourts/{nodeId}/prices/history": {
       "get": {
-        "tags": [
-          "Prices"
-        ],
+        "tags": ["Prices"],
         "summary": "Get price history for a forecourt",
         "operationId": "get_PriceHistory",
         "parameters": [
@@ -774,9 +728,7 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "enum": [true]
                     },
                     "result": {
                       "type": "object",
@@ -802,27 +754,28 @@
                               },
                               "created_at": {
                                 "type": "string"
+                              },
+                              "possibly_inaccurate": {
+                                "type": ["string", "null"],
+                                "enum": ["price_too_low", "stale_price", null],
+                                "description": "Reason the price may be inaccurate: price_too_low (below 20p), stale_price (not updated in 14+ days), or null if no issues detected",
+                                "example": null
                               }
                             },
                             "required": [
                               "price",
                               "fuel_type",
                               "price_change_effective_timestamp",
-                              "created_at"
+                              "created_at",
+                              "possibly_inaccurate"
                             ]
                           }
                         }
                       },
-                      "required": [
-                        "node_id",
-                        "prices"
-                      ]
+                      "required": ["node_id", "prices"]
                     }
                   },
-                  "required": [
-                    "success",
-                    "result"
-                  ]
+                  "required": ["success", "result"]
                 }
               }
             }
@@ -836,18 +789,13 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                      "enum": [false]
                     },
                     "error": {
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
+                  "required": ["success", "error"]
                 }
               }
             }
@@ -857,9 +805,7 @@
     },
     "/api/fuel-types": {
       "get": {
-        "tags": [
-          "Reference"
-        ],
+        "tags": ["Reference"],
         "summary": "List available fuel types",
         "operationId": "get_FuelTypeList",
         "responses": {
@@ -872,9 +818,7 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "enum": [true]
                     },
                     "result": {
                       "type": "object",
@@ -893,22 +837,14 @@
                                 "example": "Unleaded (E10)"
                               }
                             },
-                            "required": [
-                              "id",
-                              "name"
-                            ]
+                            "required": ["id", "name"]
                           }
                         }
                       },
-                      "required": [
-                        "fuel_types"
-                      ]
+                      "required": ["fuel_types"]
                     }
                   },
-                  "required": [
-                    "success",
-                    "result"
-                  ]
+                  "required": ["success", "result"]
                 }
               }
             }
@@ -918,9 +854,7 @@
     },
     "/api/brands": {
       "get": {
-        "tags": [
-          "Reference"
-        ],
+        "tags": ["Reference"],
         "summary": "List available brands",
         "operationId": "get_BrandList",
         "responses": {
@@ -933,9 +867,7 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "enum": [true]
                     },
                     "result": {
                       "type": "object",
@@ -954,22 +886,14 @@
                                 "example": 1042
                               }
                             },
-                            "required": [
-                              "name",
-                              "forecourt_count"
-                            ]
+                            "required": ["name", "forecourt_count"]
                           }
                         }
                       },
-                      "required": [
-                        "brands"
-                      ]
+                      "required": ["brands"]
                     }
                   },
-                  "required": [
-                    "success",
-                    "result"
-                  ]
+                  "required": ["success", "result"]
                 }
               }
             }
@@ -979,15 +903,39 @@
     },
     "/api/stats/daily-median-prices": {
       "get": {
-        "tags": [
-          "Stats"
-        ],
-        "summary": "Daily median fuel prices",
-        "description": "Returns the daily median price for each fuel type over the last 28 days",
+        "tags": ["Stats"],
+        "summary": "Daily fuel price statistics",
+        "description": "Returns a daily price statistic (median or 10th–90th percentile trimmed mean) for each fuel type over a given range",
         "operationId": "get_DailyMedianPrices",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["7d", "28d", "60d", "90d", "180d", "365d"],
+              "default": "28d",
+              "description": "Lookback period"
+            },
+            "required": false,
+            "description": "Lookback period",
+            "name": "range",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["median", "trimmed_mean"],
+              "default": "median",
+              "description": "Statistic to compute: median or 10th–90th percentile trimmed mean"
+            },
+            "required": false,
+            "description": "Statistic to compute: median or 10th–90th percentile trimmed mean",
+            "name": "stat",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Daily median prices per fuel type for the last 28 days",
+            "description": "Daily price statistics per fuel type",
             "content": {
               "application/json": {
                 "schema": {
@@ -995,13 +943,15 @@
                   "properties": {
                     "success": {
                       "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "enum": [true]
                     },
                     "result": {
                       "type": "object",
                       "properties": {
+                        "stat": {
+                          "type": "string",
+                          "enum": ["median", "trimmed_mean"]
+                        },
                         "prices": {
                           "type": "array",
                           "items": {
@@ -1015,28 +965,19 @@
                                 "type": "string",
                                 "example": "E10"
                               },
-                              "median_price": {
+                              "price": {
                                 "type": "number",
                                 "example": 132.9
                               }
                             },
-                            "required": [
-                              "date",
-                              "fuel_type",
-                              "median_price"
-                            ]
+                            "required": ["date", "fuel_type", "price"]
                           }
                         }
                       },
-                      "required": [
-                        "prices"
-                      ]
+                      "required": ["stat", "prices"]
                     }
                   },
-                  "required": [
-                    "success",
-                    "result"
-                  ]
+                  "required": ["success", "result"]
                 }
               }
             }

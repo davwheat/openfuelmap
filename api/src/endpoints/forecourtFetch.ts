@@ -1,6 +1,11 @@
 import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
-import { type AppContext, ForecourtSchema, FuelPriceSchema } from "../types";
+import {
+  type AppContext,
+  ForecourtSchema,
+  FuelPriceSchema,
+  getInaccuracyReason,
+} from "../types";
 
 export class ForecourtFetch extends OpenAPIRoute {
   schema = {
@@ -102,7 +107,13 @@ export class ForecourtFetch extends OpenAPIRoute {
       success: true,
       result: {
         forecourt,
-        current_prices: prices.results,
+        current_prices: prices.results.map((p: Record<string, unknown>) => ({
+          ...p,
+          possibly_inaccurate: getInaccuracyReason(
+            p.price as number,
+            p.price_last_updated as string,
+          ),
+        })),
       },
     };
   }

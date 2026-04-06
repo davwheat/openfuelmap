@@ -1,6 +1,10 @@
 import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
-import { type AppContext, StationPriceSchema } from "../types";
+import {
+  type AppContext,
+  getInaccuracyReason,
+  StationPriceSchema,
+} from "../types";
 
 export class PriceList extends OpenAPIRoute {
   schema = {
@@ -135,6 +139,10 @@ export class PriceList extends OpenAPIRoute {
           price_last_updated: row.price_last_updated,
           price_change_effective_timestamp:
             row.price_change_effective_timestamp,
+          possibly_inaccurate: getInaccuracyReason(
+            row.price as number,
+            row.price_last_updated as string,
+          ),
         });
       }
     }

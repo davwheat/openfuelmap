@@ -1,6 +1,10 @@
 import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
-import { type AppContext, PriceHistoryEntrySchema } from "../types";
+import {
+  type AppContext,
+  getInaccuracyReason,
+  PriceHistoryEntrySchema,
+} from "../types";
 
 export class PriceHistory extends OpenAPIRoute {
   schema = {
@@ -102,7 +106,10 @@ export class PriceHistory extends OpenAPIRoute {
       success: true,
       result: {
         node_id: nodeId,
-        prices: rows.results,
+        prices: rows.results.map((p: Record<string, unknown>) => ({
+          ...p,
+          possibly_inaccurate: getInaccuracyReason(p.price as number),
+        })),
       },
     };
   }
