@@ -148,9 +148,10 @@ export class ForecourtList extends OpenAPIRoute {
       ? "LEFT JOIN fuel_prices fp ON fp.node_id = f.node_id AND fp.is_latest = 1 AND fp.fuel_type = ?"
       : "";
     const priceSelect = fuel_type
-      ? ", fp.price as fp_price, fp.price_last_updated as fp_price_last_updated, fp.price_change_effective_timestamp as fp_price_change_effective_timestamp"
+      ? `, fp.price as fp_price, fp.price_last_updated as fp_price_last_updated, fp.price_change_effective_timestamp as fp_price_change_effective_timestamp,
+            (SELECT price FROM fuel_prices WHERE node_id = f.node_id AND fuel_type = ? AND is_latest = 0 ORDER BY price_change_effective_timestamp DESC LIMIT 1) as fp_prev_price`
       : "";
-    const joinParams: unknown[] = fuel_type ? [fuel_type] : [];
+    const joinParams: unknown[] = fuel_type ? [fuel_type, fuel_type] : [];
 
     const rows = await c.env.fuel_prices_db
       .prepare(
@@ -188,18 +189,27 @@ export class ForecourtList extends OpenAPIRoute {
         fuel_types: JSON.parse(row.fuel_types as string),
       };
       if (!fuel_type) return base;
-      return {
-        ...base,
-        price:
-          row.fp_price != null
-            ? {
-                price: row.fp_price as number,
-                price_last_updated: row.fp_price_last_updated as string,
-                price_change_effective_timestamp:
-                  row.fp_price_change_effective_timestamp as string,
-              }
-            : null,
-      };
+
+      let price = null;
+      if (row.fp_price != null) {
+        const current = row.fp_price as number;
+        const prev = row.fp_prev_price as number | null;
+        price = {
+          price: current,
+          price_last_updated: row.fp_price_last_updated as string,
+          price_change_effective_timestamp:
+            row.fp_price_change_effective_timestamp as string,
+          previous_price: prev ?? null,
+          price_change:
+            prev != null
+              ? current > prev
+                ? "increase"
+                : "decrease"
+              : null,
+        };
+      }
+
+      return { ...base, price };
     });
 
     return {

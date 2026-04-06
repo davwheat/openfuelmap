@@ -210,6 +210,25 @@
                                   },
                                   "price_change_effective_timestamp": {
                                     "type": "string"
+                                  },
+                                  "previous_price": {
+                                    "type": [
+                                      "number",
+                                      "null"
+                                    ],
+                                    "example": 134.9
+                                  },
+                                  "price_change": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "enum": [
+                                      "increase",
+                                      "decrease",
+                                      null
+                                    ],
+                                    "example": "decrease"
                                   }
                                 },
                                 "required": [

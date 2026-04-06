@@ -38,6 +38,12 @@ export const ForecourtFuelPriceSchema = z.object({
   price: z.number().openapi({ example: 132.9 }),
   price_last_updated: z.string(),
   price_change_effective_timestamp: z.string(),
+  previous_price: z.number().nullable().optional().openapi({ example: 134.9 }),
+  price_change: z
+    .enum(["increase", "decrease"])
+    .nullable()
+    .optional()
+    .openapi({ example: "decrease" }),
 });
 
 export const ForecourtSummarySchema = z.object({
