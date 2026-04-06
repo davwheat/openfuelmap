@@ -8,6 +8,9 @@ const DailyPriceStatSchema = z.object({
   price: z.number().openapi({ example: 132.9 }),
 });
 
+/** Earliest date to include in stats results (data before this is discarded). */
+const STATS_MIN_DATE = "2026-03-25";
+
 const ALLOWED_RANGES = [7, 28, 60, 90, 180, 365] as const;
 type AllowedRange = (typeof ALLOWED_RANGES)[number];
 
@@ -66,6 +69,8 @@ export class DailyMedianPrices extends OpenAPIRoute {
       return { success: true, result: { stat, prices: cached } };
     }
 
+    const dateFloor = `MAX(DATE('now', '-' || ? || ' days'), ?)`;
+
     const sql =
       stat === "trimmed_mean"
         ? `WITH daily_prices AS (
@@ -78,7 +83,7 @@ export class DailyMedianPrices extends OpenAPIRoute {
                  ORDER BY price
                ) AS pct
              FROM fuel_prices
-             WHERE price_change_effective_timestamp >= DATE('now', '-' || ? || ' days')
+             WHERE price_change_effective_timestamp >= ${dateFloor}
            )
            SELECT
              date,
@@ -101,7 +106,7 @@ export class DailyMedianPrices extends OpenAPIRoute {
                  PARTITION BY fuel_type, DATE(price_change_effective_timestamp)
                ) AS cnt
              FROM fuel_prices
-             WHERE price_change_effective_timestamp >= DATE('now', '-' || ? || ' days')
+             WHERE price_change_effective_timestamp >= ${dateFloor}
            )
            SELECT
              date,
@@ -114,7 +119,7 @@ export class DailyMedianPrices extends OpenAPIRoute {
 
     const rows = await c.env.fuel_prices_db
       .prepare(sql)
-      .bind(days)
+      .bind(days, STATS_MIN_DATE)
       .all<{ date: string; fuel_type: string; price: number }>();
 
     const prices = rows.results;

@@ -3,6 +3,14 @@ import { z } from "zod";
 
 export type AppContext = Context<{ Bindings: Env }>;
 
+// --- Price percentile thresholds (used for colour-scaling on the client) ---
+
+/** Lower percentile boundary (0–1) for the price range returned by list endpoints. */
+export const PRICE_PERCENTILE_LOW = 0.1;
+
+/** Upper percentile boundary (0–1) for the price range returned by list endpoints. */
+export const PRICE_PERCENTILE_HIGH = 0.9;
+
 // --- Inaccuracy thresholds (adjust these to tune the possibly_inaccurate flag) ---
 
 /** Prices below this value (in pence) are flagged as possibly inaccurate. */

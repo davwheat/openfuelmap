@@ -3,8 +3,15 @@ import { z } from "zod";
 import {
   type AppContext,
   ForecourtSummarySchema,
+  PRICE_PERCENTILE_HIGH,
+  PRICE_PERCENTILE_LOW,
   getInaccuracyReason,
 } from "../types";
+
+const PricePercentilesSchema = z.object({
+  low: z.number().openapi({ example: 127.9 }),
+  high: z.number().openapi({ example: 145.9 }),
+});
 
 export class ForecourtList extends OpenAPIRoute {
   schema = {
@@ -62,6 +69,10 @@ export class ForecourtList extends OpenAPIRoute {
               success: z.literal(true),
               result: z.object({
                 forecourts: ForecourtSummarySchema.array(),
+                price_percentiles: PricePercentilesSchema.nullable().openapi({
+                  description:
+                    "10th/90th percentile prices across all active stations for the requested fuel type (null when no fuel_type filter)",
+                }),
                 total: z.number(),
                 page: z.number(),
                 limit: z.number(),
@@ -216,10 +227,47 @@ export class ForecourtList extends OpenAPIRoute {
       return { ...base, price };
     });
 
+    let price_percentiles: { low: number; high: number } | null = null;
+    if (fuel_type) {
+      const cacheKey = `price-percentiles:${fuel_type}`;
+      const cached = await c.env.KV.get<{ low: number; high: number }>(
+        cacheKey,
+        "json",
+      );
+
+      if (cached) {
+        price_percentiles = cached;
+      } else {
+        const pctRow = await c.env.fuel_prices_db
+          .prepare(
+            `WITH ranked AS (
+               SELECT price, PERCENT_RANK() OVER (ORDER BY price) AS pct
+               FROM fuel_prices fp
+               JOIN forecourts f ON f.node_id = fp.node_id
+               WHERE fp.is_latest = 1 AND fp.fuel_type = ? AND f.is_active = 1
+             )
+             SELECT
+               ROUND(MIN(CASE WHEN pct >= ? THEN price END), 1) AS low,
+               ROUND(MAX(CASE WHEN pct <= ? THEN price END), 1) AS high
+             FROM ranked`,
+          )
+          .bind(fuel_type, PRICE_PERCENTILE_LOW, PRICE_PERCENTILE_HIGH)
+          .first<{ low: number | null; high: number | null }>();
+
+        if (pctRow?.low != null && pctRow?.high != null) {
+          price_percentiles = { low: pctRow.low, high: pctRow.high };
+          await c.env.KV.put(cacheKey, JSON.stringify(price_percentiles), {
+            expirationTtl: 3600,
+          });
+        }
+      }
+    }
+
     return {
       success: true,
       result: {
         forecourts,
+        price_percentiles,
         total: countRow?.total ?? 0,
         page,
         limit,
