@@ -14,6 +14,7 @@ plugins {
 }
 
 val appCompileSdk: Int by rootProject.extra
+val appMinSdk: Int by rootProject.extra
 val appBuildNumber: Int by rootProject.extra
 val appVersionName: String by rootProject.extra
 
@@ -23,7 +24,7 @@ android {
 
     defaultConfig {
         applicationId = "dev.davwheat.openfuelmap"
-        minSdk = 26
+        minSdk = appMinSdk
         targetSdk = 36
         versionCode = appBuildNumber
         versionName = appVersionName
@@ -97,6 +98,7 @@ dependencies {
 
     // Feature modules
     implementation(project(":app:api"))
+    implementation(project(":common:nav"))
     implementation(project(":data"))
     implementation(project(":forecourts:api"))
     implementation(project(":forecourts:data"))

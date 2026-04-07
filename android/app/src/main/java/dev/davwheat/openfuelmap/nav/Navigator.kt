@@ -2,7 +2,6 @@ package dev.davwheat.openfuelmap.nav
 
 import androidx.navigation3.runtime.NavKey
 import dev.davwheat.openfuelmap.app.api.INavigator
-import dev.davwheat.smartpromptpilot.nav.NavigationState
 
 /** Handles navigation events (forward and back) by updating the navigation state. */
 class Navigator(val state: NavigationState) : INavigator {

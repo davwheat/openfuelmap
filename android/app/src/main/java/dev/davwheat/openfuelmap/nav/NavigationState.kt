@@ -1,4 +1,4 @@
-package dev.davwheat.smartpromptpilot.nav
+package dev.davwheat.openfuelmap.nav
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState

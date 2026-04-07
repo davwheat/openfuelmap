@@ -1,13 +1,10 @@
-plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.serialization)
-}
+plugins { alias(libs.plugins.android.library) }
 
 val appCompileSdk: Int by rootProject.extra
 val appMinSdk: Int by rootProject.extra
 
 android {
-    namespace = "dev.davwheat.openfuelmap.stats.api"
+    namespace = "dev.davwheat.openfuelmap.common.nav"
     compileSdk = appCompileSdk
 
     defaultConfig {
@@ -22,10 +19,4 @@ android {
     }
 }
 
-dependencies {
-    implementation(libs.androidx.annotation.experimental)
-    implementation(libs.androidx.navigation3.runtime)
-    implementation(libs.kotlinx.serialization.core)
-    implementation(project(":common:nav"))
-    implementation(project(":data"))
-}
+dependencies { implementation(libs.androidx.navigation3.runtime) }

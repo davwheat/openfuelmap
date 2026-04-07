@@ -7,13 +7,14 @@ plugins {
 }
 
 val appCompileSdk: Int by rootProject.extra
+val appMinSdk: Int by rootProject.extra
 
 android {
     namespace = "dev.davwheat.openfuelmap.stats.impl"
     compileSdk = appCompileSdk
 
     defaultConfig {
-        minSdk = 26
+        minSdk = appMinSdk
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -29,6 +30,7 @@ dependencies {
     implementation(libs.androidx.annotation.experimental)
 
     implementation(project(":common:ui"))
+    implementation(project(":common:nav"))
     implementation(project(":app:api"))
     implementation(project(":stats:api"))
     implementation(project(":data"))

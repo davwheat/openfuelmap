@@ -1,11 +1,13 @@
 package dev.davwheat.openfuelmap.settings.impl.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Scaffold
@@ -36,13 +38,23 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         },
         bottomBar = bottomNavBar,
     ) { contentPadding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(contentPadding),
-            contentPadding = PaddingValues(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-        ) {
-            items(settingsItems, key = { it.key }) { item ->
-                SettingsItemRow(item, modifier = Modifier.animateItem())
+        val items = settingsItems
+        if (items == null) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(contentPadding),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(contentPadding),
+                contentPadding = PaddingValues(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+            ) {
+                items(items, key = { it.key }) { item ->
+                    SettingsItemRow(item, modifier = Modifier.animateItem())
+                }
             }
         }
     }

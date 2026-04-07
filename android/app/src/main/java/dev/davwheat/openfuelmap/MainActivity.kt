@@ -4,6 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -17,9 +21,11 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.scene.DialogSceneStrategy
+import androidx.navigation3.scene.SinglePaneSceneStrategy
 import androidx.navigation3.ui.NavDisplay
 import dagger.hilt.android.AndroidEntryPoint
 import dev.davwheat.openfuelmap.app.api.BottomNavBar
@@ -27,36 +33,29 @@ import dev.davwheat.openfuelmap.app.api.LocalBottomNavBarProvider
 import dev.davwheat.openfuelmap.app.api.LocalNavigator
 import dev.davwheat.openfuelmap.data.repository.UserPreferencesRepository
 import dev.davwheat.openfuelmap.list.api.ListNav
-import dev.davwheat.openfuelmap.list.impl.listEntryBuilder
 import dev.davwheat.openfuelmap.map.api.MapNav
-import dev.davwheat.openfuelmap.map.impl.mapEntryBuilder
 import dev.davwheat.openfuelmap.nav.Navigator
+import dev.davwheat.openfuelmap.nav.rememberNavigationState
+import dev.davwheat.openfuelmap.nav.toEntries
 import dev.davwheat.openfuelmap.nav.topLevelRouteFromId
 import dev.davwheat.openfuelmap.nav.topLevelRouteId
 import dev.davwheat.openfuelmap.settings.api.SettingsNav
-import dev.davwheat.openfuelmap.settings.impl.settingsEntryBuilder
 import dev.davwheat.openfuelmap.stats.api.StatsNav
-import dev.davwheat.openfuelmap.stats.impl.statsEntryBuilder
 import dev.davwheat.openfuelmap.ui.theme.AppTheme
-import dev.davwheat.smartpromptpilot.nav.rememberNavigationState
-import dev.davwheat.smartpromptpilot.nav.toEntries
 import javax.inject.Inject
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-private val entryProvider = entryProvider {
-    mapEntryBuilder()
-    listEntryBuilder()
-    statsEntryBuilder()
-    settingsEntryBuilder()
-}
-
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     @Inject lateinit var userPreferencesRepository: UserPreferencesRepository
+
+    @Inject
+    lateinit var entryBuilders:
+        Set<@JvmSuppressWildcards EntryProviderScope<NavKey>.() -> Unit>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen()
@@ -104,13 +103,23 @@ class MainActivity : ComponentActivity() {
                     LocalNavigator provides navigator,
                     LocalBottomNavBarProvider provides { BottomNavBar(navigator = navigator) },
                 ) {
-                    NavDisplay(
-                        modifier =
-                            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-                        entries = navigationState.toEntries(entryProvider),
-                        onBack = { navigator.goBack() },
-                        sceneStrategy = remember { DialogSceneStrategy() },
-                    )
+                    SharedTransitionLayout {
+                        NavDisplay(
+                            modifier =
+                                Modifier.fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.background),
+                            entries =
+                            navigationState.toEntries(
+                                entryProvider {
+                                    entryBuilders.forEach { builder -> builder() }
+                                }
+                            ),
+                            onBack =  navigator::goBack,
+                            transitionSpec = { fadeIn() togetherWith fadeOut() },
+                            popTransitionSpec = { fadeIn() togetherWith fadeOut() },
+                            sharedTransitionScope = this,
+                        )
+                    }
                 }
             }
         }

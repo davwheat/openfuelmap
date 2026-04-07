@@ -19,6 +19,7 @@ constructor(
     private val dao: FuelTypeDao,
     private val apiClient: FuelTypesApiClient,
     private val dispatchers: DispatcherProvider,
+    private val cacheMetadata: CacheMetadataRepository,
 ) : RepositoryWithUpdaterChannel(dispatchers) {
 
     fun getAllFuelTypes(): Flow<List<FuelTypeEntity>> =
@@ -30,7 +31,8 @@ constructor(
                 ) {
                 override fun loadFlowFromDb(): Flow<List<FuelTypeEntity>> = dao.getAll()
 
-                override suspend fun shouldFetch(data: List<FuelTypeEntity>?): Boolean = true
+                override suspend fun shouldFetch(data: List<FuelTypeEntity>?): Boolean =
+                    cacheMetadata.isFuelTypesStale()
 
                 override suspend fun fetchFromNetwork(): List<FuelTypeDto> =
                     apiClient.getFuelTypes() ?: emptyList()
@@ -39,6 +41,7 @@ constructor(
                     val entities = entries.map { FuelTypeEntity(id = it.id, name = it.name) }
                     dao.deleteAll()
                     dao.insertAll(entities)
+                    cacheMetadata.markFuelTypesFetched()
                 }
             }
             .fetchAsFlow(filterLocal = { it.isNotEmpty() })
@@ -52,5 +55,6 @@ constructor(
         val entities = fresh.map { FuelTypeEntity(id = it.id, name = it.name) }
         dao.deleteAll()
         dao.insertAll(entities)
+        cacheMetadata.markFuelTypesFetched()
     }
 }

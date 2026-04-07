@@ -9,6 +9,7 @@ import dev.davwheat.openfuelmap.data.repository.FuelTypeRepository
 import dev.davwheat.openfuelmap.data.repository.SavedCameraPosition
 import dev.davwheat.openfuelmap.data.repository.UserPreferencesRepository
 import dev.davwheat.openfuelmap.data.result.ApiResult
+import dev.davwheat.openfuelmap.data.utils.DispatcherProvider
 import dev.davwheat.openfuelmap.forecourts.api.model.BoundingBox
 import dev.davwheat.openfuelmap.forecourts.api.model.Forecourt
 import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtListResult
@@ -19,7 +20,7 @@ import dev.davwheat.openfuelmap.forecourts.api.repository.ForecourtRepository
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,9 +32,17 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
+
+sealed interface InitialPosition {
+    data object Loading : InitialPosition
+
+    data class Loaded(val position: SavedCameraPosition?) : InitialPosition
+}
 
 @HiltViewModel
 class MapViewModel
@@ -42,7 +51,10 @@ constructor(
     private val forecourtRepository: ForecourtRepository,
     fuelTypeRepository: FuelTypeRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val dispatcherProvider: DispatcherProvider,
 ) : ViewModel() {
+
+    private val _currentBounds = MutableStateFlow<BoundingBox?>(null)
 
     private val _forecourtResult =
         MutableStateFlow(ForecourtListResult(emptyList(), pricePercentiles = null))
@@ -69,7 +81,7 @@ constructor(
         _forecourtResult
             .map { buildMarkers(it.forecourts, it.pricePercentiles) }
             .distinctUntilChanged()
-            .flowOn(Dispatchers.Default)
+            .flowOn(dispatcherProvider.default)
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _selectedStation = MutableStateFlow<SelectedStation?>(null)
@@ -89,7 +101,8 @@ constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    private val _currentBounds = MutableStateFlow<BoundingBox?>(null)
+    private val _initialPosition = MutableStateFlow<InitialPosition>(InitialPosition.Loading)
+    val initialPosition: StateFlow<InitialPosition> = _initialPosition.asStateFlow()
 
     val fuelTypes: StateFlow<List<FuelTypeEntity>> =
         fuelTypeRepository
@@ -112,81 +125,86 @@ constructor(
             }
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    val fuelTypeNames: StateFlow<Map<String, String>> =
+        fuelTypes
+            .map { types -> types.associate { it.id to it.name } }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
     init {
-        Timber.d("MapViewModel: init, selectedFuelType=%s", selectedFuelType.value)
-
-        // Log when selectedFuelType resolves.
         viewModelScope.launch {
-            selectedFuelType.filterNotNull().first().also {
-                Timber.d("MapViewModel: selectedFuelType resolved to %s", it)
+            fuelTypes.collect { Timber.d("MapViewModel: fuelTypes changed, count=%d", it.size) }
+        }
+        viewModelScope.launch {
+            selectedFuelType.collect {
+                Timber.d("MapViewModel: selectedFuelType changed to %s", it)
             }
         }
-
-        // Auto-refetch stations whenever bounds, selected fuel type, or excluded brands change.
         viewModelScope.launch {
-            combine(
-                    _currentBounds.filterNotNull(),
-                    selectedFuelType.filterNotNull(),
-                    excludedBrands,
-                ) { bounds, fuelType, excluded ->
-                    Timber.d(
-                        "MapViewModel: combine emitting bounds=%s fuelType=%s excludedCount=%d",
-                        bounds,
-                        fuelType,
-                        excluded.size,
-                    )
-                    Triple(bounds, fuelType, excluded)
-                }
-                .collect { (bounds, fuelType, excluded) ->
-                    fetchStations(bounds, fuelType, excluded)
-                }
+            val saved = userPreferencesRepository.lastCameraPosition.first()
+            _initialPosition.value = InitialPosition.Loaded(saved)
         }
     }
 
-    fun loadStationsInBounds(bounds: BoundingBox) {
-        Timber.d("MapViewModel: loadStationsInBounds %s", bounds)
-        _currentBounds.value = bounds
-    }
-
-    private suspend fun fetchStations(
-        bounds: BoundingBox,
-        fuelType: String?,
-        excludeBrands: Set<String>,
-    ) {
-        Timber.d(
-            "MapViewModel: fetchStations start fuelType=%s excludeCount=%d",
-            fuelType,
-            excludeBrands.size,
-        )
-        _isLoading.value = true
-        _error.value = null
-        when (
-            val result =
-                forecourtRepository.getForecourts(
-                    bounds = bounds,
-                    fuelType = fuelType,
-                    excludeBrands = excludeBrands,
-                )
-        ) {
-            is ApiResult.Success -> {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val _stationsFetch: StateFlow<ForecourtListResult> =
+        combine(_currentBounds.filterNotNull(), selectedFuelType.filterNotNull(), excludedBrands) {
+                bounds,
+                fuelType,
+                excluded ->
                 Timber.d(
-                    "MapViewModel: fetchStations success count=%d",
-                    result.data.forecourts.size,
+                    "MapViewModel: combine bounds=%s fuelType=%s excludedCount=%d",
+                    bounds,
+                    fuelType,
+                    excluded.size,
                 )
-                _forecourtResult.value = result.data
+                Triple(bounds, fuelType, excluded)
             }
-            is ApiResult.Failure -> {
-                logFailure("fetchStations", result)
-                _error.value = result.message
+            .onEach {
+                _isLoading.value = true
+                _error.value = null
             }
-        }
-        _isLoading.value = false
-    }
+            .mapLatest { (bounds, fuelType, excluded) ->
+                Timber.d(
+                    "MapViewModel: fetching fuelType=%s excludeCount=%d",
+                    fuelType,
+                    excluded.size,
+                )
+                when (
+                    val result =
+                        forecourtRepository.getForecourts(
+                            bounds = bounds,
+                            fuelType = fuelType,
+                            excludeBrands = excluded,
+                        )
+                ) {
+                    is ApiResult.Success -> {
+                        Timber.d(
+                            "MapViewModel: fetch success count=%d",
+                            result.data.forecourts.size,
+                        )
+                        _error.value = null
+                        result.data
+                    }
+                    is ApiResult.Failure -> {
+                        logFailure("fetchStations", result)
+                        _error.value = result.message
+                        _forecourtResult.value // keep previous data on failure
+                    }
+                }
+            }
+            .onEach {
+                _forecourtResult.value = it
+                _isLoading.value = false
+            }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.Eagerly,
+                ForecourtListResult(emptyList(), pricePercentiles = null),
+            )
 
-    suspend fun loadInitialCameraPosition(): SavedCameraPosition? =
-        userPreferencesRepository.lastCameraPosition.first()
-
-    fun saveCameraPosition(position: SavedCameraPosition) {
+    fun onCameraIdle(bounds: BoundingBox, position: SavedCameraPosition) {
+        Timber.d("MapViewModel: onCameraIdle bounds=%s", bounds)
+        _currentBounds.value = bounds
         viewModelScope.launch { userPreferencesRepository.setLastCameraPosition(position) }
     }
 

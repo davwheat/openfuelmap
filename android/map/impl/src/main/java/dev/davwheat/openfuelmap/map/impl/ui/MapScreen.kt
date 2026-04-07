@@ -45,6 +45,7 @@ import dev.davwheat.openfuelmap.common.location.rememberLocationPermissionState
 import dev.davwheat.openfuelmap.data.repository.SavedCameraPosition
 import dev.davwheat.openfuelmap.forecourts.api.model.BoundingBox
 import dev.davwheat.openfuelmap.forecourts.impl.detail.ForecourtDetailSheet
+import dev.davwheat.openfuelmap.map.impl.viewmodel.InitialPosition
 import dev.davwheat.openfuelmap.map.impl.viewmodel.MapViewModel
 import kotlin.math.log2
 import kotlin.math.min
@@ -80,13 +81,12 @@ fun MapScreen(viewModel: MapViewModel) {
     val selectedStation by viewModel.selectedStation.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
-    val fuelTypes by viewModel.fuelTypes.collectAsStateWithLifecycle()
     val selectedFuelType by viewModel.selectedFuelType.collectAsStateWithLifecycle()
     val colorblindMode by viewModel.colorblindMode.collectAsStateWithLifecycle()
     val priceHistory by viewModel.priceHistory.collectAsStateWithLifecycle()
     val priceHistoryLoading by viewModel.priceHistoryLoading.collectAsStateWithLifecycle()
-
-    val fuelTypeNames = remember(fuelTypes) { fuelTypes.associate { it.id to it.name } }
+    val fuelTypeNames by viewModel.fuelTypeNames.collectAsStateWithLifecycle()
+    val initialPosition by viewModel.initialPosition.collectAsStateWithLifecycle()
 
     val bottomNavBar = LocalBottomNavBarProvider.current
 
@@ -105,27 +105,21 @@ fun MapScreen(viewModel: MapViewModel) {
     // Tracks whether we have applied an initial position (saved or geolocation) so we don't
     // keep snapping the camera after the user starts interacting with the map.
     var initialPositionApplied by remember { mutableStateOf(false) }
-    // Gate the geolocation override until we've checked DataStore for a saved position.
-    var savedPositionChecked by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        val saved = viewModel.loadInitialCameraPosition()
-        if (saved != null && !initialPositionApplied) {
+    LaunchedEffect(initialPosition, lastKnownLocation) {
+        if (initialPositionApplied) return@LaunchedEffect
+        val loaded = (initialPosition as? InitialPosition.Loaded) ?: return@LaunchedEffect
+        val saved = loaded.position
+        if (saved != null) {
             cameraPositionState.position =
                 CameraPosition.fromLatLngZoom(LatLng(saved.latitude, saved.longitude), saved.zoom)
             initialPositionApplied = true
+        } else {
+            val loc = lastKnownLocation ?: return@LaunchedEffect
+            cameraPositionState.position =
+                CameraPosition.fromLatLngZoom(LatLng(loc.latitude, loc.longitude), 10f)
+            initialPositionApplied = true
         }
-        savedPositionChecked = true
-    }
-
-    LaunchedEffect(lastKnownLocation, savedPositionChecked) {
-        val loc = lastKnownLocation
-        if (!savedPositionChecked || initialPositionApplied || loc == null) {
-            return@LaunchedEffect
-        }
-        cameraPositionState.position =
-            CameraPosition.fromLatLngZoom(LatLng(loc.latitude, loc.longitude), 10f)
-        initialPositionApplied = true
     }
 
     LaunchedEffect(cameraPositionState) {
@@ -161,22 +155,22 @@ fun MapScreen(viewModel: MapViewModel) {
                     bounds.northeast.longitude,
                 )
                 delay(100)
-                Timber.d("map-idle: calling loadStationsInBounds")
-                viewModel.loadStationsInBounds(
-                    BoundingBox(
-                        swLat = bounds.southwest.latitude,
-                        swLng = bounds.southwest.longitude,
-                        neLat = bounds.northeast.latitude,
-                        neLng = bounds.northeast.longitude,
-                    )
-                )
+                Timber.d("map-idle: calling onCameraIdle")
                 val position = cameraPositionState.position
-                viewModel.saveCameraPosition(
-                    SavedCameraPosition(
-                        latitude = position.target.latitude,
-                        longitude = position.target.longitude,
-                        zoom = position.zoom,
-                    )
+                viewModel.onCameraIdle(
+                    bounds =
+                        BoundingBox(
+                            swLat = bounds.southwest.latitude,
+                            swLng = bounds.southwest.longitude,
+                            neLat = bounds.northeast.latitude,
+                            neLng = bounds.northeast.longitude,
+                        ),
+                    position =
+                        SavedCameraPosition(
+                            latitude = position.target.latitude,
+                            longitude = position.target.longitude,
+                            zoom = position.zoom,
+                        ),
                 )
             }
     }

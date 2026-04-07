@@ -1,8 +1,8 @@
 package dev.davwheat.openfuelmap.stats.api
 
-import androidx.navigation3.runtime.NavKey
+import dev.davwheat.openfuelmap.common.nav.AppNavKey
 import kotlinx.serialization.Serializable
 
 object StatsNav {
-    @Serializable data object Home : NavKey
+    @Serializable data object Home : AppNavKey()
 }

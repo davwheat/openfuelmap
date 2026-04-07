@@ -4,13 +4,14 @@ plugins {
 }
 
 val appCompileSdk: Int by rootProject.extra
+val appMinSdk: Int by rootProject.extra
 
 android {
     namespace = "dev.davwheat.openfuelmap.forecourts.impl"
     compileSdk = appCompileSdk
 
     defaultConfig {
-        minSdk = 26
+        minSdk = appMinSdk
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")

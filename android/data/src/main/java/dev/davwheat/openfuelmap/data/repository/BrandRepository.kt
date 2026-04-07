@@ -18,6 +18,7 @@ constructor(
     private val dao: BrandDao,
     private val apiClient: BrandsApiClient,
     private val dispatchers: DispatcherProvider,
+    private val cacheMetadata: CacheMetadataRepository,
 ) : RepositoryWithUpdaterChannel(dispatchers) {
 
     fun getAllBrands(): Flow<List<BrandEntity>> =
@@ -29,7 +30,8 @@ constructor(
                 ) {
                 override fun loadFlowFromDb(): Flow<List<BrandEntity>> = dao.getAll()
 
-                override suspend fun shouldFetch(data: List<BrandEntity>?): Boolean = true
+                override suspend fun shouldFetch(data: List<BrandEntity>?): Boolean =
+                    cacheMetadata.isBrandsStale()
 
                 override suspend fun fetchFromNetwork(): List<BrandDto> =
                     apiClient.getBrands() ?: emptyList()
@@ -40,6 +42,7 @@ constructor(
                     }
                     dao.deleteAll()
                     dao.insertAll(entities)
+                    cacheMetadata.markBrandsFetched()
                 }
             }
             .fetchAsFlow(filterLocal = { it.isNotEmpty() })
@@ -52,5 +55,6 @@ constructor(
         }
         dao.deleteAll()
         dao.insertAll(entities)
+        cacheMetadata.markBrandsFetched()
     }
 }

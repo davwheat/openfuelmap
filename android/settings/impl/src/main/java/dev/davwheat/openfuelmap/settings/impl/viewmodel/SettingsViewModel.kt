@@ -7,11 +7,14 @@ import dev.davwheat.openfuelmap.data.db.FuelTypeIds
 import dev.davwheat.openfuelmap.data.repository.BrandRepository
 import dev.davwheat.openfuelmap.data.repository.FuelTypeRepository
 import dev.davwheat.openfuelmap.data.repository.UserPreferencesRepository
+import dev.davwheat.openfuelmap.data.utils.DispatcherProvider
 import dev.davwheat.openfuelmap.settings.impl.model.SettingsItem
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -22,66 +25,40 @@ constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     fuelTypeRepository: FuelTypeRepository,
     brandRepository: BrandRepository,
+    dispatcherProvider: DispatcherProvider,
 ) : ViewModel() {
 
-    private val fuelTypes =
-        fuelTypeRepository
-            .getAllFuelTypes()
-            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    private val fuelTypes = fuelTypeRepository.getAllFuelTypes()
 
-    private val brands =
-        brandRepository.getAllBrands().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    private val brands = brandRepository.getAllBrands()
 
     private val selectedFuelType =
         combine(fuelTypes, userPreferencesRepository.selectedFuelType) { types, saved ->
-                when {
-                    types.isEmpty() -> null
-                    saved != null && types.any { it.id == saved } -> saved
-                    else ->
-                        types
-                            .minBy { type ->
-                                val idx = FuelTypeIds.PRIORITY_ORDER.indexOf(type.id)
-                                if (idx >= 0) idx else FuelTypeIds.PRIORITY_ORDER.size
-                            }
-                            .id
-                }
+            when {
+                types.isEmpty() -> null
+                saved != null && types.any { it.id == saved } -> saved
+                else ->
+                    types
+                        .minBy { type ->
+                            val idx = FuelTypeIds.PRIORITY_ORDER.indexOf(type.id)
+                            if (idx >= 0) idx else FuelTypeIds.PRIORITY_ORDER.size
+                        }
+                        .id
             }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+        }
 
-    private val excludedBrands =
-        userPreferencesRepository.excludedBrands.stateIn(
-            viewModelScope,
-            SharingStarted.Eagerly,
-            emptySet(),
-        )
-
-    private val colorblindMode =
-        userPreferencesRepository.colorblindMode.stateIn(
-            viewModelScope,
-            SharingStarted.Eagerly,
-            false,
-        )
-
-    val settingsItems: StateFlow<List<SettingsItem>> =
-        combine(fuelTypes, selectedFuelType, brands, excludedBrands, colorblindMode) {
+    val settingsItems: StateFlow<List<SettingsItem>?> =
+        combine(
                 fuelTypes,
-                selectedFuel,
+                selectedFuelType,
                 brands,
-                excluded,
-                colorblind ->
+                userPreferencesRepository.excludedBrands,
+                userPreferencesRepository.colorblindMode,
+            ) { fuelTypes, selectedFuel, brands, excluded, colorblind ->
                 buildSettingsList(fuelTypes, selectedFuel, brands, excluded, colorblind)
             }
-            .stateIn(
-                viewModelScope,
-                SharingStarted.Eagerly,
-                buildSettingsList(
-                    fuelTypes.value,
-                    selectedFuelType.value,
-                    brands.value,
-                    excludedBrands.value,
-                    colorblindMode.value,
-                ),
-            )
+            .flowOn(dispatcherProvider.default)
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private fun buildSettingsList(
         fuelTypes: List<dev.davwheat.openfuelmap.data.db.FuelTypeEntity>,
@@ -142,7 +119,7 @@ constructor(
 
     private fun toggleBrandExcluded(brand: String) {
         viewModelScope.launch {
-            val current = excludedBrands.value
+            val current = userPreferencesRepository.excludedBrands.first()
             val next = if (brand in current) current - brand else current + brand
             userPreferencesRepository.setExcludedBrands(next)
         }
@@ -154,7 +131,7 @@ constructor(
 
     private fun deselectAllBrands() {
         viewModelScope.launch {
-            userPreferencesRepository.setExcludedBrands(brands.value.map { it.name }.toSet())
+            userPreferencesRepository.setExcludedBrands(brands.first().map { it.name }.toSet())
         }
     }
 

@@ -30,6 +30,8 @@ include(":app:api")
 
 include(":common:location")
 
+include(":common:nav")
+
 include(":common:ui")
 
 include(":data")
