@@ -91,12 +91,19 @@ export const UpstreamTokenResponseSchema = z.object({
   message: z.string().optional(),
 });
 
+/** Flat response shape matching the OpenAPI spec for `regenerate_access_token`. */
+const UpstreamRegenerateTokenFlatSchema = z.object({
+  access_token: z.string(),
+  token_type: z.string().optional(),
+  expires_in: z.number().optional(),
+});
+
 /**
- * Response shape for `regenerate_access_token`. Despite the upstream OpenAPI
- * spec suggesting a flat payload, in practice the response uses the same
- * `{ success, data, message }` wrapper as `generate_access_token`.
+ * Wrapped response shape for `regenerate_access_token`. In practice the
+ * upstream API returns the same `{ success, data, message }` wrapper as
+ * `generate_access_token`, despite the OpenAPI spec suggesting a flat payload.
  */
-export const UpstreamRegenerateTokenResponseSchema = z.object({
+const UpstreamRegenerateTokenWrappedSchema = z.object({
   success: z.boolean(),
   data: z.object({
     access_token: z.string(),
@@ -105,3 +112,20 @@ export const UpstreamRegenerateTokenResponseSchema = z.object({
   }),
   message: z.string().optional(),
 });
+
+/**
+ * Parse a `regenerate_access_token` response, accepting both the wrapped
+ * format (observed in practice) and the flat format (per OpenAPI spec).
+ * Returns a normalised `{ success, data, message }` shape in both cases.
+ */
+export function parseRegenerateTokenResponse(json: unknown) {
+  const wrapped = UpstreamRegenerateTokenWrappedSchema.safeParse(json);
+  if (wrapped.success) return wrapped.data;
+
+  const flat = UpstreamRegenerateTokenFlatSchema.parse(json);
+  return {
+    success: true as const,
+    data: flat,
+    message: undefined,
+  };
+}

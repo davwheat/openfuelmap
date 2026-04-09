@@ -8,6 +8,7 @@
     "start": "wrangler dev",
     "cf-typegen": "wrangler types",
     "format": "prettier --write .",
+    "license": "license-check-and-add --config ../license.config.js  -r 2026 \"David Wheatley\"",
     "format:check": "prettier --check .",
     "schema": "chanfana"
   },
@@ -20,9 +21,10 @@
   "devDependencies": {
     "@types/node": "^24.12.2",
     "@types/service-worker-mock": "^2.0.4",
+    "license-check-and-add": "^4.0.5",
     "prettier": "^3.8.1",
     "typescript": "^6.0.2",
-    "wrangler": "^4.81.0"
+    "wrangler": "^4.81.1"
   },
   "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319"
 }

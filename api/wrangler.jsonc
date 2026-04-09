@@ -10,15 +10,15 @@
   "compatibility_date": "2026-04-09",
   "observability": {
     "logs": {
-      "enabled": true
+      "enabled": true,
     },
     "traces": {
       "enabled": true,
-      "head_sampling_rate": 0.5
-    }
+      "head_sampling_rate": 1,
+    },
   },
   "placement": {
-    "mode": "smart",
+    "hostname": "www.fuel-finder.service.gov.uk",
   },
   "upload_source_maps": true,
   "compatibility_flags": ["nodejs_compat"],

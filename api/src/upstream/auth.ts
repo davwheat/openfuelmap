@@ -7,7 +7,7 @@ import {
   USER_AGENT,
 } from "../config";
 import {
-  UpstreamRegenerateTokenResponseSchema,
+  parseRegenerateTokenResponse,
   UpstreamTokenResponseSchema,
 } from "./types";
 
@@ -134,30 +134,34 @@ async function generateAccessToken(
   const response = await fetch(UPSTREAM_TOKEN_URL, {
     method: "POST",
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+      "Content-Type": "application/json",
       Accept: "application/json",
       "User-Agent": USER_AGENT,
     },
-    body: new URLSearchParams({
+    body: JSON.stringify({
       client_id: clientId,
       client_secret: clientSecret,
-    }).toString(),
+    }),
   });
 
-  if (response.status === 403) {
-    const headers = Object.fromEntries(response.headers.entries());
-    console.error(
-      `[oauth] generate_access_token returned 403; response headers:`,
-      JSON.stringify(headers),
+  const text = await response.text();
+  const headers = Object.fromEntries(response.headers.entries());
+  console.log(
+    `[oauth] generate_access_token response (${response.status}):`,
+    text,
+  );
+  console.log(
+    `[oauth] generate_access_token response headers:`,
+    JSON.stringify(headers),
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `OAuth token request failed (${response.status}): ${text || "(no body)"}`,
     );
   }
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`OAuth token request failed (${response.status}): ${text}`);
-  }
-
-  const json = await response.json();
+  const json = JSON.parse(text);
   const parsed = UpstreamTokenResponseSchema.parse(json);
 
   if (!parsed.success) {
@@ -222,36 +226,43 @@ async function tryRegenerateAccessToken(
     return null;
   }
 
-  if (response.status === 403) {
-    const headers = Object.fromEntries(response.headers.entries());
-    console.error(
-      `[oauth] regenerate_access_token returned 403; response headers:`,
-      JSON.stringify(headers),
-    );
-  }
+  const text = await response.text();
+  const headers = Object.fromEntries(response.headers.entries());
+  console.log(
+    `[oauth] regenerate_access_token response (${response.status}):`,
+    text,
+  );
+  console.log(
+    `[oauth] regenerate_access_token response headers:`,
+    JSON.stringify(headers),
+  );
 
   if (!response.ok) {
-    const text = await response.text();
     console.warn(
-      `OAuth refresh failed (${response.status}): ${text}. Falling back to full auth.`,
+      `OAuth refresh failed (${response.status}): ${text || "(no body)"}. Falling back to full auth.`,
     );
-    // 400/401 mean the refresh token is no longer usable; clear it so we
-    // don't keep hitting this endpoint on every call.
-    if (response.status === 400 || response.status === 401) {
+    // 400 means invalid refresh_token or client_id; 401/403 mean the
+    // refresh token is no longer usable. Clear it so we don't keep
+    // hitting this endpoint on every call.
+    if (
+      response.status === 400 ||
+      response.status === 401 ||
+      response.status === 403
+    ) {
       await kv.delete(KV_OAUTH_REFRESH_TOKEN_KEY);
     }
     return null;
   }
 
-  const json = await response.json();
-  let parsed: ReturnType<typeof UpstreamRegenerateTokenResponseSchema.parse>;
+  const json = JSON.parse(text);
+  let parsed: ReturnType<typeof parseRegenerateTokenResponse>;
   try {
-    parsed = UpstreamRegenerateTokenResponseSchema.parse(json);
+    parsed = parseRegenerateTokenResponse(json);
   } catch (err) {
     console.warn(
       `OAuth refresh response parse failed, falling back to full auth: ${err}`,
     );
-    console.warn(`Raw regenerate response body:`, JSON.stringify(json));
+    await kv.delete(KV_OAUTH_REFRESH_TOKEN_KEY);
     return null;
   }
 
@@ -259,6 +270,7 @@ async function tryRegenerateAccessToken(
     console.warn(
       `OAuth refresh returned success=false: ${parsed.message}. Falling back to full auth.`,
     );
+    await kv.delete(KV_OAUTH_REFRESH_TOKEN_KEY);
     return null;
   }
 
