@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.EditLocationAlt
 import androidx.compose.material.icons.outlined.MyLocation
@@ -121,6 +122,13 @@ fun ListScreen(viewModel: ListViewModel) {
 
     val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
 
+    val listState = rememberLazyListState()
+
+    // Scroll back to the top whenever query parameters change.
+    LaunchedEffect(radiusMi, searchCenter, selectedFuelType) {
+        listState.scrollToItem(0)
+    }
+
     var showPicker by remember { mutableStateOf(false) }
 
     ProvideTopBar {
@@ -180,7 +188,7 @@ fun ListScreen(viewModel: ListViewModel) {
                         )
                     }
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                         itemsIndexed(items = results, key = { _, item -> item.forecourt.nodeId }) {
                             index,
                             item ->
