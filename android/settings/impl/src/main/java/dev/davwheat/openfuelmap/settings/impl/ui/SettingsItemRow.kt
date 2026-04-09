@@ -53,7 +53,7 @@ private fun ToggleSettingsRow(item: SettingsItem.Toggle) {
                     role = Role.Switch,
                     onValueChange = item.onCheckedChange,
                 )
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -74,7 +74,7 @@ private fun ToggleSettingsRow(item: SettingsItem.Toggle) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun <T> SingleSelectChipsRow(item: SettingsItem.SingleSelectChips<T>) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Text(text = item.title, style = MaterialTheme.typography.titleMedium)
         if (item.description != null) {
             Spacer(modifier = Modifier.height(2.dp))
@@ -111,7 +111,7 @@ private fun <T> SingleSelectChipsRow(item: SettingsItem.SingleSelectChips<T>) {
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun <T> MultiSelectChipsRow(item: SettingsItem.MultiSelectChips<T>) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Text(text = item.title, style = MaterialTheme.typography.titleMedium)
         if (item.description != null) {
             Spacer(modifier = Modifier.height(2.dp))

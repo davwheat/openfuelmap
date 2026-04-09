@@ -1,6 +1,5 @@
 package dev.davwheat.openfuelmap.settings.impl.ui
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,7 +41,6 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             items(items, key = { it.key }) { item ->
                 SettingsItemRow(item, modifier = Modifier.animateItem())
