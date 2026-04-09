@@ -9,7 +9,13 @@
   "workers_dev": true,
   "compatibility_date": "2026-04-03",
   "observability": {
-    "enabled": true,
+    "logs": {
+      "enabled": true
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.5
+    }
   },
   "placement": {
     "mode": "smart",
