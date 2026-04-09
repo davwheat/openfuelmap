@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -42,17 +44,38 @@ android {
             )
         }
     }
+
+    signingConfigs {
+        create("release") {
+            var properties = Properties()
+            properties.load(project.rootProject.file("local.properties").inputStream())
+
+            storeFile = file(properties.getProperty("signing.storeFilePath"))
+            storePassword = properties.getProperty("signing.storePassword")
+            keyAlias = properties.getProperty("signing.keyAlias")
+            keyPassword = properties.getProperty("signing.keyPassword")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     buildFeatures {
         compose = true
         buildConfig = true
     }
 }
 
-secrets { propertiesFileName = "local.properties" }
+secrets {
+    propertiesFileName = "local.properties"
+
+    ignoreList += "signing.storeFilePath"
+    ignoreList += "signing.storePassword"
+    ignoreList += "signing.keyAlias"
+    ignoreList += "signing.keyPassword"
+}
 
 dependencies {
     implementation(libs.androidx.annotation.experimental)
