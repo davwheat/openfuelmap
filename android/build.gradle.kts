@@ -28,8 +28,8 @@ ext {
     set("appMinSdk", 26)
 
     val appVersionMajor = 0
-    val appVersionMinor = 0
-    val appVersionPoint = 1
+    val appVersionMinor = 1
+    val appVersionPoint = 0
     set("appVersionMajor", appVersionMajor)
     set("appVersionMinor", appVersionMinor)
     set("appVersionPoint", appVersionPoint)
