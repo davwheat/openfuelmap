@@ -18,7 +18,8 @@
     },
   },
   "placement": {
-    "hostname": "www.fuel-finder.service.gov.uk",
+    // Try to force London
+    "region": "gcp:europe-west2"
   },
   "upload_source_maps": true,
   "compatibility_flags": ["nodejs_compat"],
