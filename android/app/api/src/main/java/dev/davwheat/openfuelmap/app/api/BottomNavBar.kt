@@ -80,6 +80,7 @@ private val topLevelNav =
             ),
     )
 
+/** App-wide bottom navigation bar. Highlights the tab matching [navigator]'s current top-level route. */
 @Composable
 fun BottomNavBar(modifier: Modifier = Modifier, navigator: INavigator) {
     NavigationBar(modifier = modifier) {

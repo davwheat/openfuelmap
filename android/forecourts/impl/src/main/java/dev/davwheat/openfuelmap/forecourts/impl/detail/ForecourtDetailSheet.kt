@@ -92,6 +92,11 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
+/**
+ * Modal bottom sheet showing the details of a selected forecourt: name, brand, address, fuel
+ * prices with expandable price-history charts, amenity tags, opening hours, and contact actions.
+ * Shows skeleton placeholders while [detail] is still loading.
+ */
 @OptIn(
     ExperimentalMaterial3Api::class,
     ExperimentalLayoutApi::class,
@@ -502,6 +507,10 @@ fun ForecourtDetailSheet(
     }
 }
 
+/**
+ * A single fuel-type row inside the detail sheet. Shows the fuel name and price (or a skeleton
+ * while loading), with an expandable [StepChart] of historical prices toggled by the history button.
+ */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun FuelPriceRow(
@@ -631,6 +640,10 @@ private fun FuelPriceRow(
     }
 }
 
+/**
+ * Renders [openingTimes] as a compact list with consecutive days that share the same hours grouped
+ * into ranges (e.g. "Mon - Fri: 06:00 - 22:00"). Bank-holiday hours are appended when present.
+ */
 @Composable
 private fun OpeningHoursList(openingTimes: OpeningTimes, modifier: Modifier = Modifier) {
     val groups = remember(openingTimes) { groupConsecutiveDays(openingTimes.usualDays) }

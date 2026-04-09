@@ -19,6 +19,10 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+/**
+ * Card displaying a fuel type's name, latest median price, and a [StepChart] of daily median prices
+ * over the selected time range.
+ */
 @Composable
 fun MedianPriceCard(
     fuelTypeName: String,

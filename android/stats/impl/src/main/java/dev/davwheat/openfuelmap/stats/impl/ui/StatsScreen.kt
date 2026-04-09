@@ -48,6 +48,11 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.delay
 
+/**
+ * National fuel-price statistics screen. Shows a [TimeRangeSelector], a price-stat toggle
+ * (mean/median/min/max), and a [MedianPriceCard] per fuel type with the user's preferred fuel
+ * type promoted to a tonal surface at the top.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun StatsScreen(viewModel: StatsViewModel) {

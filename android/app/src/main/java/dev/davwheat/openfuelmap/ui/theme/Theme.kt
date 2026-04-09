@@ -32,6 +32,10 @@ private val LightColorScheme =
         */
     )
 
+/**
+ * App-wide Material Expressive theme. Uses dynamic colour on Android 12+ and falls back to the
+ * static purple/pink scheme on older devices.
+ */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppTheme(

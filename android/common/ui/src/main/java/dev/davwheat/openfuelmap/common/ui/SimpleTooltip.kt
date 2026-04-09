@@ -20,6 +20,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.davwheat.openfuelmap.common.ui.extension.triggerHapticFeedback
 
+/**
+ * Wraps [content] in a [TooltipBox] that shows a [PlainTooltip] on long-press, with haptic
+ * feedback. Positioning defaults to above the anchor.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SimpleTooltip(

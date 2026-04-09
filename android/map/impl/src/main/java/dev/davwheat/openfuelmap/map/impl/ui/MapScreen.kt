@@ -73,6 +73,11 @@ private fun MapScreenTopAppBarPreview() {
     MaterialExpressiveTheme { MapScreenTopAppBar() }
 }
 
+/**
+ * Full-screen Google Map showing fuel-station price markers clustered at low zoom levels.
+ * Handles location permission, camera position persistence, marker rendering via
+ * [PriceMarkerIconCache], and shows a [ForecourtDetailSheet] when a station is tapped.
+ */
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable

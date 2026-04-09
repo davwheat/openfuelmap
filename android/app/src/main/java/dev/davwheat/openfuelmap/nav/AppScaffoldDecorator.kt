@@ -23,6 +23,7 @@ class TopAppBarDecoratorStrategy<T : Any> : SceneDecoratorStrategy<T> {
     }
 }
 
+/** Remembers a [TopAppBarDecoratorStrategy] to pass to the navigation3 [Scene] host. */
 @Composable
 fun <T : Any> rememberTopAppBarDecoratorStrategy(): TopAppBarDecoratorStrategy<T> {
     return remember { TopAppBarDecoratorStrategy() }

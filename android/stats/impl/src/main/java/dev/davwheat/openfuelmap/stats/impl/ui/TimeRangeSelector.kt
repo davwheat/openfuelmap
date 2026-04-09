@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.davwheat.openfuelmap.stats.api.model.TimeRange
 
+/** Horizontal row of [FilterChip]s allowing the user to choose a [TimeRange] for the stats charts. */
 @Composable
 fun TimeRangeSelector(
     selectedRange: TimeRange,

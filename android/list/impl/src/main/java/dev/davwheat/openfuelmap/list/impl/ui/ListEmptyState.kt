@@ -41,6 +41,10 @@ sealed interface ListEmptyReason {
     data class Error(val message: String) : ListEmptyReason
 }
 
+/**
+ * Full-width empty state for the list screen. Renders a different illustration, message, and set of
+ * CTAs depending on the [reason] (no location, no results in radius, or API error).
+ */
 @Composable
 fun ListEmptyState(
     reason: ListEmptyReason,

@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import dev.davwheat.openfuelmap.settings.impl.model.SettingsItem
 
+/** Dispatches a [SettingsItem] to the appropriate row composable (toggle, single-select, or multi-select chips). */
 @Composable
 internal fun SettingsItemRow(item: SettingsItem, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
@@ -43,6 +44,7 @@ internal fun SettingsItemRow(item: SettingsItem, modifier: Modifier = Modifier) 
     }
 }
 
+/** Row with a title, optional description, and a trailing [Switch] bound to [item]'s checked state. */
 @Composable
 private fun ToggleSettingsRow(item: SettingsItem.Toggle) {
     Row(
@@ -71,6 +73,7 @@ private fun ToggleSettingsRow(item: SettingsItem.Toggle) {
     }
 }
 
+/** Row with a title, optional description, and a [FlowRow] of [FilterChip]s for single-selection. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun <T> SingleSelectChipsRow(item: SettingsItem.SingleSelectChips<T>) {
@@ -108,6 +111,10 @@ private fun <T> SingleSelectChipsRow(item: SettingsItem.SingleSelectChips<T>) {
     }
 }
 
+/**
+ * Row with a title, optional description, "Select all"/"Deselect all" buttons, and a [FlowRow] of
+ * toggleable [FilterChip]s. Excluded options show a block icon; included ones show a check.
+ */
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun <T> MultiSelectChipsRow(item: SettingsItem.MultiSelectChips<T>) {

@@ -68,6 +68,10 @@ import dev.davwheat.openfuelmap.list.impl.viewmodel.SearchCenter
 /** UK centroid — used as fallback centre when we have neither a device fix nor a custom pin. */
 private val UK_CENTROID = LatLng(54.5, -2.5)
 
+/**
+ * Top app bar for the list screen. Shows a location toggle action that switches between the
+ * device's current location and a user-picked custom pin.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun ListScreenTopAppBar(usingCustomLocation: Boolean, onToggleCustomLocation: () -> Unit) {
@@ -91,6 +95,11 @@ internal fun ListScreenTopAppBar(usingCustomLocation: Boolean, onToggleCustomLoc
     )
 }
 
+/**
+ * Nearby-stations list screen. Displays forecourts sorted by distance within an adjustable radius,
+ * supports switching between device location and a custom map pin, and opens a
+ * [ForecourtDetailSheet] on tap.
+ */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ListScreen(viewModel: ListViewModel) {
@@ -259,6 +268,10 @@ fun ListScreen(viewModel: ListViewModel) {
     }
 }
 
+/**
+ * Sticky header above the list showing the [RadiusSlider] and the current search centre (device
+ * location, custom pin, or "no location yet") with animated transitions between states.
+ */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SearchContextHeader(

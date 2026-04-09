@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.davwheat.openfuelmap.app.api.ProvideTopBar
 import dev.davwheat.openfuelmap.settings.impl.viewmodel.SettingsViewModel
 
+/** Settings screen. Shows a loading spinner until items are ready, then a scrollable list of [SettingsItemRow]s. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel) {
