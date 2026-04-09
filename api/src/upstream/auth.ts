@@ -163,7 +163,12 @@ async function fetchAccessToken(
   clientId: string,
   clientSecret: string,
 ): Promise<string> {
+  const reqBody = JSON.stringify({
+    client_id: clientId,
+    client_secret: clientSecret,
+  });
   console.log(`POST ${UPSTREAM_TOKEN_URL}`);
+  console.log(`[oauth] fetch_access_token request body:`, reqBody);
   const response = await fetch(UPSTREAM_TOKEN_URL, {
     method: "POST",
     headers: {
@@ -171,20 +176,17 @@ async function fetchAccessToken(
       Accept: "application/json",
       "User-Agent": USER_AGENT,
     },
-    body: JSON.stringify({
-      client_id: clientId,
-      client_secret: clientSecret,
-    }),
+    body: reqBody,
   });
 
   const text = await response.text();
   const headers = Object.fromEntries(response.headers.entries());
   console.log(
-    `[oauth] generate_access_token response (${response.status}):`,
+    `[oauth] fetch_access_token response (${response.status}):`,
     text,
   );
   console.log(
-    `[oauth] generate_access_token response headers:`,
+    `[oauth] fetch_access_token response headers:`,
     JSON.stringify(headers),
   );
 
@@ -214,7 +216,12 @@ async function generateAccessToken(
   clientId: string,
   clientSecret: string,
 ): Promise<string> {
+  const reqBody = JSON.stringify({
+    client_id: clientId,
+    client_secret: clientSecret,
+  });
   console.log(`POST ${UPSTREAM_TOKEN_URL}`);
+  console.log(`[oauth] generate_access_token request body:`, reqBody);
   const response = await fetch(UPSTREAM_TOKEN_URL, {
     method: "POST",
     headers: {
@@ -222,10 +229,7 @@ async function generateAccessToken(
       Accept: "application/json",
       "User-Agent": USER_AGENT,
     },
-    body: JSON.stringify({
-      client_id: clientId,
-      client_secret: clientSecret,
-    }),
+    body: reqBody,
   });
 
   const text = await response.text();
@@ -288,7 +292,12 @@ async function tryRegenerateAccessToken(
   clientId: string,
   refreshToken: string,
 ): Promise<string | null> {
+  const reqBody = JSON.stringify({
+    client_id: clientId,
+    refresh_token: refreshToken,
+  });
   console.log(`POST ${UPSTREAM_REGENERATE_TOKEN_URL}`);
+  console.log(`[oauth] regenerate_access_token request body:`, reqBody);
   let response: Response;
   try {
     response = await fetch(UPSTREAM_REGENERATE_TOKEN_URL, {
@@ -298,10 +307,7 @@ async function tryRegenerateAccessToken(
         Accept: "application/json",
         "User-Agent": USER_AGENT,
       },
-      body: JSON.stringify({
-        client_id: clientId,
-        refresh_token: refreshToken,
-      }),
+      body: reqBody,
     });
   } catch (err) {
     console.warn(
