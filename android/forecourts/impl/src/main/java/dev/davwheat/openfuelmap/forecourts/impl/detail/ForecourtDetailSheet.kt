@@ -197,6 +197,11 @@ fun ForecourtDetailSheet(
             if (otherFuelTypes.isNotEmpty()) {
                 var otherFuelsExpanded by remember { mutableStateOf(selectedFuelType == null) }
 
+                val otherFuelsHaveInaccuracy =
+                    remember(otherFuelTypes, pricesByFuelType) {
+                        otherFuelTypes.any { pricesByFuelType[it]?.possiblyInaccurate != null }
+                    }
+
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier =
@@ -206,11 +211,27 @@ fun ForecourtDetailSheet(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = if (selectedFuelType != null) "Other fuels" else "Current prices",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text =
+                                if (selectedFuelType != null) "Other fuels" else "Current prices",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (otherFuelsHaveInaccuracy) {
+                            SimpleTooltip("A price in this section may be inaccurate") {
+                                Icon(
+                                    painter = painterResource(CommonUiR.drawable.warning_20dp),
+                                    contentDescription = "Price may be inaccurate",
+                                    tint = MaterialTheme.colorScheme.warning,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+                    }
                     if (selectedFuelType != null) {
                         Icon(
                             imageVector =
