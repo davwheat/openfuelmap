@@ -1,6 +1,5 @@
 package dev.davwheat.openfuelmap.app.api
 
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialExpressiveTheme
@@ -11,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
 import dev.davwheat.openfuelmap.list.api.ListNav
 import dev.davwheat.openfuelmap.map.api.MapNav
@@ -91,7 +89,7 @@ fun BottomNavBar(modifier: Modifier = Modifier, navigator: INavigator) {
             NavigationBarItem(
                 selected = selected,
                 onClick = { navigator.navigate(key) },
-                icon = { metadata.icon(Modifier.size(20.dp), selected) },
+                icon = { metadata.icon(Modifier, selected) },
                 label = { Text(metadata.name) },
             )
         }

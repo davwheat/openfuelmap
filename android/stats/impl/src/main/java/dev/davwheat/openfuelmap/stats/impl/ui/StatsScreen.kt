@@ -32,6 +32,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.davwheat.openfuelmap.app.api.ProvideTopBar
@@ -66,7 +70,13 @@ fun StatsScreen(viewModel: StatsViewModel) {
         }
     }
 
-    ProvideTopBar { TopAppBar(title = { Text("Stats") }) }
+    ProvideTopBar {
+        TopAppBar(
+            titleHorizontalAlignment = Alignment.CenterHorizontally,
+            title = { Text("Stats") },
+            subtitle = {},
+        )
+    }
 
     val orderedFuelTypes =
         remember(prices, selectedFuelType, fuelTypes) {
@@ -124,7 +134,11 @@ fun StatsScreen(viewModel: StatsViewModel) {
                     ),
             ) {
                 LinearProgressIndicator(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                    modifier =
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp).semantics {
+                            contentDescription = "Loading"
+                            liveRegion = LiveRegionMode.Polite
+                        }
                 )
             }
         }
@@ -135,7 +149,13 @@ fun StatsScreen(viewModel: StatsViewModel) {
                     modifier = Modifier.fillMaxWidth().height(200.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    ContainedLoadingIndicator()
+                    ContainedLoadingIndicator(
+                        modifier =
+                            Modifier.semantics {
+                                contentDescription = "Loading"
+                                liveRegion = LiveRegionMode.Polite
+                            }
+                    )
                 }
             }
         } else if (error != null && prices.isEmpty()) {

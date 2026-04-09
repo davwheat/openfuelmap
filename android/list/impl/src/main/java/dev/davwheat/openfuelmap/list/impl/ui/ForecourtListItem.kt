@@ -43,8 +43,12 @@ fun ForecourtListItem(
     val forecourt = item.forecourt
     val isSameName = forecourt.tradingName.equals(forecourt.brandName, ignoreCase = true)
     val tradingTitle = remember(forecourt.tradingName) { forecourt.tradingName.toTitleCase() }
+    val isInaccurate = forecourt.price?.possiblyInaccurate != null
 
-    Surface(modifier = modifier.fillMaxWidth(), onClick = onClick) {
+    Surface(
+        modifier = modifier.fillMaxWidth().alpha(if (isInaccurate) 0.5f else 1f),
+        onClick = onClick,
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -92,11 +96,9 @@ fun ForecourtListItem(
             Column(horizontalAlignment = Alignment.End) {
                 val price = forecourt.price?.price
                 if (price != null) {
-                    val isInaccurate = forecourt.price?.possiblyInaccurate != null
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.alpha(if (isInaccurate) 0.5f else 1f),
                     ) {
                         if (isInaccurate) {
                             Icon(

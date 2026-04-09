@@ -52,6 +52,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -123,7 +128,12 @@ fun ForecourtDetailSheet(
                 modifier = Modifier.padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Column(modifier = Modifier.weight(1f).align(Alignment.CenterVertically)) {
+                Column(
+                    modifier =
+                        Modifier.weight(1f).align(Alignment.CenterVertically).semantics(
+                            mergeDescendants = true
+                        ) {}
+                ) {
                     Text(
                         text = forecourt.tradingName.toTitleCase(),
                         style = MaterialTheme.typography.headlineSmall,
@@ -206,6 +216,11 @@ fun ForecourtDetailSheet(
                 Row(
                     modifier =
                         Modifier.fillMaxWidth()
+                            .semantics(mergeDescendants = true) {
+                                role = Role.Button
+                                stateDescription =
+                                    if (otherFuelsExpanded) "Expanded" else "Collapsed"
+                            }
                             .clickable { otherFuelsExpanded = !otherFuelsExpanded }
                             .padding(start = 32.dp, end = 40.dp, top = 6.dp, bottom = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -288,12 +303,12 @@ fun ForecourtDetailSheet(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 ) {
                     Row(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(12.dp).semantics(mergeDescendants = true) {},
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Icon(
                             painter = painterResource(CommonUiR.drawable.warning_24dp),
-                            contentDescription = null,
+                            contentDescription = "Warning",
                             tint = MaterialTheme.colorScheme.warning,
                             modifier = Modifier.size(24.dp),
                         )
@@ -330,7 +345,7 @@ fun ForecourtDetailSheet(
                     Text(
                         text = "Opening hours",
                         style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(horizontal = 16.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp).semantics { heading() },
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OpeningHoursList(openingTimes, modifier = Modifier.padding(horizontal = 16.dp))
@@ -340,7 +355,7 @@ fun ForecourtDetailSheet(
             Text(
                 text = "Amenities",
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 16.dp),
+                modifier = Modifier.padding(horizontal = 16.dp).semantics { heading() },
             )
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -397,7 +412,7 @@ fun ForecourtDetailSheet(
             Text(
                 text = "Address",
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 16.dp),
+                modifier = Modifier.padding(horizontal = 16.dp).semantics { heading() },
             )
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -503,7 +518,10 @@ private fun FuelPriceRow(
 ) {
     Column(modifier = modifier) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .semantics(mergeDescendants = true) {}
+                    .padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -619,7 +637,7 @@ private fun OpeningHoursList(openingTimes: OpeningTimes, modifier: Modifier = Mo
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         groups.forEach { group ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
@@ -634,7 +652,7 @@ private fun OpeningHoursList(openingTimes: OpeningTimes, modifier: Modifier = Mo
         }
         openingTimes.bankHoliday?.let { bh ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(

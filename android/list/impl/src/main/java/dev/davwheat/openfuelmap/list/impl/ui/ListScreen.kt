@@ -48,6 +48,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -125,9 +129,7 @@ fun ListScreen(viewModel: ListViewModel) {
     val listState = rememberLazyListState()
 
     // Scroll back to the top whenever query parameters change.
-    LaunchedEffect(radiusMi, searchCenter, selectedFuelType) {
-        listState.scrollToItem(0)
-    }
+    LaunchedEffect(radiusMi, searchCenter, selectedFuelType) { listState.scrollToItem(0) }
 
     var showPicker by remember { mutableStateOf(false) }
 
@@ -203,7 +205,11 @@ fun ListScreen(viewModel: ListViewModel) {
 
                 if (isLoading) {
                     ContainedLoadingIndicator(
-                        modifier = Modifier.padding(16.dp).align(Alignment.TopCenter)
+                        modifier =
+                            Modifier.padding(16.dp).align(Alignment.TopCenter).semantics {
+                                contentDescription = "Loading"
+                                liveRegion = LiveRegionMode.Polite
+                            }
                     )
                 }
             }
@@ -212,7 +218,12 @@ fun ListScreen(viewModel: ListViewModel) {
         if (error != null && results.isNotEmpty()) {
             // Soft error with stale results present — surface as snackbar rather than
             // replacing the list with the full empty state.
-            Snackbar(modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)) {
+            Snackbar(
+                modifier =
+                    Modifier.align(Alignment.BottomCenter).padding(16.dp).semantics {
+                        liveRegion = LiveRegionMode.Assertive
+                    }
+            ) {
                 Text(error!!)
             }
         }
@@ -275,7 +286,9 @@ private fun SearchContextHeader(
                 ) { icon ->
                     Icon(
                         imageVector = icon,
-                        contentDescription = null,
+                        contentDescription =
+                            if (icon == Icons.Outlined.EditLocationAlt) "Using custom location"
+                            else "Using current location",
                         tint = MaterialTheme.colorScheme.secondary,
                     )
                 }
