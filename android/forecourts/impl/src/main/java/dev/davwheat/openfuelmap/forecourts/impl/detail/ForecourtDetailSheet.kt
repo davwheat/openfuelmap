@@ -52,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
@@ -93,9 +94,9 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 /**
- * Modal bottom sheet showing the details of a selected forecourt: name, brand, address, fuel
- * prices with expandable price-history charts, amenity tags, opening hours, and contact actions.
- * Shows skeleton placeholders while [detail] is still loading.
+ * Modal bottom sheet showing the details of a selected forecourt: name, brand, address, fuel prices
+ * with expandable price-history charts, amenity tags, opening hours, and contact actions. Shows
+ * skeleton placeholders while [detail] is still loading.
  */
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -152,7 +153,7 @@ fun ForecourtDetailSheet(
                     }
                 }
 
-                SimpleTooltip("Navigate") {
+                SimpleTooltip(stringResource(R.string.detail_navigate_tooltip)) {
                     FilledIconButton(
                         onClick = {
                             val gmmIntentUri =
@@ -165,7 +166,8 @@ fun ForecourtDetailSheet(
                     ) {
                         Icon(
                             painterResource(R.drawable.directions_24dp),
-                            contentDescription = "Navigate",
+                            contentDescription =
+                                stringResource(R.string.detail_navigate_description),
                         )
                     }
                 }
@@ -217,6 +219,9 @@ fun ForecourtDetailSheet(
                         otherFuelTypes.any { pricesByFuelType[it]?.possiblyInaccurate != null }
                     }
 
+                val expandedLabel = stringResource(R.string.detail_section_expanded)
+                val collapsedLabel = stringResource(R.string.detail_section_collapsed)
+
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier =
@@ -224,7 +229,7 @@ fun ForecourtDetailSheet(
                             .semantics(mergeDescendants = true) {
                                 role = Role.Button
                                 stateDescription =
-                                    if (otherFuelsExpanded) "Expanded" else "Collapsed"
+                                    if (otherFuelsExpanded) expandedLabel else collapsedLabel
                             }
                             .clickable { otherFuelsExpanded = !otherFuelsExpanded }
                             .padding(start = 32.dp, end = 40.dp, top = 6.dp, bottom = 6.dp),
@@ -237,15 +242,23 @@ fun ForecourtDetailSheet(
                     ) {
                         Text(
                             text =
-                                if (selectedFuelType != null) "Other fuels" else "Current prices",
+                                stringResource(
+                                    if (selectedFuelType != null) R.string.detail_other_fuels
+                                    else R.string.detail_current_prices
+                                ),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         if (otherFuelsHaveInaccuracy) {
-                            SimpleTooltip("A price in this section may be inaccurate") {
+                            SimpleTooltip(
+                                stringResource(R.string.detail_section_inaccuracy_tooltip)
+                            ) {
                                 Icon(
                                     painter = painterResource(CommonUiR.drawable.warning_20dp),
-                                    contentDescription = "Price may be inaccurate",
+                                    contentDescription =
+                                        stringResource(
+                                            R.string.detail_section_inaccuracy_description
+                                        ),
                                     tint = MaterialTheme.colorScheme.warning,
                                     modifier = Modifier.size(20.dp),
                                 )
@@ -257,7 +270,11 @@ fun ForecourtDetailSheet(
                             imageVector =
                                 if (otherFuelsExpanded) Icons.Outlined.KeyboardArrowUp
                                 else Icons.Outlined.KeyboardArrowDown,
-                            contentDescription = if (otherFuelsExpanded) "Collapse" else "Expand",
+                            contentDescription =
+                                stringResource(
+                                    if (otherFuelsExpanded) R.string.detail_section_collapse
+                                    else R.string.detail_section_expand
+                                ),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -313,12 +330,13 @@ fun ForecourtDetailSheet(
                     ) {
                         Icon(
                             painter = painterResource(CommonUiR.drawable.warning_24dp),
-                            contentDescription = "Warning",
+                            contentDescription =
+                                stringResource(R.string.detail_warning_description),
                             tint = MaterialTheme.colorScheme.warning,
                             modifier = Modifier.size(24.dp),
                         )
                         Text(
-                            text = inaccuracyBannerText(inaccuracyReasons),
+                            text = inaccuracyBannerText(context, inaccuracyReasons),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onWarningContainer,
                             modifier = Modifier.align(Alignment.CenterVertically),
@@ -339,7 +357,7 @@ fun ForecourtDetailSheet(
                     modifier = Modifier.size(ButtonDefaults.IconSize),
                 )
                 Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-                Text(text = "Report incorrect prices")
+                Text(text = stringResource(R.string.detail_report_incorrect_prices))
             }
 
             detail
@@ -348,17 +366,21 @@ fun ForecourtDetailSheet(
                 ?.let { openingTimes ->
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Opening hours",
+                        text = stringResource(R.string.detail_opening_hours),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(horizontal = 16.dp).semantics { heading() },
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    OpeningHoursList(openingTimes, modifier = Modifier.padding(horizontal = 16.dp))
+                    OpeningHoursList(
+                        openingTimes,
+                        context = context,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
                 }
 
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Amenities",
+                text = stringResource(R.string.detail_amenities),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 16.dp).semantics { heading() },
             )
@@ -383,7 +405,7 @@ fun ForecourtDetailSheet(
                     }
                 } else {
                     Text(
-                        text = "None listed",
+                        text = stringResource(R.string.detail_amenities_none),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp),
@@ -415,7 +437,7 @@ fun ForecourtDetailSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Address",
+                text = stringResource(R.string.detail_address),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 16.dp).semantics { heading() },
             )
@@ -476,7 +498,7 @@ fun ForecourtDetailSheet(
             if (forecourt.temporaryClosure) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Temporarily closed",
+                    text = stringResource(R.string.detail_temporarily_closed),
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
@@ -484,17 +506,17 @@ fun ForecourtDetailSheet(
             if (forecourt.permanentClosure == true) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Permanently closed",
+                    text = stringResource(R.string.detail_permanently_closed),
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
 
             detail?.updatedAt?.let { updatedAt ->
-                formatRelativeTime(updatedAt)?.let { relative ->
+                formatRelativeTime(context, updatedAt)?.let { relative ->
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Station details updated $relative",
+                        text = stringResource(R.string.detail_station_updated, relative),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp),
@@ -509,7 +531,8 @@ fun ForecourtDetailSheet(
 
 /**
  * A single fuel-type row inside the detail sheet. Shows the fuel name and price (or a skeleton
- * while loading), with an expandable [StepChart] of historical prices toggled by the history button.
+ * while loading), with an expandable [StepChart] of historical prices toggled by the history
+ * button.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -539,23 +562,25 @@ private fun FuelPriceRow(
                 price != null ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (price.possiblyInaccurate != null) {
-                            SimpleTooltip("Price may be inaccurate") {
+                            SimpleTooltip(stringResource(R.string.fuel_row_inaccurate_tooltip)) {
                                 Icon(
                                     painter = painterResource(CommonUiR.drawable.warning_20dp),
-                                    contentDescription = "Price may be inaccurate",
+                                    contentDescription =
+                                        stringResource(R.string.fuel_row_inaccurate_description),
                                     tint = MaterialTheme.colorScheme.warning,
                                     modifier = Modifier.size(20.dp),
                                 )
                             }
                             Spacer(modifier = Modifier.width(6.dp))
                         }
+                        val context = LocalContext.current
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
                                 text = "${price.price}p",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                             )
-                            formatRelativeTime(price.priceLastUpdated)?.let {
+                            formatRelativeTime(context, price.priceLastUpdated)?.let {
                                 Text(
                                     text = it,
                                     style = MaterialTheme.typography.labelSmall,
@@ -564,7 +589,7 @@ private fun FuelPriceRow(
                             }
                         }
                         Spacer(modifier = Modifier.width(8.dp))
-                        SimpleTooltip("Price history") {
+                        SimpleTooltip(stringResource(R.string.fuel_row_history_tooltip)) {
                             FilledTonalIconToggleButton(
                                 checked = expandedFuelType == fuelType,
                                 onCheckedChange = onToggleExpanded,
@@ -582,7 +607,8 @@ private fun FuelPriceRow(
                                     if (expandedFuelType == fuelType)
                                         painterResource(R.drawable.chart_data_filled_24dp)
                                     else painterResource(R.drawable.chart_data_24dp),
-                                    contentDescription = "Price history",
+                                    contentDescription =
+                                        stringResource(R.string.fuel_row_history_description),
                                     modifier = Modifier.size(18.dp),
                                 )
                             }
@@ -592,7 +618,7 @@ private fun FuelPriceRow(
                     SkeletonBox(shimmer = shimmer, modifier = Modifier.width(56.dp).height(20.dp))
                 else ->
                     Text(
-                        text = "No price",
+                        text = stringResource(R.string.fuel_row_no_price),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -615,7 +641,7 @@ private fun FuelPriceRow(
                     )
                 history.isEmpty() ->
                     Text(
-                        text = "No price history available",
+                        text = stringResource(R.string.fuel_row_no_history),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 8.dp),
@@ -645,7 +671,11 @@ private fun FuelPriceRow(
  * into ranges (e.g. "Mon - Fri: 06:00 - 22:00"). Bank-holiday hours are appended when present.
  */
 @Composable
-private fun OpeningHoursList(openingTimes: OpeningTimes, modifier: Modifier = Modifier) {
+private fun OpeningHoursList(
+    openingTimes: OpeningTimes,
+    context: Context,
+    modifier: Modifier = Modifier,
+) {
     val groups = remember(openingTimes) { groupConsecutiveDays(openingTimes.usualDays) }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         groups.forEach { group ->
@@ -658,7 +688,7 @@ private fun OpeningHoursList(openingTimes: OpeningTimes, modifier: Modifier = Mo
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(
-                    text = formatDayHours(group.hours),
+                    text = formatDayHours(context, group.hours),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -669,13 +699,13 @@ private fun OpeningHoursList(openingTimes: OpeningTimes, modifier: Modifier = Mo
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = "Bank holidays",
+                    text = stringResource(R.string.detail_bank_holidays),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text =
-                        if (bh.is24Hours) "Open 24 hours"
+                        if (bh.is24Hours) stringResource(R.string.detail_open_24_hours)
                         else "${trimSeconds(bh.openTime)} – ${trimSeconds(bh.closeTime)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -717,24 +747,24 @@ private fun formatDayRange(start: DayOfWeek, end: DayOfWeek): String {
     return "$startName – $endName"
 }
 
-private fun formatDayHours(hours: DayHours): String =
-    if (hours.is24Hours) "Open 24 hours"
+private fun formatDayHours(context: Context, hours: DayHours): String =
+    if (hours.is24Hours) context.getString(R.string.detail_open_24_hours)
     else "${trimSeconds(hours.open)} – ${trimSeconds(hours.close)}"
 
 private fun trimSeconds(time: String): String = time.take(5)
 
-private fun inaccuracyBannerText(reasons: Set<PriceInaccuracyReason>): String =
+private fun inaccuracyBannerText(context: Context, reasons: Set<PriceInaccuracyReason>): String =
     when {
         reasons.size == 1 ->
             when (reasons.single()) {
                 PriceInaccuracyReason.PRICE_TOO_LOW ->
-                    "One or more prices at this station look suspiciously low and may be incorrect."
+                    context.getString(R.string.detail_inaccuracy_price_too_low)
                 PriceInaccuracyReason.STALE_PRICE ->
-                    "One or more prices at this station haven't been updated recently and may be out of date."
+                    context.getString(R.string.detail_inaccuracy_stale_price)
                 PriceInaccuracyReason.UNKNOWN ->
-                    "One or more prices at this station may be inaccurate."
+                    context.getString(R.string.detail_inaccuracy_unknown)
             }
-        else -> "Some prices at this station may be inaccurate."
+        else -> context.getString(R.string.detail_inaccuracy_multiple)
     }
 
 private fun formatPhoneNumber(raw: String): String =
@@ -779,18 +809,18 @@ private fun launchPriceReport(context: Context, toolbarColor: Int) {
  * (`2026-04-03T09:16:27.000Z`) and the SQL-style `2026-04-04 02:33:12` format the API emits.
  * Returns null if the timestamp can't be parsed.
  */
-private fun formatRelativeTime(raw: String): String? {
+private fun formatRelativeTime(context: Context, raw: String): String? {
     val instant = parseInstant(raw) ?: return null
     val now = Instant.now()
     val duration = Duration.between(instant, now)
     val seconds = duration.seconds
     return when {
-        seconds < 0 -> "just now"
-        seconds < 60 -> "just now"
-        seconds < 3_600 -> "${duration.toMinutes()}m ago"
-        seconds < 86_400 -> "${duration.toHours()}h ago"
-        seconds < 604_800 -> "${duration.toDays()}d ago"
-        else -> "${duration.toDays() / 7}w ago"
+        seconds < 0 -> context.getString(R.string.time_just_now)
+        seconds < 60 -> context.getString(R.string.time_just_now)
+        seconds < 3_600 -> context.getString(R.string.time_minutes_ago, duration.toMinutes())
+        seconds < 86_400 -> context.getString(R.string.time_hours_ago, duration.toHours())
+        seconds < 604_800 -> context.getString(R.string.time_days_ago, duration.toDays())
+        else -> context.getString(R.string.time_weeks_ago, duration.toDays() / 7)
     }
 }
 

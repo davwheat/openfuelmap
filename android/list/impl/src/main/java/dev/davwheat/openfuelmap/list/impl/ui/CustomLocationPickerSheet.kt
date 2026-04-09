@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.maps.model.CameraPosition
@@ -38,6 +39,7 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import dev.davwheat.openfuelmap.data.repository.SavedLocation
+import dev.davwheat.openfuelmap.list.impl.R
 
 /**
  * Modal sheet hosting a map whose centre stays pinned under a fixed crosshair. The caller commits
@@ -70,12 +72,12 @@ fun CustomLocationPickerSheet(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "Pick a location",
+                text = stringResource(R.string.picker_title),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
             Text(
-                text = "Drag the map until the pin is where you want to search from.",
+                text = stringResource(R.string.picker_instruction),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -100,7 +102,7 @@ fun CustomLocationPickerSheet(
                 // target is always under it, so the user drags the map beneath a stationary pin.
                 Icon(
                     imageVector = Icons.Outlined.Place,
-                    contentDescription = "Selected location",
+                    contentDescription = stringResource(R.string.picker_pin_description),
                     modifier = Modifier.align(Alignment.Center).size(48.dp).offset(y = (-48).dp),
                     tint = MaterialTheme.colorScheme.primary,
                 )
@@ -109,7 +111,7 @@ fun CustomLocationPickerSheet(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
             ) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.picker_cancel)) }
                 Button(
                     onClick = {
                         val target = cameraPositionState.position.target
@@ -118,7 +120,7 @@ fun CustomLocationPickerSheet(
                         )
                     }
                 ) {
-                    Text("Use this location")
+                    Text(stringResource(R.string.picker_confirm))
                 }
             }
         }

@@ -25,9 +25,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import dev.davwheat.openfuelmap.list.impl.R
 
 /** Discriminated empty-state for the List screen. The four reasons use different copy and CTAs. */
 sealed interface ListEmptyReason {
@@ -62,43 +64,59 @@ fun ListEmptyState(
             ListEmptyReason.NoLocation -> {
                 EmptyIllustration(icon = Icons.Outlined.LocationOff)
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(text = "We need a location", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = stringResource(R.string.empty_no_location_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Share your location to see nearby stations, or pick a spot on a map.",
+                    text = stringResource(R.string.empty_no_location_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onRequestLocation) { Text("Use my location") }
-                    OutlinedButton(onClick = onPickCustomLocation) { Text("Pick a location") }
+                    Button(onClick = onRequestLocation) {
+                        Text(stringResource(R.string.empty_use_my_location))
+                    }
+                    OutlinedButton(onClick = onPickCustomLocation) {
+                        Text(stringResource(R.string.empty_pick_a_location))
+                    }
                 }
             }
             is ListEmptyReason.NoneInRadius -> {
                 EmptyIllustration(icon = Icons.Outlined.SearchOff)
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "No stations within ${formatRadiusMi(reason.radiusMi)} mi",
+                    text =
+                        stringResource(
+                            R.string.empty_none_in_radius_title,
+                            formatRadiusMi(reason.radiusMi),
+                        ),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Try widening the search radius or showing more brands.",
+                    text = stringResource(R.string.empty_none_in_radius_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 if (reason.radiusMi < 50f) {
-                    Button(onClick = onIncreaseRadius) { Text("Increase radius") }
+                    Button(onClick = onIncreaseRadius) {
+                        Text(stringResource(R.string.empty_increase_radius))
+                    }
                 }
             }
             is ListEmptyReason.Error -> {
                 EmptyIllustration(icon = Icons.Outlined.ErrorOutline)
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(text = "Couldn't load stations", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = stringResource(R.string.empty_error_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = reason.message,
@@ -107,7 +125,7 @@ fun ListEmptyState(
                     textAlign = TextAlign.Center,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onRetry) { Text("Try again") }
+                Button(onClick = onRetry) { Text(stringResource(R.string.empty_try_again)) }
             }
         }
     }

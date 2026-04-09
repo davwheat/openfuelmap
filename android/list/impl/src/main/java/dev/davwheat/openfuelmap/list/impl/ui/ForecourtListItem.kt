@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -28,6 +29,7 @@ import dev.davwheat.openfuelmap.common.ui.warning
 import dev.davwheat.openfuelmap.forecourts.api.model.Forecourt
 import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtFuelPrice
 import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtWithDistance
+import dev.davwheat.openfuelmap.list.impl.R
 import java.util.Locale
 
 /**
@@ -103,7 +105,8 @@ fun ForecourtListItem(
                         if (isInaccurate) {
                             Icon(
                                 painter = painterResource(CommonUiR.drawable.warning_20dp),
-                                contentDescription = "Price may be inaccurate",
+                                contentDescription =
+                                    stringResource(R.string.list_item_price_inaccurate),
                                 tint = MaterialTheme.colorScheme.warning,
                                 modifier = Modifier.size(20.dp),
                             )
@@ -121,7 +124,7 @@ fun ForecourtListItem(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = "No price",
+                        text = stringResource(R.string.list_item_no_price),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

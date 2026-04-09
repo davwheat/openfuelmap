@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -43,6 +44,7 @@ import dev.davwheat.openfuelmap.common.ui.chart.ChartDataPoint
 import dev.davwheat.openfuelmap.data.db.FuelTypeIds
 import dev.davwheat.openfuelmap.stats.api.model.DailyMedianPrice
 import dev.davwheat.openfuelmap.stats.api.model.PriceStat
+import dev.davwheat.openfuelmap.stats.impl.R
 import dev.davwheat.openfuelmap.stats.impl.viewmodel.StatsViewModel
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -50,8 +52,8 @@ import kotlinx.coroutines.delay
 
 /**
  * National fuel-price statistics screen. Shows a [TimeRangeSelector], a price-stat toggle
- * (mean/median/min/max), and a [MedianPriceCard] per fuel type with the user's preferred fuel
- * type promoted to a tonal surface at the top.
+ * (mean/median/min/max), and a [MedianPriceCard] per fuel type with the user's preferred fuel type
+ * promoted to a tonal surface at the top.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -78,7 +80,7 @@ fun StatsScreen(viewModel: StatsViewModel) {
     ProvideTopBar {
         TopAppBar(
             titleHorizontalAlignment = Alignment.CenterHorizontally,
-            title = { Text("Stats") },
+            title = { Text(stringResource(R.string.stats_title)) },
             subtitle = {},
         )
     }
@@ -100,6 +102,8 @@ fun StatsScreen(viewModel: StatsViewModel) {
             orderedFuelTypes.filter { it != primaryFuelType }
         }
 
+    val loadingLabel = stringResource(R.string.stats_loading)
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -120,7 +124,14 @@ fun StatsScreen(viewModel: StatsViewModel) {
                         checked = checked,
                         onCheckedChange = { if (it) viewModel.setPriceStat(stat) },
                     ) {
-                        Text(stat.label)
+                        Text(
+                            stringResource(
+                                when (stat) {
+                                    PriceStat.MEDIAN -> R.string.price_stat_median
+                                    PriceStat.TRIMMED_MEAN -> R.string.price_stat_trimmed_mean
+                                }
+                            )
+                        )
                     }
                 }
             }
@@ -141,7 +152,7 @@ fun StatsScreen(viewModel: StatsViewModel) {
                 LinearProgressIndicator(
                     modifier =
                         Modifier.fillMaxWidth().padding(horizontal = 16.dp).semantics {
-                            contentDescription = "Loading"
+                            contentDescription = loadingLabel
                             liveRegion = LiveRegionMode.Polite
                         }
                 )
@@ -157,7 +168,7 @@ fun StatsScreen(viewModel: StatsViewModel) {
                     ContainedLoadingIndicator(
                         modifier =
                             Modifier.semantics {
-                                contentDescription = "Loading"
+                                contentDescription = loadingLabel
                                 liveRegion = LiveRegionMode.Polite
                             }
                     )
@@ -169,9 +180,14 @@ fun StatsScreen(viewModel: StatsViewModel) {
                     modifier = Modifier.fillMaxWidth().padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(text = "Failed to load prices", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = stringResource(R.string.stats_failed_to_load),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedButton(onClick = viewModel::retry) { Text("Retry") }
+                    OutlinedButton(onClick = viewModel::retry) {
+                        Text(stringResource(R.string.stats_retry))
+                    }
                 }
             }
         } else {

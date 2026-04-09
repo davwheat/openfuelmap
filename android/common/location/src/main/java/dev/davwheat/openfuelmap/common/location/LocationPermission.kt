@@ -27,8 +27,8 @@ class LocationPermissionState
 internal constructor(val hasPermission: Boolean, val request: () -> Unit)
 
 /**
- * Remembers a [LocationPermissionState] that tracks coarse/fine location permission and can
- * launch the system permission dialog via [LocationPermissionState.request].
+ * Remembers a [LocationPermissionState] that tracks coarse/fine location permission and can launch
+ * the system permission dialog via [LocationPermissionState.request].
  */
 @Composable
 fun rememberLocationPermissionState(): LocationPermissionState {

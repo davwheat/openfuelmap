@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="select_all">Select all</string>
+    <string name="deselect_all">Deselect all</string>
+
+    <!-- SettingsViewModel items -->
+    <string name="setting_colorblind_title">Colorblind-friendly colours</string>
+    <string name="setting_colorblind_description">Use blue-to-orange instead of green-to-red for price markers on the map.</string>
+    <string name="setting_fuel_type_title">Fuel type</string>
+    <string name="setting_fuel_type_description">Only show stations offering this fuel type. Prices shown will also be for
+        this fuel.</string>
+    <string name="setting_brands_title">Brands</string>
+    <string name="setting_brands_description">Tap a brand to hide its stations from results.</string>
+</resources>

@@ -14,12 +14,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.davwheat.openfuelmap.app.api.ProvideTopBar
+import dev.davwheat.openfuelmap.settings.impl.R
 import dev.davwheat.openfuelmap.settings.impl.viewmodel.SettingsViewModel
 
-/** Settings screen. Shows a loading spinner until items are ready, then a scrollable list of [SettingsItemRow]s. */
+/**
+ * Settings screen. Shows a loading spinner until items are ready, then a scrollable list of
+ * [SettingsItemRow]s.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel) {
@@ -28,7 +33,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     ProvideTopBar {
         TopAppBar(
             titleHorizontalAlignment = Alignment.CenterHorizontally,
-            title = { Text("Settings") },
+            title = { Text(stringResource(R.string.settings_title)) },
             subtitle = {},
         )
     }

@@ -48,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -62,6 +63,7 @@ import dev.davwheat.openfuelmap.app.api.ProvideTopBar
 import dev.davwheat.openfuelmap.common.location.rememberLocationPermissionState
 import dev.davwheat.openfuelmap.common.ui.SimpleTooltip
 import dev.davwheat.openfuelmap.forecourts.impl.detail.ForecourtDetailSheet
+import dev.davwheat.openfuelmap.list.impl.R
 import dev.davwheat.openfuelmap.list.impl.viewmodel.ListViewModel
 import dev.davwheat.openfuelmap.list.impl.viewmodel.SearchCenter
 
@@ -77,17 +79,21 @@ private val UK_CENTROID = LatLng(54.5, -2.5)
 internal fun ListScreenTopAppBar(usingCustomLocation: Boolean, onToggleCustomLocation: () -> Unit) {
     TopAppBar(
         titleHorizontalAlignment = Alignment.CenterHorizontally,
-        title = { Text("Nearby") },
+        title = { Text(stringResource(R.string.list_title)) },
         subtitle = {},
         actions = {
-            SimpleTooltip(if (usingCustomLocation) "Use my location" else "Pick a location") {
+            val toggleLabel =
+                stringResource(
+                    if (usingCustomLocation) R.string.topbar_use_my_location
+                    else R.string.topbar_pick_a_location
+                )
+            SimpleTooltip(toggleLabel) {
                 IconButton(onClick = onToggleCustomLocation, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector =
                             if (usingCustomLocation) Icons.Outlined.MyLocation
                             else Icons.Outlined.EditLocationAlt,
-                        contentDescription =
-                            if (usingCustomLocation) "Use my location" else "Pick a location",
+                        contentDescription = toggleLabel,
                     )
                 }
             }
@@ -156,6 +162,8 @@ fun ListScreen(viewModel: ListViewModel) {
         )
     }
 
+    val loadingLabel = stringResource(R.string.list_loading)
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             SearchContextHeader(
@@ -216,7 +224,7 @@ fun ListScreen(viewModel: ListViewModel) {
                     ContainedLoadingIndicator(
                         modifier =
                             Modifier.padding(16.dp).align(Alignment.TopCenter).semantics {
-                                contentDescription = "Loading"
+                                contentDescription = loadingLabel
                                 liveRegion = LiveRegionMode.Polite
                             }
                     )
@@ -300,8 +308,11 @@ private fun SearchContextHeader(
                     Icon(
                         imageVector = icon,
                         contentDescription =
-                            if (icon == Icons.Outlined.EditLocationAlt) "Using custom location"
-                            else "Using current location",
+                            stringResource(
+                                if (icon == Icons.Outlined.EditLocationAlt)
+                                    R.string.header_using_custom_location
+                                else R.string.header_using_current_location
+                            ),
                         tint = MaterialTheme.colorScheme.secondary,
                     )
                 }
@@ -333,11 +344,14 @@ private fun SearchContextHeader(
                     ) {
                         Text(
                             text =
-                                when (center) {
-                                    is SearchCenter.Custom -> "Custom location"
-                                    is SearchCenter.CurrentLocation -> "Current location"
-                                    null -> "No location yet"
-                                },
+                                stringResource(
+                                    when (center) {
+                                        is SearchCenter.Custom -> R.string.header_custom_location
+                                        is SearchCenter.CurrentLocation ->
+                                            R.string.header_current_location
+                                        null -> R.string.header_no_location_yet
+                                    }
+                                ),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                         )
@@ -355,7 +369,7 @@ private fun SearchContextHeader(
                     shapes = ButtonDefaults.shapes(),
                     modifier = Modifier.zIndex(1f),
                 ) {
-                    Text("Change")
+                    Text(stringResource(R.string.header_change))
                 }
             }
         }

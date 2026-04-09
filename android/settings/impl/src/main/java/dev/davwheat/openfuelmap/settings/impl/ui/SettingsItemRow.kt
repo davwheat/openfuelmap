@@ -28,11 +28,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import dev.davwheat.openfuelmap.settings.impl.R
 import dev.davwheat.openfuelmap.settings.impl.model.SettingsItem
 
-/** Dispatches a [SettingsItem] to the appropriate row composable (toggle, single-select, or multi-select chips). */
+/**
+ * Dispatches a [SettingsItem] to the appropriate row composable (toggle, single-select, or
+ * multi-select chips).
+ */
 @Composable
 internal fun SettingsItemRow(item: SettingsItem, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
@@ -44,7 +49,9 @@ internal fun SettingsItemRow(item: SettingsItem, modifier: Modifier = Modifier) 
     }
 }
 
-/** Row with a title, optional description, and a trailing [Switch] bound to [item]'s checked state. */
+/**
+ * Row with a title, optional description, and a trailing [Switch] bound to [item]'s checked state.
+ */
 @Composable
 private fun ToggleSettingsRow(item: SettingsItem.Toggle) {
     Row(
@@ -73,7 +80,9 @@ private fun ToggleSettingsRow(item: SettingsItem.Toggle) {
     }
 }
 
-/** Row with a title, optional description, and a [FlowRow] of [FilterChip]s for single-selection. */
+/**
+ * Row with a title, optional description, and a [FlowRow] of [FilterChip]s for single-selection.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun <T> SingleSelectChipsRow(item: SettingsItem.SingleSelectChips<T>) {
@@ -139,7 +148,7 @@ private fun <T> MultiSelectChipsRow(item: SettingsItem.MultiSelectChips<T>) {
                 contentPadding = ButtonDefaults.ExtraSmallContentPadding,
                 modifier = Modifier.heightIn(min = ButtonDefaults.ExtraSmallContainerHeight),
             ) {
-                Text("Select all")
+                Text(stringResource(R.string.select_all))
             }
             TextButton(
                 onClick = item.onDeselectAll,
@@ -147,7 +156,7 @@ private fun <T> MultiSelectChipsRow(item: SettingsItem.MultiSelectChips<T>) {
                 contentPadding = ButtonDefaults.ExtraSmallContentPadding,
                 modifier = Modifier.heightIn(min = ButtonDefaults.ExtraSmallContainerHeight),
             ) {
-                Text("Deselect all")
+                Text(stringResource(R.string.deselect_all))
             }
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

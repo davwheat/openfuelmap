@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation3.runtime.NavKey
 import dev.davwheat.openfuelmap.list.api.ListNav
@@ -18,7 +19,7 @@ import dev.davwheat.openfuelmap.stats.api.StatsNav
 
 private data class TopLevelNavMetadata(
     val icon: @Composable (Modifier, selected: Boolean) -> Unit,
-    val name: String,
+    val nameRes: Int,
 )
 
 private val topLevelNav =
@@ -35,7 +36,7 @@ private val topLevelNav =
                         modifier = modifier,
                     )
                 },
-                name = "Map",
+                nameRes = R.string.nav_map,
             ),
         ListNav.ForecourtList to
             TopLevelNavMetadata(
@@ -48,7 +49,7 @@ private val topLevelNav =
                         modifier = modifier,
                     )
                 },
-                name = "List",
+                nameRes = R.string.nav_list,
             ),
         StatsNav.FuelStatistics to
             TopLevelNavMetadata(
@@ -62,7 +63,7 @@ private val topLevelNav =
                         modifier = modifier,
                     )
                 },
-                name = "Stats",
+                nameRes = R.string.nav_stats,
             ),
         SettingsNav.Settings to
             TopLevelNavMetadata(
@@ -76,11 +77,14 @@ private val topLevelNav =
                         modifier = modifier,
                     )
                 },
-                name = "Settings",
+                nameRes = R.string.nav_settings,
             ),
     )
 
-/** App-wide bottom navigation bar. Highlights the tab matching [navigator]'s current top-level route. */
+/**
+ * App-wide bottom navigation bar. Highlights the tab matching [navigator]'s current top-level
+ * route.
+ */
 @Composable
 fun BottomNavBar(modifier: Modifier = Modifier, navigator: INavigator) {
     NavigationBar(modifier = modifier) {
@@ -91,7 +95,7 @@ fun BottomNavBar(modifier: Modifier = Modifier, navigator: INavigator) {
                 selected = selected,
                 onClick = { navigator.navigate(key) },
                 icon = { metadata.icon(Modifier, selected) },
-                label = { Text(metadata.name) },
+                label = { Text(stringResource(metadata.nameRes)) },
             )
         }
     }

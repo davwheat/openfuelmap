@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ListScreen top bar -->
+    <string name="list_title">Nearby</string>
+    <string name="topbar_use_my_location">Use my location</string>
+    <string name="topbar_pick_a_location">Pick a location</string>
+
+    <!-- SearchContextHeader -->
+    <string name="header_custom_location">Custom location</string>
+    <string name="header_current_location">Current location</string>
+    <string name="header_no_location_yet">No location yet</string>
+    <string name="header_using_custom_location">Using custom location</string>
+    <string name="header_using_current_location">Using current location</string>
+    <string name="header_change">Change</string>
+
+    <!-- RadiusControl -->
+    <string name="radius_label">Search radius</string>
+
+    <!-- ListEmptyState -->
+    <string name="empty_no_location_title">We need a location</string>
+    <string name="empty_no_location_body">Share your location to see nearby stations, or pick a spot on a map.</string>
+    <string name="empty_use_my_location">Use my location</string>
+    <string name="empty_pick_a_location">Pick a location</string>
+    <string name="empty_none_in_radius_title">No stations within %1$s mi</string>
+    <string name="empty_none_in_radius_body">Try widening the search radius or showing more brands.</string>
+    <string name="empty_increase_radius">Increase radius</string>
+    <string name="empty_error_title">Couldn\'t load stations</string>
+    <string name="empty_try_again">Try again</string>
+
+    <!-- CustomLocationPickerSheet -->
+    <string name="picker_title">Pick a location</string>
+    <string name="picker_instruction">Drag the map until the pin is where you want to search from.</string>
+    <string name="picker_pin_description">Selected location</string>
+    <string name="picker_cancel">Cancel</string>
+    <string name="picker_confirm">Use this location</string>
+
+    <!-- ForecourtListItem -->
+    <string name="list_item_price_inaccurate">Price may be inaccurate</string>
+    <string name="list_item_no_price">No price</string>
+
+    <!-- Accessibility -->
+    <string name="list_loading">Loading</string>
+</resources>

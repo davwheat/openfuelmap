@@ -3,6 +3,7 @@ package dev.davwheat.openfuelmap.settings.impl.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.davwheat.openfuelmap.data.db.FuelTypeIds
@@ -10,6 +11,7 @@ import dev.davwheat.openfuelmap.data.repository.BrandRepository
 import dev.davwheat.openfuelmap.data.repository.FuelTypeRepository
 import dev.davwheat.openfuelmap.data.repository.UserPreferencesRepository
 import dev.davwheat.openfuelmap.data.utils.DispatcherProvider
+import dev.davwheat.openfuelmap.settings.impl.R
 import dev.davwheat.openfuelmap.settings.impl.model.SettingsItem
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -86,9 +88,8 @@ constructor(
         add(
             SettingsItem.Toggle(
                 key = "colorblind_mode",
-                title = "Colorblind-friendly colours",
-                description =
-                    "Use blue-to-orange instead of green-to-red for price markers on the map.",
+                title = application.getString(R.string.setting_colorblind_title),
+                description = application.getString(R.string.setting_colorblind_description),
                 checked = colorblind,
                 onCheckedChange = ::setColorblindMode,
             )
@@ -101,9 +102,8 @@ constructor(
             add(
                 SettingsItem.SingleSelectChips(
                     key = "fuel_type",
-                    title = "Fuel type",
-                    description =
-                        "Only show stations offering this fuel type. Prices shown will also be for this fuel.",
+                    title = application.getString(R.string.setting_fuel_type_title),
+                    description = application.getString(R.string.setting_fuel_type_description),
                     options = sortedFuelTypes,
                     selectedOption = sortedFuelTypes.find { it.id == selectedFuel },
                     optionLabel = { it.name },
@@ -116,8 +116,8 @@ constructor(
             add(
                 SettingsItem.MultiSelectChips(
                     key = "brands",
-                    title = "Brands",
-                    description = "Tap a brand to hide its stations from results.",
+                    title = application.getString(R.string.setting_brands_title),
+                    description = application.getString(R.string.setting_brands_description),
                     options = sortedBrands,
                     excludedOptions = sortedBrands.filter { it.name in excluded }.toSet(),
                     optionLabel = { it.name },

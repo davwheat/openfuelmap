@@ -25,6 +25,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,6 +46,7 @@ import dev.davwheat.openfuelmap.common.location.rememberLocationPermissionState
 import dev.davwheat.openfuelmap.data.repository.SavedCameraPosition
 import dev.davwheat.openfuelmap.forecourts.api.model.BoundingBox
 import dev.davwheat.openfuelmap.forecourts.impl.detail.ForecourtDetailSheet
+import dev.davwheat.openfuelmap.map.impl.R
 import dev.davwheat.openfuelmap.map.impl.viewmodel.InitialPosition
 import dev.davwheat.openfuelmap.map.impl.viewmodel.MapViewModel
 import kotlin.math.log2
@@ -61,7 +63,7 @@ internal fun MapScreenTopAppBar(modifier: Modifier = Modifier) {
     TopAppBar(
         modifier = modifier,
         titleHorizontalAlignment = Alignment.CenterHorizontally,
-        title = { Text("Open Fuel Map") },
+        title = { Text(stringResource(R.string.map_title)) },
         subtitle = {},
     )
 }
@@ -74,9 +76,9 @@ private fun MapScreenTopAppBarPreview() {
 }
 
 /**
- * Full-screen Google Map showing fuel-station price markers clustered at low zoom levels.
- * Handles location permission, camera position persistence, marker rendering via
- * [PriceMarkerIconCache], and shows a [ForecourtDetailSheet] when a station is tapped.
+ * Full-screen Google Map showing fuel-station price markers clustered at low zoom levels. Handles
+ * location permission, camera position persistence, marker rendering via [PriceMarkerIconCache],
+ * and shows a [ForecourtDetailSheet] when a station is tapped.
  */
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
