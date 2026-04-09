@@ -57,7 +57,10 @@ export async function adminCronForecourts(c: AdminContext) {
       c.env.KV,
       c.env.UPSTREAM_CLIENT_ID,
       c.env.UPSTREAM_CLIENT_SECRET,
-      c.env.DISABLE_OAUTH_REFRESH === "true",
+      {
+        disableRefresh: c.env.DISABLE_OAUTH_REFRESH === true,
+        disableCache: c.env.DISABLE_OAUTH_CACHE === true,
+      },
     );
     const result = await syncForecourts(
       c.env.fuel_prices_db,
@@ -83,7 +86,10 @@ export async function adminCronPrices(c: AdminContext) {
       c.env.KV,
       c.env.UPSTREAM_CLIENT_ID,
       c.env.UPSTREAM_CLIENT_SECRET,
-      c.env.DISABLE_OAUTH_REFRESH === "true",
+      {
+        disableRefresh: c.env.DISABLE_OAUTH_REFRESH === true,
+        disableCache: c.env.DISABLE_OAUTH_CACHE === true,
+      },
     );
     const result = await syncPrices(
       c.env.fuel_prices_db,

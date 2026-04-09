@@ -114,17 +114,83 @@ export function createAccessTokenProvider(
   kv: KVNamespace,
   clientId: string,
   clientSecret: string,
-  disableRefresh = false,
+  opts: { disableRefresh?: boolean; disableCache?: boolean } = {},
 ): AccessTokenProvider {
+  if (opts.disableCache) {
+    return {
+      get: () => fetchAccessToken(clientId, clientSecret),
+      refresh: () => fetchAccessToken(clientId, clientSecret),
+    };
+  }
   return {
-    get: () => getAccessToken(kv, clientId, clientSecret, disableRefresh),
+    get: () =>
+      getAccessToken(kv, clientId, clientSecret, opts.disableRefresh ?? false),
     refresh: async () => {
       await kv.delete(KV_OAUTH_TOKEN_KEY);
-      return getAccessToken(kv, clientId, clientSecret, disableRefresh);
+      return getAccessToken(
+        kv,
+        clientId,
+        clientSecret,
+        opts.disableRefresh ?? false,
+      );
     },
   };
 }
 
+/**
+ * Fetch a new access token from the upstream OAuth endpoint. Returns the
+ * parsed response (access token, optional refresh token, expiry).
+ */
+async function fetchAccessToken(
+  clientId: string,
+  clientSecret: string,
+): Promise<string> {
+  console.log(`POST ${UPSTREAM_TOKEN_URL}`);
+  const response = await fetch(UPSTREAM_TOKEN_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "User-Agent": USER_AGENT,
+    },
+    body: JSON.stringify({
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+  });
+
+  const text = await response.text();
+  const headers = Object.fromEntries(response.headers.entries());
+  console.log(
+    `[oauth] generate_access_token response (${response.status}):`,
+    text,
+  );
+  console.log(
+    `[oauth] generate_access_token response headers:`,
+    JSON.stringify(headers),
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `OAuth token request failed (${response.status}): ${text || "(no body)"}`,
+    );
+  }
+
+  const json = JSON.parse(text);
+  const parsed = UpstreamTokenResponseSchema.parse(json);
+
+  if (!parsed.success) {
+    throw new Error(
+      `OAuth token request returned success=false: ${parsed.message}`,
+    );
+  }
+
+  return parsed.data.access_token;
+}
+
+/**
+ * Fetch a new access token and cache it (along with any refresh token) in KV.
+ */
 async function generateAccessToken(
   kv: KVNamespace,
   clientId: string,

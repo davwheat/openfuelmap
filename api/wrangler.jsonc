@@ -37,7 +37,8 @@
     },
   ],
   "vars": {
-    "DISABLE_OAUTH_REFRESH": "false",
+    "DISABLE_OAUTH_REFRESH": true,
+    "DISABLE_OAUTH_CACHE": true,
   },
   "triggers": {
     "crons": [
