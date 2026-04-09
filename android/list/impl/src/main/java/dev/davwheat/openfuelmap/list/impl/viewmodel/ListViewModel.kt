@@ -1,6 +1,8 @@
 package dev.davwheat.openfuelmap.list.impl.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.davwheat.openfuelmap.common.location.LocationUpdatesProvider
@@ -62,11 +64,13 @@ private const val MIN_LOCATION_UPDATE_DISTANCE_METERS: Float = 100f
 class ListViewModel
 @Inject
 constructor(
+    application: Application,
+    savedStateHandle: SavedStateHandle,
     private val forecourtRepository: ForecourtRepository,
     fuelTypeRepository: FuelTypeRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val locationUpdatesProvider: LocationUpdatesProvider,
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     /** Flipped by the screen once it knows whether ACCESS_(FINE|COARSE)_LOCATION is granted. */
     private val _hasLocationPermission = MutableStateFlow(false)

@@ -1,6 +1,8 @@
 package dev.davwheat.openfuelmap.map.impl.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.davwheat.openfuelmap.data.db.FuelTypeEntity
@@ -48,11 +50,13 @@ sealed interface InitialPosition {
 class MapViewModel
 @Inject
 constructor(
+    application: Application,
+    savedStateHandle: SavedStateHandle,
     private val forecourtRepository: ForecourtRepository,
     fuelTypeRepository: FuelTypeRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val dispatcherProvider: DispatcherProvider,
-) : ViewModel() {
+    dispatcherProvider: DispatcherProvider,
+) : AndroidViewModel(application) {
 
     private val _currentBounds = MutableStateFlow<BoundingBox?>(null)
 

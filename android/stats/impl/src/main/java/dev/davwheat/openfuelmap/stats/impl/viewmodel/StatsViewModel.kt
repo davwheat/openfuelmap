@@ -1,6 +1,8 @@
 package dev.davwheat.openfuelmap.stats.impl.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.davwheat.openfuelmap.data.db.FuelTypeEntity
@@ -13,6 +15,7 @@ import dev.davwheat.openfuelmap.stats.api.model.PriceStat
 import dev.davwheat.openfuelmap.stats.api.model.TimeRange
 import dev.davwheat.openfuelmap.stats.api.repository.StatsRepository
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,10 +30,12 @@ import timber.log.Timber
 class StatsViewModel
 @Inject
 constructor(
+    application: Application,
+    savedStateHandle: SavedStateHandle,
     private val statsRepository: StatsRepository,
     fuelTypeRepository: FuelTypeRepository,
     userPreferencesRepository: UserPreferencesRepository,
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     val fuelTypes: StateFlow<List<FuelTypeEntity>> =
         fuelTypeRepository
@@ -74,10 +79,17 @@ constructor(
     val error: StateFlow<String?> = _error.asStateFlow()
 
     init {
+        Timber.tag(TAG).d("StatsViewModel created (instance=%s)", System.identityHashCode(this))
         viewModelScope.launch {
+            Timber.tag(TAG).d("collect coroutine started")
             combine(_timeRange, _priceStat) { range, stat -> range to stat }
                 .collect { (range, stat) -> fetchPrices(range, stat) }
         }
+    }
+
+    override fun onCleared() {
+        Timber.tag(TAG).d("StatsViewModel cleared (instance=%s)", System.identityHashCode(this))
+        Timber.tag(TAG).d(Exception("Stack trace"), "onCleared call site")
     }
 
     fun setTimeRange(range: TimeRange) {
@@ -93,21 +105,36 @@ constructor(
     }
 
     private suspend fun fetchPrices(timeRange: TimeRange, stat: PriceStat) {
+        Timber.tag(TAG).d("fetchPrices START range=%s stat=%s", timeRange, stat)
         _isLoading.value = true
         _error.value = null
-        when (val result = statsRepository.getDailyPrices(timeRange, stat)) {
-            is ApiResult.Success -> {
-                _prices.value = result.data.groupBy { it.fuelType }
-            }
-            is ApiResult.Failure -> {
-                when (result) {
-                    is ApiResult.NetworkError ->
-                        Timber.w(result.cause, "fetchPrices network error: %s", result.message)
-                    is ApiResult.ApiError -> Timber.w("fetchPrices API error: %s", result.message)
+        try {
+            when (val result = statsRepository.getDailyPrices(timeRange, stat)) {
+                is ApiResult.Success -> {
+                    Timber.tag(TAG).d("fetchPrices SUCCESS (%d items)", result.data.size)
+                    _prices.value = result.data.groupBy { it.fuelType }
                 }
-                _error.value = result.message
+                is ApiResult.Failure -> {
+                    when (result) {
+                        is ApiResult.NetworkError ->
+                            Timber.tag(TAG)
+                                .w(result.cause, "fetchPrices network error: %s", result.message)
+                        is ApiResult.ApiError ->
+                            Timber.tag(TAG).w("fetchPrices API error: %s", result.message)
+                    }
+                    _error.value = result.message
+                }
             }
+        } catch (e: CancellationException) {
+            Timber.tag(TAG).w(e, "fetchPrices CANCELLED")
+            throw e
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "fetchPrices UNEXPECTED EXCEPTION")
         }
         _isLoading.value = false
+    }
+
+    private companion object {
+        const val TAG = "StatsViewModel"
     }
 }

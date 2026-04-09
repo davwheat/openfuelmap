@@ -1,6 +1,8 @@
 package dev.davwheat.openfuelmap.settings.impl.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.davwheat.openfuelmap.data.db.FuelTypeIds
@@ -17,18 +19,32 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 @HiltViewModel
 class SettingsViewModel
 @Inject
 constructor(
+    application: Application,
+    savedStateHandle: SavedStateHandle,
     private val userPreferencesRepository: UserPreferencesRepository,
     fuelTypeRepository: FuelTypeRepository,
     brandRepository: BrandRepository,
     dispatcherProvider: DispatcherProvider,
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
-    private val fuelTypes = fuelTypeRepository.getAllFuelTypes()
+    init {
+        Timber.tag(TAG).d("SettingsViewModel created (instance=%s)", System.identityHashCode(this))
+    }
+
+    override fun onCleared() {
+        Timber.tag(TAG).d("SettingsViewModel cleared (instance=%s)", System.identityHashCode(this))
+    }
+
+    private val fuelTypes =
+        fuelTypeRepository
+            .getAllFuelTypes()
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val brands = brandRepository.getAllBrands()
 
@@ -137,5 +153,9 @@ constructor(
 
     private fun setColorblindMode(enabled: Boolean) {
         viewModelScope.launch { userPreferencesRepository.setColorblindMode(enabled) }
+    }
+
+    private companion object {
+        const val TAG = "SettingsViewModel"
     }
 }
