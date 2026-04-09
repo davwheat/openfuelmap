@@ -46,7 +46,7 @@ jobs:
       - name: Set up local.properties
         working-directory: android
         run: |
-          echo -e 'MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}\nsigning.storeFilePath=/tmp/keystore\nsigning.keyPassword=${{ secrets.STORE_PAS$
+          echo -e 'MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}\nsigning.storeFilePath=/tmp/keystore\nsigning.keyPassword=${{ secrets.STORE_PASSWORD }}\nsigning.storePassword=${{ secrets.STORE_PASSWORD }}\nsigning.keyAlias=android' > local.properties
 
       - name: Grant execute permission for gradlew
         working-directory: android
