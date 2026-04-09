@@ -8,6 +8,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -93,7 +94,7 @@ fun BottomNavBar(modifier: Modifier = Modifier, navigator: INavigator) {
 
             NavigationBarItem(
                 selected = selected,
-                onClick = { navigator.navigate(key) },
+                onClick = dropUnlessResumed { navigator.navigate(key) },
                 icon = { metadata.icon(Modifier, selected) },
                 label = { Text(stringResource(metadata.nameRes)) },
             )

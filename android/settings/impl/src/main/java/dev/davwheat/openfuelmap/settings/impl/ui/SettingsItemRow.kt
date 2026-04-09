@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -102,7 +103,7 @@ private fun <T> SingleSelectChipsRow(item: SettingsItem.SingleSelectChips<T>) {
                 val selected = option == item.selectedOption
                 FilterChip(
                     selected = selected,
-                    onClick = { item.onOptionSelected(option) },
+                    onClick = dropUnlessResumed { item.onOptionSelected(option) },
                     label = { Text(item.optionLabel(option)) },
                     leadingIcon =
                         if (selected) {
@@ -143,7 +144,7 @@ private fun <T> MultiSelectChipsRow(item: SettingsItem.MultiSelectChips<T>) {
             modifier = Modifier.fillMaxWidth(),
         ) {
             TextButton(
-                onClick = item.onSelectAll,
+                onClick = dropUnlessResumed { item.onSelectAll() },
                 shapes = ButtonDefaults.shapesFor(ButtonDefaults.ExtraSmallContainerHeight),
                 contentPadding = ButtonDefaults.ExtraSmallContentPadding,
                 modifier = Modifier.heightIn(min = ButtonDefaults.ExtraSmallContainerHeight),
@@ -151,7 +152,7 @@ private fun <T> MultiSelectChipsRow(item: SettingsItem.MultiSelectChips<T>) {
                 Text(stringResource(R.string.select_all))
             }
             TextButton(
-                onClick = item.onDeselectAll,
+                onClick = dropUnlessResumed { item.onDeselectAll() },
                 shapes = ButtonDefaults.shapesFor(ButtonDefaults.ExtraSmallContainerHeight),
                 contentPadding = ButtonDefaults.ExtraSmallContentPadding,
                 modifier = Modifier.heightIn(min = ButtonDefaults.ExtraSmallContainerHeight),
@@ -165,7 +166,7 @@ private fun <T> MultiSelectChipsRow(item: SettingsItem.MultiSelectChips<T>) {
                     val included = option !in item.excludedOptions
                     FilterChip(
                         selected = included,
-                        onClick = { item.onOptionToggled(option) },
+                        onClick = dropUnlessResumed { item.onOptionToggled(option) },
                         label = { Text(item.optionLabel(option)) },
                         leadingIcon = {
                             Icon(

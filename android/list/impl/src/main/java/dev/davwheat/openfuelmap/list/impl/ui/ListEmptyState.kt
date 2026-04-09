@@ -22,6 +22,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -78,10 +79,10 @@ fun ListEmptyState(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onRequestLocation) {
+                    Button(onClick = dropUnlessResumed { onRequestLocation() }) {
                         Text(stringResource(R.string.empty_use_my_location))
                     }
-                    OutlinedButton(onClick = onPickCustomLocation) {
+                    OutlinedButton(onClick = dropUnlessResumed { onPickCustomLocation() }) {
                         Text(stringResource(R.string.empty_pick_a_location))
                     }
                 }
@@ -114,7 +115,7 @@ fun ListEmptyState(
                 Spacer(modifier = Modifier.height(16.dp))
                 val maxStop = radiusStopsFor(reason.distanceUnit).last()
                 if (reason.radiusMi < maxStop) {
-                    Button(onClick = onIncreaseRadius) {
+                    Button(onClick = dropUnlessResumed { onIncreaseRadius() }) {
                         Text(stringResource(R.string.empty_increase_radius))
                     }
                 }
@@ -134,7 +135,7 @@ fun ListEmptyState(
                     textAlign = TextAlign.Center,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onRetry) { Text(stringResource(R.string.empty_try_again)) }
+                Button(onClick = dropUnlessResumed { onRetry() }) { Text(stringResource(R.string.empty_try_again)) }
             }
         }
     }

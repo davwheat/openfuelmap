@@ -47,6 +47,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
@@ -155,13 +156,14 @@ fun ForecourtDetailSheet(
 
                 SimpleTooltip(stringResource(R.string.detail_navigate_tooltip)) {
                     FilledIconButton(
-                        onClick = {
-                            val gmmIntentUri =
-                                "geo:${forecourt.latitude},${forecourt.longitude}?q=${forecourt.latitude},${forecourt.longitude}"
-                                    .toUri()
-                            val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-                            runCatching { context.startActivity(mapIntent) }
-                        },
+                        onClick =
+                            dropUnlessResumed {
+                                val gmmIntentUri =
+                                    "geo:${forecourt.latitude},${forecourt.longitude}?q=${forecourt.latitude},${forecourt.longitude}"
+                                        .toUri()
+                                val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                                runCatching { context.startActivity(mapIntent) }
+                            },
                         shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(
@@ -231,7 +233,12 @@ fun ForecourtDetailSheet(
                                 stateDescription =
                                     if (otherFuelsExpanded) expandedLabel else collapsedLabel
                             }
-                            .clickable { otherFuelsExpanded = !otherFuelsExpanded }
+                            .clickable(
+                                onClick =
+                                    dropUnlessResumed {
+                                        otherFuelsExpanded = !otherFuelsExpanded
+                                    }
+                            )
                             .padding(start = 32.dp, end = 40.dp, top = 6.dp, bottom = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
@@ -348,7 +355,7 @@ fun ForecourtDetailSheet(
             Spacer(modifier = Modifier.height(4.dp))
             val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()
             TextButton(
-                onClick = { launchPriceReport(context, toolbarColor) },
+                onClick = dropUnlessResumed { launchPriceReport(context, toolbarColor) },
                 modifier = Modifier.padding(horizontal = 16.dp),
             ) {
                 Icon(
@@ -479,10 +486,11 @@ fun ForecourtDetailSheet(
                 ?.let { phone ->
                     Spacer(modifier = Modifier.height(4.dp))
                     TextButton(
-                        onClick = {
-                            val intent = Intent(Intent.ACTION_DIAL, "tel:$phone".toUri())
-                            runCatching { context.startActivity(intent) }
-                        },
+                        onClick =
+                            dropUnlessResumed {
+                                val intent = Intent(Intent.ACTION_DIAL, "tel:$phone".toUri())
+                                runCatching { context.startActivity(intent) }
+                            },
                         modifier = Modifier.padding(horizontal = 16.dp),
                     ) {
                         Icon(

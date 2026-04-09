@@ -57,7 +57,11 @@ dependencies {
 
     // Lifecycle
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.android)
 
     implementation(libs.timber)
+
+    // OSS Licenses
+    implementation(libs.google.playServices.ossLicenses)
 }

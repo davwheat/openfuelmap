@@ -16,6 +16,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -52,7 +53,7 @@ fun ForecourtListItem(
 
     Surface(
         modifier = modifier.fillMaxWidth().alpha(if (isInaccurate) 0.5f else 1f),
-        onClick = onClick,
+        onClick = dropUnlessResumed { onClick() },
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),

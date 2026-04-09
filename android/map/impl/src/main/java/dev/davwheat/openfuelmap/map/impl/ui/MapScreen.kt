@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.dropUnlessResumed
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -271,6 +272,8 @@ fun MapScreen(viewModel: MapViewModel) {
                                     rememberUpdatedMarkerState(
                                         position = LatLng(station.latitude, station.longitude)
                                     )
+                                val onStationClick =
+                                    dropUnlessResumed { viewModel.selectStation(station) }
                                 Marker(
                                     state = markerState,
                                     title = station.tradingName,
@@ -279,7 +282,7 @@ fun MapScreen(viewModel: MapViewModel) {
                                     zIndex = marker.zIndex,
                                     icon = icon,
                                     onClick = {
-                                        viewModel.selectStation(station)
+                                        onStationClick()
                                         true
                                     },
                                 )
@@ -290,14 +293,18 @@ fun MapScreen(viewModel: MapViewModel) {
                                     rememberUpdatedMarkerState(
                                         position = LatLng(cluster.centroidLat, cluster.centroidLng)
                                     )
+                                val onClusterClick =
+                                    dropUnlessResumed {
+                                        coroutineScope.launch {
+                                            animateCameraToCluster(cameraPositionState, cluster)
+                                        }
+                                    }
                                 Marker(
                                     state = markerState,
                                     anchor = Offset(0.5f, 0.5f),
                                     icon = icon,
                                     onClick = {
-                                        coroutineScope.launch {
-                                            animateCameraToCluster(cameraPositionState, cluster)
-                                        }
+                                        onClusterClick()
                                         true
                                     },
                                 )

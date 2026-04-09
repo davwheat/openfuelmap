@@ -13,6 +13,7 @@ plugins {
 
     alias(libs.plugins.stability.analyzer)
     alias(libs.plugins.secrets)
+    alias(libs.plugins.ossLicenses)
 }
 
 val appCompileSdk: Int by rootProject.extra
@@ -79,6 +80,7 @@ secrets {
 
 dependencies {
     implementation(libs.androidx.annotation.experimental)
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)

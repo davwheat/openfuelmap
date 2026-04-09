@@ -42,4 +42,5 @@ dependencies {
     implementation(libs.androidx.compose.material.iconsExtended)
 
     implementation(libs.androidx.browser)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 }

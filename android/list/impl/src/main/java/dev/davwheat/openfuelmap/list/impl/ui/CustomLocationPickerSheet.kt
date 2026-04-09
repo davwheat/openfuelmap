@@ -26,6 +26,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -107,14 +108,18 @@ fun CustomLocationPickerSheet(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
             ) {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.picker_cancel)) }
+                TextButton(onClick = dropUnlessResumed { onDismiss() }) { Text(stringResource(R.string.picker_cancel)) }
                 Button(
-                    onClick = {
-                        val target = cameraPositionState.position.target
-                        onConfirm(
-                            SavedLocation(latitude = target.latitude, longitude = target.longitude)
-                        )
-                    }
+                    onClick =
+                        dropUnlessResumed {
+                            val target = cameraPositionState.position.target
+                            onConfirm(
+                                SavedLocation(
+                                    latitude = target.latitude,
+                                    longitude = target.longitude,
+                                )
+                            )
+                        }
                 ) {
                     Text(stringResource(R.string.picker_confirm))
                 }

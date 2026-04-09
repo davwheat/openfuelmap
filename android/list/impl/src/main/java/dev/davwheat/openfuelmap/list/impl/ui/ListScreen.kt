@@ -58,6 +58,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.dropUnlessResumed
 import com.google.android.gms.maps.model.LatLng
 import dev.davwheat.openfuelmap.app.api.ProvideTopBar
 import dev.davwheat.openfuelmap.common.location.rememberLocationPermissionState
@@ -89,7 +90,7 @@ internal fun ListScreenTopAppBar(usingCustomLocation: Boolean, onToggleCustomLoc
                     else R.string.topbar_pick_a_location
                 )
             SimpleTooltip(toggleLabel) {
-                IconButton(onClick = onToggleCustomLocation, shapes = IconButtonDefaults.shapes()) {
+                IconButton(onClick = dropUnlessResumed { onToggleCustomLocation() }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector =
                             if (usingCustomLocation) Icons.Outlined.MyLocation
@@ -220,7 +221,7 @@ fun ListScreen(viewModel: ListViewModel) {
                             ForecourtListItem(
                                 item = item,
                                 distanceUnit = distanceUnit,
-                                onClick = { viewModel.selectStation(item.forecourt) },
+                                onClick = dropUnlessResumed { viewModel.selectStation(item.forecourt) },
                             )
                         }
                     }
@@ -375,7 +376,7 @@ private fun SearchContextHeader(
                     }
                 }
                 OutlinedButton(
-                    onClick = onChangePickedLocation,
+                    onClick = dropUnlessResumed { onChangePickedLocation() },
                     shapes = ButtonDefaults.shapes(),
                     modifier = Modifier.zIndex(1f),
                 ) {
