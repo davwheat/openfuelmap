@@ -17,7 +17,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.EntryProviderScope
+import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
@@ -98,6 +100,9 @@ class MainActivity : ComponentActivity() {
                     }
             }
 
+            val decorators =
+                listOf<NavEntryDecorator<NavKey>>(rememberViewModelStoreNavEntryDecorator())
+
             AppTheme {
                 CompositionLocalProvider(LocalNavigator provides navigator) {
                     val topAppBarState = remember { TopAppBarState() }
@@ -109,13 +114,17 @@ class MainActivity : ComponentActivity() {
                             bottomBar = { BottomNavBar(navigator = navigator) },
                         ) { contentPadding ->
                             Box(Modifier.padding(contentPadding)) {
-                                NavDisplay(
-                                    entries =
-                                        navigationState.toEntries(
+                                val entries =
+                                    navigationState.toEntries(
+                                        entryProvider =
                                             entryProvider {
                                                 entryBuilders.forEach { builder -> builder() }
-                                            }
-                                        ),
+                                            },
+                                        decorators = decorators,
+                                    )
+
+                                NavDisplay(
+                                    entries = entries,
                                     sceneDecoratorStrategies = listOf(topAppBarDecorator),
                                     onBack = navigator::goBack,
                                 )
