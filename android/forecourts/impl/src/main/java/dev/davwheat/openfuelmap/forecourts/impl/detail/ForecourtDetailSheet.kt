@@ -576,7 +576,7 @@ private fun FuelPriceRow(
                         val context = LocalContext.current
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                text = "${price.price}p",
+                                text = stringResource(R.string.fuel_row_price_pence, price.price),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                             )

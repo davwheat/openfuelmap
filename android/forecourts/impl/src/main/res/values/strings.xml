@@ -48,6 +48,7 @@
     <string name="fuel_row_inaccurate_description">Price may be inaccurate</string>
     <string name="fuel_row_history_tooltip">Price history</string>
     <string name="fuel_row_history_description">Price history</string>
+    <string name="fuel_row_price_pence">%1$sp</string>
     <string name="fuel_row_no_price">No price</string>
     <string name="fuel_row_no_history">No price history available</string>
 

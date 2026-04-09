@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -26,6 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.davwheat.openfuelmap.common.ui.R as CommonUiR
 import dev.davwheat.openfuelmap.common.ui.warning
+import dev.davwheat.openfuelmap.data.DistanceUnit
 import dev.davwheat.openfuelmap.forecourts.api.model.Forecourt
 import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtFuelPrice
 import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtWithDistance
@@ -39,6 +41,7 @@ import java.util.Locale
 @Composable
 fun ForecourtListItem(
     item: ForecourtWithDistance,
+    distanceUnit: DistanceUnit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -72,7 +75,8 @@ fun ForecourtListItem(
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = formatDistanceMi(item.distanceMiles),
+                        text =
+                            formatDistance(LocalContext.current, item.distanceMiles, distanceUnit),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Medium,
@@ -112,7 +116,7 @@ fun ForecourtListItem(
                             )
                         }
                         Text(
-                            text = "${price}p",
+                            text = stringResource(R.string.list_item_price_pence, price),
                             style = MaterialTheme.typography.bodyLargeEmphasized,
                             fontWeight = FontWeight.Bold,
                         )
@@ -179,6 +183,7 @@ private fun ForecourtListItemPreview() {
         Surface {
             ForecourtListItem(
                 item = ForecourtWithDistance(forecourt = previewForecourt(), distanceMiles = 0.8),
+                distanceUnit = DistanceUnit.MILES,
                 onClick = {},
             )
         }
@@ -202,6 +207,7 @@ private fun ForecourtListItemNoPricePreview() {
                             ),
                         distanceMiles = 4.2,
                     ),
+                distanceUnit = DistanceUnit.MILES,
                 onClick = {},
             )
         }

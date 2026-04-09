@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.davwheat.openfuelmap.common.ui.R
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -67,18 +69,25 @@ fun StepChart(
     modifier: Modifier = Modifier,
     chartStyle: ChartStyle = ChartStyle.STEP,
     endTimestamp: Instant = Instant.now(),
-    tooltipFormatter: (ChartDataPoint) -> String = { point ->
-        val dateStr =
-            LocalDateTime.ofInstant(point.timestamp, ZoneId.systemDefault())
-                .format(DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm"))
-        "${point.value}p  $dateStr"
-    },
-    valueFormatter: (Double) -> String = { "${it.roundToInt()}p" },
+    tooltipFormatter: ((ChartDataPoint) -> String)? = null,
+    valueFormatter: ((Double) -> String)? = null,
     topPadding: Dp = 28.dp,
     bottomPadding: Dp = 24.dp,
     rightPadding: Dp = 8.dp,
     yAxisGap: Dp = 8.dp,
 ) {
+    val tooltipFormat = stringResource(R.string.chart_tooltip_format)
+    val axisFormat = stringResource(R.string.chart_axis_format)
+    val resolvedTooltipFormatter =
+        tooltipFormatter
+            ?: { point: ChartDataPoint ->
+                val dateStr =
+                    LocalDateTime.ofInstant(point.timestamp, ZoneId.systemDefault())
+                        .format(DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm"))
+                tooltipFormat.format(point.value, dateStr)
+            }
+    val resolvedValueFormatter =
+        valueFormatter ?: { value: Double -> axisFormat.format(value.roundToInt()) }
     val textMeasurer = rememberTextMeasurer(cacheSize = 64)
     var scrubX by remember { mutableStateOf<Float?>(null) }
 
@@ -105,9 +114,9 @@ fun StepChart(
     val yMax = remember(priceMax, pricePad) { ceil(priceMax + pricePad) }
     val gridSteps = remember(yMin, yMax) { computeGridSteps(yMin, yMax) }
     val gridLabelLayouts =
-        remember(gridSteps, textMeasurer, labelStyle, valueFormatter) {
+        remember(gridSteps, textMeasurer, labelStyle, resolvedValueFormatter) {
             gridSteps.map { price ->
-                price to textMeasurer.measure(valueFormatter(price), labelStyle)
+                price to textMeasurer.measure(resolvedValueFormatter(price), labelStyle)
             }
         }
     val maxYLabelWidth =
@@ -260,7 +269,7 @@ fun StepChart(
                 timeRange = timeRange,
                 lineColor = lineColor,
                 valueToY = ::valueToY,
-                tooltipFormatter = tooltipFormatter,
+                tooltipFormatter = resolvedTooltipFormatter,
                 chartStyle = chartStyle,
             )
         }

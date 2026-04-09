@@ -15,15 +15,25 @@
 
     <!-- RadiusControl -->
     <string name="radius_label">Search radius</string>
+    <string name="radius_value_mi">%1$s mi</string>
+    <string name="radius_value_km">%1$s km</string>
+
+    <!-- DistanceFormat -->
+    <string name="distance_decimal_mi">%.1f mi</string>
+    <string name="distance_whole_mi">%1$d mi</string>
+    <string name="distance_decimal_km">%.1f km</string>
+    <string name="distance_whole_km">%1$d km</string>
 
     <!-- ListEmptyState -->
     <string name="empty_no_location_title">We need a location</string>
     <string name="empty_no_location_body">Share your location to see nearby stations, or pick a spot on a map.</string>
     <string name="empty_use_my_location">Use my location</string>
     <string name="empty_pick_a_location">Pick a location</string>
-    <string name="empty_none_in_radius_title">No stations within %1$s mi</string>
+    <string name="empty_none_in_radius_title_mi">No stations within %1$s mi</string>
+    <string name="empty_none_in_radius_title_km">No stations within %1$s km</string>
     <string name="empty_none_in_radius_body">Try widening the search radius or showing more brands.</string>
     <string name="empty_increase_radius">Increase radius</string>
+    <string name="empty_unknown_error">Unknown error</string>
     <string name="empty_error_title">Couldn\'t load stations</string>
     <string name="empty_try_again">Try again</string>
 
@@ -35,6 +45,7 @@
     <string name="picker_confirm">Use this location</string>
 
     <!-- ForecourtListItem -->
+    <string name="list_item_price_pence">%1$sp</string>
     <string name="list_item_price_inaccurate">Price may be inaccurate</string>
     <string name="list_item_no_price">No price</string>
 

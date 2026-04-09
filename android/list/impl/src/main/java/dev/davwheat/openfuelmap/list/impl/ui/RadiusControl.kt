@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import dev.davwheat.openfuelmap.data.DistanceUnit
 import dev.davwheat.openfuelmap.list.impl.R
 
 /**
@@ -37,12 +38,24 @@ import dev.davwheat.openfuelmap.list.impl.R
  * most users will live — with two larger steps at the top of the scale for the occasional road
  * trip. Maxes out at 50 miles per product decision.
  */
-internal val RADIUS_STOPS: List<Float> = listOf(1f, 2f, 3f, 5f, 10f, 15f, 20f, 30f, 50f)
+internal val RADIUS_STOPS_MI: List<Float> = listOf(1f, 2f, 3f, 5f, 10f, 15f, 20f, 30f, 50f)
+
+/**
+ * Equivalent stops for kilometres. Nice round numbers that roughly match the mile stops in spirit.
+ */
+internal val RADIUS_STOPS_KM: List<Float> = listOf(1f, 3f, 5f, 10f, 15f, 25f, 40f, 50f, 80f)
+
+internal fun radiusStopsFor(unit: DistanceUnit): List<Float> =
+    when (unit) {
+        DistanceUnit.MILES -> RADIUS_STOPS_MI
+        DistanceUnit.KILOMETERS -> RADIUS_STOPS_KM
+    }
 
 /**
  * Slider with discrete non-linear stops. The slider is driven in "stop index" space (0..N-1) and we
- * translate to/from miles for the caller. This keeps the slider's `steps` simple and snaps touch to
- * the nearest advertised value.
+ * translate to/from the display unit for the caller. [radiusMi] is always in miles; when [unit] is
+ * km we convert for display and snap to [RADIUS_STOPS_KM], converting back to miles for the
+ * callback.
  */
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -50,11 +63,21 @@ internal val RADIUS_STOPS: List<Float> = listOf(1f, 2f, 3f, 5f, 10f, 15f, 20f, 3
     ExperimentalMaterial3ExpressiveApi::class,
 )
 @Composable
-fun RadiusSlider(radiusMi: Float, onRadiusChanged: (Float) -> Unit, modifier: Modifier = Modifier) {
+fun RadiusSlider(
+    radiusMi: Float,
+    onRadiusChanged: (Float) -> Unit,
+    unit: DistanceUnit,
+    modifier: Modifier = Modifier,
+) {
+    val stops = radiusStopsFor(unit)
+    val displayValue =
+        when (unit) {
+            DistanceUnit.MILES -> radiusMi
+            DistanceUnit.KILOMETERS -> (radiusMi * DistanceUnit.KM_PER_MILE).toFloat()
+        }
     val currentIndex =
-        remember(radiusMi) {
-            RADIUS_STOPS.indexOfFirst { it >= radiusMi }
-                .let { if (it < 0) RADIUS_STOPS.lastIndex else it }
+        remember(displayValue, unit) {
+            stops.indexOfFirst { it >= displayValue }.let { if (it < 0) stops.lastIndex else it }
         }
 
     Column(modifier = modifier) {
@@ -67,7 +90,7 @@ fun RadiusSlider(radiusMi: Float, onRadiusChanged: (Float) -> Unit, modifier: Mo
             )
             val motionScheme = MaterialTheme.motionScheme
             AnimatedContent(
-                radiusMi,
+                displayValue,
                 transitionSpec = {
                     // Slide up/down depending on value change
                     if (targetState > initialState) {
@@ -87,9 +110,15 @@ fun RadiusSlider(radiusMi: Float, onRadiusChanged: (Float) -> Unit, modifier: Mo
                     }
                 },
                 contentAlignment = Alignment.CenterEnd,
-            ) { radiusMi ->
+            ) { value ->
                 Text(
-                    text = "${formatRadiusMi(radiusMi)} mi",
+                    text =
+                        when (unit) {
+                            DistanceUnit.MILES ->
+                                stringResource(R.string.radius_value_mi, formatRadius(value))
+                            DistanceUnit.KILOMETERS ->
+                                stringResource(R.string.radius_value_km, formatRadius(value))
+                        },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.End,
@@ -100,26 +129,53 @@ fun RadiusSlider(radiusMi: Float, onRadiusChanged: (Float) -> Unit, modifier: Mo
         Slider(
             value = currentIndex.toFloat(),
             onValueChange = { newIndex ->
-                val idx = newIndex.toInt().coerceIn(0, RADIUS_STOPS.lastIndex)
-                onRadiusChanged(RADIUS_STOPS[idx])
+                val idx = newIndex.toInt().coerceIn(0, stops.lastIndex)
+                val stopValue = stops[idx]
+                val miles =
+                    when (unit) {
+                        DistanceUnit.MILES -> stopValue
+                        DistanceUnit.KILOMETERS -> (stopValue * DistanceUnit.MILES_PER_KM).toFloat()
+                    }
+                onRadiusChanged(miles)
             },
-            valueRange = 0f..RADIUS_STOPS.lastIndex.toFloat(),
+            valueRange = 0f..stops.lastIndex.toFloat(),
             // One step between every pair of stops, minus the two endpoints.
-            steps = RADIUS_STOPS.size - 2,
+            steps = stops.size - 2,
         )
     }
 }
 
-internal fun formatRadiusMi(radiusMi: Float): String =
-    if (radiusMi < 10f) "%.0f".format(radiusMi) else radiusMi.toInt().toString()
+internal fun formatRadius(value: Float): String =
+    if (value < 10f) "%.0f".format(value) else value.toInt().toString()
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Preview
 @Composable
-private fun RadiusSliderPreview() {
+private fun RadiusSliderMiPreview() {
     MaterialExpressiveTheme {
         Surface {
-            RadiusSlider(radiusMi = 5f, onRadiusChanged = {}, modifier = Modifier.padding(16.dp))
+            RadiusSlider(
+                radiusMi = 5f,
+                onRadiusChanged = {},
+                unit = DistanceUnit.MILES,
+                modifier = Modifier.padding(16.dp),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Composable
+private fun RadiusSliderKmPreview() {
+    MaterialExpressiveTheme {
+        Surface {
+            RadiusSlider(
+                radiusMi = 5f,
+                onRadiusChanged = {},
+                unit = DistanceUnit.KILOMETERS,
+                modifier = Modifier.padding(16.dp),
+            )
         }
     }
 }

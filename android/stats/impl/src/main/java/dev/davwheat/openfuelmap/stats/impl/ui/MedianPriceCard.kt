@@ -10,11 +10,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.davwheat.openfuelmap.common.ui.chart.ChartDataPoint
 import dev.davwheat.openfuelmap.common.ui.chart.ChartStyle
 import dev.davwheat.openfuelmap.common.ui.chart.StepChart
+import dev.davwheat.openfuelmap.stats.impl.R
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -40,7 +42,7 @@ fun MedianPriceCard(
             Spacer(modifier = Modifier.weight(1f))
             if (latestPrice != null) {
                 Text(
-                    text = "${latestPrice}p",
+                    text = stringResource(R.string.stats_price_pence, latestPrice),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
@@ -48,6 +50,7 @@ fun MedianPriceCard(
             }
         }
         if (chartData.isNotEmpty()) {
+            val tooltipFormat = stringResource(R.string.stats_tooltip_format)
             StepChart(
                 data = chartData,
                 chartStyle = ChartStyle.LINE,
@@ -56,7 +59,7 @@ fun MedianPriceCard(
                     val dateStr =
                         LocalDateTime.ofInstant(point.timestamp, ZoneId.systemDefault())
                             .format(DateTimeFormatter.ofPattern("d MMM yyyy"))
-                    "${point.value}p  $dateStr"
+                    tooltipFormat.format(point.value, dateStr)
                 },
                 modifier = Modifier.padding(top = 8.dp),
             )

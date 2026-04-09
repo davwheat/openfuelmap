@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import dev.davwheat.openfuelmap.data.DistanceUnit
 import dev.davwheat.openfuelmap.list.impl.R
 
 /** Discriminated empty-state for the List screen. The four reasons use different copy and CTAs. */
@@ -37,7 +38,7 @@ sealed interface ListEmptyReason {
     data object NoLocation : ListEmptyReason
 
     /** Radius yielded zero results for the current filters. */
-    data class NoneInRadius(val radiusMi: Float) : ListEmptyReason
+    data class NoneInRadius(val radiusMi: Float, val distanceUnit: DistanceUnit) : ListEmptyReason
 
     /** API call failed. */
     data class Error(val message: String) : ListEmptyReason
@@ -86,14 +87,21 @@ fun ListEmptyState(
                 }
             }
             is ListEmptyReason.NoneInRadius -> {
+                val displayRadius =
+                    when (reason.distanceUnit) {
+                        DistanceUnit.MILES -> reason.radiusMi
+                        DistanceUnit.KILOMETERS ->
+                            (reason.radiusMi * DistanceUnit.KM_PER_MILE).toFloat()
+                    }
+                val titleRes =
+                    when (reason.distanceUnit) {
+                        DistanceUnit.MILES -> R.string.empty_none_in_radius_title_mi
+                        DistanceUnit.KILOMETERS -> R.string.empty_none_in_radius_title_km
+                    }
                 EmptyIllustration(icon = Icons.Outlined.SearchOff)
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text =
-                        stringResource(
-                            R.string.empty_none_in_radius_title,
-                            formatRadiusMi(reason.radiusMi),
-                        ),
+                    text = stringResource(titleRes, formatRadius(displayRadius)),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -104,7 +112,8 @@ fun ListEmptyState(
                     textAlign = TextAlign.Center,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                if (reason.radiusMi < 50f) {
+                val maxStop = radiusStopsFor(reason.distanceUnit).last()
+                if (reason.radiusMi < maxStop) {
                     Button(onClick = onIncreaseRadius) {
                         Text(stringResource(R.string.empty_increase_radius))
                     }
@@ -165,7 +174,8 @@ private fun ListEmptyStateNoneInRadiusPreview() {
     MaterialExpressiveTheme {
         Surface {
             ListEmptyState(
-                reason = ListEmptyReason.NoneInRadius(radiusMi = 5f),
+                reason =
+                    ListEmptyReason.NoneInRadius(radiusMi = 5f, distanceUnit = DistanceUnit.MILES),
                 onRequestLocation = {},
                 onPickCustomLocation = {},
                 onIncreaseRadius = {},

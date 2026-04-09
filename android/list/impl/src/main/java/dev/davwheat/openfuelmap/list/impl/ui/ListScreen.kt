@@ -62,6 +62,7 @@ import com.google.android.gms.maps.model.LatLng
 import dev.davwheat.openfuelmap.app.api.ProvideTopBar
 import dev.davwheat.openfuelmap.common.location.rememberLocationPermissionState
 import dev.davwheat.openfuelmap.common.ui.SimpleTooltip
+import dev.davwheat.openfuelmap.data.DistanceUnit
 import dev.davwheat.openfuelmap.forecourts.impl.detail.ForecourtDetailSheet
 import dev.davwheat.openfuelmap.list.impl.R
 import dev.davwheat.openfuelmap.list.impl.viewmodel.ListViewModel
@@ -111,6 +112,7 @@ internal fun ListScreenTopAppBar(usingCustomLocation: Boolean, onToggleCustomLoc
 fun ListScreen(viewModel: ListViewModel) {
     val results by viewModel.results.collectAsStateWithLifecycle()
     val radiusMi by viewModel.radiusMi.collectAsStateWithLifecycle()
+    val distanceUnit by viewModel.distanceUnit.collectAsStateWithLifecycle()
     val customLocation by viewModel.customLocation.collectAsStateWithLifecycle()
     val searchCenter by viewModel.searchCenter.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
@@ -139,12 +141,10 @@ fun ListScreen(viewModel: ListViewModel) {
         viewModel.setHasLocationPermission(hasLocationPermission)
     }
 
-    val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
-
     val listState = rememberLazyListState()
 
     // Scroll back to the top whenever query parameters change.
-    LaunchedEffect(radiusMi, searchCenter, selectedFuelType) { listState.scrollToItem(0) }
+    LaunchedEffect(results) { listState.scrollToItem(0) }
 
     var showPicker by remember { mutableStateOf(false) }
 
@@ -168,6 +168,7 @@ fun ListScreen(viewModel: ListViewModel) {
         Column(modifier = Modifier.fillMaxSize()) {
             SearchContextHeader(
                 radiusMi = radiusMi,
+                distanceUnit = distanceUnit,
                 searchCenter = searchCenter,
                 onRadiusChanged = { viewModel.setRadiusMi(it) },
                 onChangePickedLocation = { showPicker = true },
@@ -179,14 +180,20 @@ fun ListScreen(viewModel: ListViewModel) {
                 when {
                     searchCenter == null && !isLoading -> ListEmptyReason.NoLocation
                     error != null && results.isEmpty() ->
-                        ListEmptyReason.Error(message = error ?: "Unknown error")
+                        ListEmptyReason.Error(
+                            message = error ?: stringResource(R.string.empty_unknown_error)
+                        )
                     results.isEmpty() && !isLoading ->
-                        ListEmptyReason.NoneInRadius(radiusMi = radiusMi)
+                        ListEmptyReason.NoneInRadius(
+                            radiusMi = radiusMi,
+                            distanceUnit = distanceUnit,
+                        )
                     else -> null
                 }
 
             // Box scopes the loading indicator to the list area only — it overlaps the list
             // without covering the sticky header above.
+            val stops = radiusStopsFor(distanceUnit)
             Box(modifier = Modifier.fillMaxSize()) {
                 if (reason != null) {
                     Column(
@@ -198,9 +205,7 @@ fun ListScreen(viewModel: ListViewModel) {
                             onRequestLocation = { locationPermission.request() },
                             onPickCustomLocation = { showPicker = true },
                             onIncreaseRadius = {
-                                val nextStop =
-                                    RADIUS_STOPS.firstOrNull { it > radiusMi }
-                                        ?: RADIUS_STOPS.last()
+                                val nextStop = stops.firstOrNull { it > radiusMi } ?: stops.last()
                                 viewModel.setRadiusMi(nextStop)
                             },
                             onRetry = { viewModel.setRadiusMi(radiusMi) },
@@ -214,6 +219,7 @@ fun ListScreen(viewModel: ListViewModel) {
                             if (index > 0) HorizontalDivider()
                             ForecourtListItem(
                                 item = item,
+                                distanceUnit = distanceUnit,
                                 onClick = { viewModel.selectStation(item.forecourt) },
                             )
                         }
@@ -260,13 +266,12 @@ fun ListScreen(viewModel: ListViewModel) {
     }
 
     if (showPicker) {
-        val fallback =
-            remember(userLocation) {
-                userLocation?.let { LatLng(it.latitude, it.longitude) } ?: UK_CENTROID
+        val center =
+            remember(searchCenter) {
+                searchCenter?.let { LatLng(it.latitude, it.longitude) } ?: UK_CENTROID
             }
         CustomLocationPickerSheet(
-            currentCustomLocation = customLocation,
-            fallbackCenter = fallback,
+            currentCenter = center,
             onConfirm = {
                 viewModel.setCustomLocation(it)
                 showPicker = false
@@ -284,13 +289,18 @@ fun ListScreen(viewModel: ListViewModel) {
 @Composable
 private fun SearchContextHeader(
     radiusMi: Float,
+    distanceUnit: DistanceUnit,
     searchCenter: SearchCenter?,
     onRadiusChanged: (Float) -> Unit,
     onChangePickedLocation: () -> Unit,
 ) {
     Surface(color = MaterialTheme.colorScheme.surface) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-            RadiusSlider(radiusMi = radiusMi, onRadiusChanged = onRadiusChanged)
+            RadiusSlider(
+                radiusMi = radiusMi,
+                onRadiusChanged = onRadiusChanged,
+                unit = distanceUnit,
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
@@ -402,6 +412,7 @@ private fun SearchContextHeaderCurrentLocationPreview() {
         Surface {
             SearchContextHeader(
                 radiusMi = 5f,
+                distanceUnit = DistanceUnit.MILES,
                 searchCenter = SearchCenter.CurrentLocation(51.5014, -0.1419),
                 onRadiusChanged = {},
                 onChangePickedLocation = {},
@@ -418,6 +429,7 @@ private fun SearchContextHeaderCustomLocationPreview() {
         Surface {
             SearchContextHeader(
                 radiusMi = 10f,
+                distanceUnit = DistanceUnit.MILES,
                 searchCenter = SearchCenter.Custom(51.5014, -0.1419),
                 onRadiusChanged = {},
                 onChangePickedLocation = {},
@@ -434,6 +446,7 @@ private fun SearchContextHeaderNoLocationPreview() {
         Surface {
             SearchContextHeader(
                 radiusMi = 3f,
+                distanceUnit = DistanceUnit.MILES,
                 searchCenter = null,
                 onRadiusChanged = {},
                 onChangePickedLocation = {},

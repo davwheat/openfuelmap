@@ -45,22 +45,18 @@ import dev.davwheat.openfuelmap.list.impl.R
  * Modal sheet hosting a map whose centre stays pinned under a fixed crosshair. The caller commits
  * the current camera target as the new custom location when the user hits "Use this location".
  *
- * Initial camera position: the existing custom pin if set, otherwise [fallbackCenter] (typically
- * the user's current location or the UK centroid).
+ * Initial camera position: [currentCenter], which should be the location currently used for search
+ * results (custom pin, device location, or a fallback).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomLocationPickerSheet(
-    currentCustomLocation: SavedLocation?,
-    fallbackCenter: LatLng,
+    currentCenter: LatLng,
     onConfirm: (SavedLocation) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val initial =
-        remember(currentCustomLocation, fallbackCenter) {
-            currentCustomLocation?.let { LatLng(it.latitude, it.longitude) } ?: fallbackCenter
-        }
+    val initial = remember(currentCenter) { currentCenter }
     val cameraPositionState: CameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(initial, 11f)
     }
@@ -134,8 +130,7 @@ private fun CustomLocationPickerSheetPreview() {
     MaterialExpressiveTheme {
         Surface {
             CustomLocationPickerSheet(
-                currentCustomLocation = SavedLocation(latitude = 51.5014, longitude = -0.1419),
-                fallbackCenter = LatLng(54.5, -2.5),
+                currentCenter = LatLng(51.5014, -0.1419),
                 onConfirm = {},
                 onDismiss = {},
             )

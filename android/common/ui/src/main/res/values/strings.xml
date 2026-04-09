@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- StepChart default formatters -->
+    <string name="chart_tooltip_format">%1$sp %2$s</string>
+    <string name="chart_axis_format">%1$sp</string>
+</resources>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="settings_title">Settings</string>
+    <string name="settings_title">Settings &amp; About</string>
     <string name="select_all">Select all</string>
     <string name="deselect_all">Deselect all</string>
 
@@ -12,4 +12,16 @@
         this fuel.</string>
     <string name="setting_brands_title">Brands</string>
     <string name="setting_brands_description">Tap a brand to hide its stations from results.</string>
+    <string name="setting_distance_unit_title">Distance unit</string>
+    <string name="setting_distance_unit_description">Choose how distances are displayed throughout the app.</string>
+    <string name="setting_distance_unit_miles">Miles</string>
+    <string name="setting_distance_unit_km">Kilometres</string>
+    <string name="about_heading">About Open Fuel Map</string>
+    <string name="about_body_1">Open Fuel Map is an open-source project to provide fuel price data across
+        the UK, using data from the Department for Energy and Net Zero\'s Fuel Finder API.</string>
+    <string name="about_body_2">Petrol forecourts are obliged to provide accurate pricing information to
+        this system under the The Motor Fuel Price (Open Data) Regulations 2025, but discrepancies
+        do occur. If you notice any pricing irregularities, take a photo of the forecourt\'s price
+        board and submit it via the report button within the app.</string>
+    <string name="settings_heading">Settings</string>
 </resources>

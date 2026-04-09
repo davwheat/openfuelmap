@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.davwheat.openfuelmap.common.location.LocationUpdatesProvider
 import dev.davwheat.openfuelmap.common.location.UserLocation
+import dev.davwheat.openfuelmap.data.DistanceUnit
 import dev.davwheat.openfuelmap.data.db.FuelTypeEntity
 import dev.davwheat.openfuelmap.data.db.FuelTypeIds
 import dev.davwheat.openfuelmap.data.repository.FuelTypeRepository
@@ -89,6 +90,13 @@ constructor(
             viewModelScope,
             SharingStarted.Eagerly,
             10f,
+        )
+
+    val distanceUnit: StateFlow<DistanceUnit> =
+        userPreferencesRepository.distanceUnit.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            DistanceUnit.MILES,
         )
 
     val customLocation: StateFlow<SavedLocation?> =

@@ -5,6 +5,10 @@
     <string name="stats_failed_to_load">Failed to load prices</string>
     <string name="stats_retry">Retry</string>
 
+    <!-- MedianPriceCard -->
+    <string name="stats_price_pence">%1$sp</string>
+    <string name="stats_tooltip_format">%1$sp %2$s</string>
+
     <!-- PriceStat labels -->
     <string name="price_stat_median">Median</string>
     <string name="price_stat_trimmed_mean">Trimmed mean</string>
