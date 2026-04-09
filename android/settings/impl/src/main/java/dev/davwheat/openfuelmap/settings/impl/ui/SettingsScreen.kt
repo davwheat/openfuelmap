@@ -1,5 +1,6 @@
 package dev.davwheat.openfuelmap.settings.impl.ui
 
+// cannot use v2: https://github.com/google/play-services-plugins/issues/400
 import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -32,7 +33,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
-// cannot use v2: https://github.com/google/play-services-plugins/issues/400
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import dev.davwheat.openfuelmap.app.api.ProvideTopBar
 import dev.davwheat.openfuelmap.settings.impl.R
@@ -95,10 +95,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                                 onClick =
                                     dropUnlessResumed {
                                         context.startActivity(
-                                            Intent(
-                                                context,
-                                                OssLicensesMenuActivity::class.java,
-                                            )
+                                            Intent(context, OssLicensesMenuActivity::class.java)
                                         )
                                     }
                             )

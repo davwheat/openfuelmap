@@ -26,12 +26,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.dropUnlessResumed
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.CameraPositionState
@@ -108,7 +108,9 @@ fun CustomLocationPickerSheet(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
             ) {
-                TextButton(onClick = dropUnlessResumed { onDismiss() }) { Text(stringResource(R.string.picker_cancel)) }
+                TextButton(onClick = dropUnlessResumed { onDismiss() }) {
+                    Text(stringResource(R.string.picker_cancel))
+                }
                 Button(
                     onClick =
                         dropUnlessResumed {

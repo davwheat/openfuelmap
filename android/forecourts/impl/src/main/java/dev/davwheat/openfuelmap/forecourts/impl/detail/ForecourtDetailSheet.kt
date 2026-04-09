@@ -47,7 +47,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
@@ -63,6 +62,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import androidx.lifecycle.compose.dropUnlessResumed
 import com.valentinilk.shimmer.Shimmer
 import dev.davwheat.openfuelmap.common.ui.R as CommonUiR
 import dev.davwheat.openfuelmap.common.ui.SimpleTooltip
@@ -235,9 +235,7 @@ fun ForecourtDetailSheet(
                             }
                             .clickable(
                                 onClick =
-                                    dropUnlessResumed {
-                                        otherFuelsExpanded = !otherFuelsExpanded
-                                    }
+                                    dropUnlessResumed { otherFuelsExpanded = !otherFuelsExpanded }
                             )
                             .padding(start = 32.dp, end = 40.dp, top = 6.dp, bottom = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,

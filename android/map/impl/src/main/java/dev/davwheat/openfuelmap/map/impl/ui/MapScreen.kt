@@ -272,8 +272,9 @@ fun MapScreen(viewModel: MapViewModel) {
                                     rememberUpdatedMarkerState(
                                         position = LatLng(station.latitude, station.longitude)
                                     )
-                                val onStationClick =
-                                    dropUnlessResumed { viewModel.selectStation(station) }
+                                val onStationClick = dropUnlessResumed {
+                                    viewModel.selectStation(station)
+                                }
                                 Marker(
                                     state = markerState,
                                     title = station.tradingName,
@@ -293,12 +294,11 @@ fun MapScreen(viewModel: MapViewModel) {
                                     rememberUpdatedMarkerState(
                                         position = LatLng(cluster.centroidLat, cluster.centroidLng)
                                     )
-                                val onClusterClick =
-                                    dropUnlessResumed {
-                                        coroutineScope.launch {
-                                            animateCameraToCluster(cameraPositionState, cluster)
-                                        }
+                                val onClusterClick = dropUnlessResumed {
+                                    coroutineScope.launch {
+                                        animateCameraToCluster(cameraPositionState, cluster)
                                     }
+                                }
                                 Marker(
                                     state = markerState,
                                     anchor = Offset(0.5f, 0.5f),

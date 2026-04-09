@@ -90,7 +90,10 @@ internal fun ListScreenTopAppBar(usingCustomLocation: Boolean, onToggleCustomLoc
                     else R.string.topbar_pick_a_location
                 )
             SimpleTooltip(toggleLabel) {
-                IconButton(onClick = dropUnlessResumed { onToggleCustomLocation() }, shapes = IconButtonDefaults.shapes()) {
+                IconButton(
+                    onClick = dropUnlessResumed { onToggleCustomLocation() },
+                    shapes = IconButtonDefaults.shapes(),
+                ) {
                     Icon(
                         imageVector =
                             if (usingCustomLocation) Icons.Outlined.MyLocation
@@ -221,7 +224,8 @@ fun ListScreen(viewModel: ListViewModel) {
                             ForecourtListItem(
                                 item = item,
                                 distanceUnit = distanceUnit,
-                                onClick = dropUnlessResumed { viewModel.selectStation(item.forecourt) },
+                                onClick =
+                                    dropUnlessResumed { viewModel.selectStation(item.forecourt) },
                             )
                         }
                     }
