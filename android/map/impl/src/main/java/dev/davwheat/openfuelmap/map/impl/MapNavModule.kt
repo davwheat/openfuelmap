@@ -13,7 +13,5 @@ import dagger.multibindings.IntoSet
 object MapNavModule {
     @Provides
     @IntoSet
-    fun provideMapEntryBuilder(): EntryProviderScope<NavKey>.() -> Unit = {
-        mapEntryBuilder()
-    }
+    fun provideMapEntryBuilder(): EntryProviderScope<NavKey>.() -> Unit = { mapEntryBuilder() }
 }

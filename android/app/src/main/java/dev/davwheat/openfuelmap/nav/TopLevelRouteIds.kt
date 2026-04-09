@@ -22,10 +22,10 @@ private const val ROUTE_SETTINGS = "settings"
 /** NavKey → persisted ID. Returns null for any non-top-level key (shouldn't happen in practice). */
 fun topLevelRouteId(key: NavKey): String? =
     when (key) {
-        MapNav.Home -> ROUTE_MAP
-        ListNav.Home -> ROUTE_LIST
-        StatsNav.Home -> ROUTE_STATS
-        SettingsNav.Home -> ROUTE_SETTINGS
+        MapNav.ForecourtMap -> ROUTE_MAP
+        ListNav.ForecourtList -> ROUTE_LIST
+        StatsNav.FuelStatistics -> ROUTE_STATS
+        SettingsNav.Settings -> ROUTE_SETTINGS
         else -> null
     }
 
@@ -34,9 +34,9 @@ fun topLevelRouteId(key: NavKey): String? =
  */
 fun topLevelRouteFromId(id: String?): NavKey? =
     when (id) {
-        ROUTE_MAP -> MapNav.Home
-        ROUTE_LIST -> ListNav.Home
-        ROUTE_STATS -> StatsNav.Home
-        ROUTE_SETTINGS -> SettingsNav.Home
+        ROUTE_MAP -> MapNav.ForecourtMap
+        ROUTE_LIST -> ListNav.ForecourtList
+        ROUTE_STATS -> StatsNav.FuelStatistics
+        ROUTE_SETTINGS -> SettingsNav.Settings
         else -> null
     }

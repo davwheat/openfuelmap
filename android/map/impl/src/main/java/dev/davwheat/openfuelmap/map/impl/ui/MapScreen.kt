@@ -8,12 +8,12 @@ import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ReusableContentHost
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -39,7 +39,7 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
-import dev.davwheat.openfuelmap.app.api.LocalBottomNavBarProvider
+import dev.davwheat.openfuelmap.app.api.ProvideTopBar
 import dev.davwheat.openfuelmap.common.location.rememberLastKnownLocation
 import dev.davwheat.openfuelmap.common.location.rememberLocationPermissionState
 import dev.davwheat.openfuelmap.data.repository.SavedCameraPosition
@@ -88,7 +88,7 @@ fun MapScreen(viewModel: MapViewModel) {
     val fuelTypeNames by viewModel.fuelTypeNames.collectAsStateWithLifecycle()
     val initialPosition by viewModel.initialPosition.collectAsStateWithLifecycle()
 
-    val bottomNavBar = LocalBottomNavBarProvider.current
+    ProvideTopBar { MapScreenTopAppBar() }
 
     val locationPermission = rememberLocationPermissionState()
     val hasLocationPermission = locationPermission.hasPermission
@@ -231,13 +231,19 @@ fun MapScreen(viewModel: MapViewModel) {
             }
         }
 
-    Scaffold(bottomBar = bottomNavBar, topBar = { MapScreenTopAppBar() }) { contentPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        ReusableContentHost(active = true) {
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
-                properties = MapProperties(isMyLocationEnabled = hasLocationPermission),
-                uiSettings = MapUiSettings(myLocationButtonEnabled = hasLocationPermission),
+                properties =
+                    remember(hasLocationPermission) {
+                        MapProperties(isMyLocationEnabled = hasLocationPermission)
+                    },
+                uiSettings =
+                    remember(hasLocationPermission) {
+                        MapUiSettings(myLocationButtonEnabled = hasLocationPermission)
+                    },
                 mapColorScheme = ComposeMapColorScheme.FOLLOW_SYSTEM,
             ) {
                 readyClusters.forEach { (cluster, icon) ->
@@ -271,6 +277,7 @@ fun MapScreen(viewModel: MapViewModel) {
                                     },
                                 )
                             }
+
                             is MapCluster.Group -> {
                                 val markerState =
                                     rememberUpdatedMarkerState(
@@ -292,17 +299,15 @@ fun MapScreen(viewModel: MapViewModel) {
                     }
                 }
             }
+        }
 
-            if (isLoading) {
-                ContainedLoadingIndicator(
-                    modifier = Modifier.padding(16.dp).align(Alignment.TopCenter)
-                )
-            }
+        if (isLoading) {
+            ContainedLoadingIndicator(modifier = Modifier.padding(16.dp).align(Alignment.TopCenter))
+        }
 
-            error?.let { errorMessage ->
-                Snackbar(modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)) {
-                    Text(errorMessage)
-                }
+        error?.let { errorMessage ->
+            Snackbar(modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)) {
+                Text(errorMessage)
             }
         }
     }

@@ -12,7 +12,7 @@ spotless = "8.4.0"
 # https://developer.android.com/develop/ui/compose/bom/bom-mapping
 composeBom = "2026.03.01"
 # https://developer.android.com/jetpack/androidx/releases/compose-material3
-composeMaterial3 = "1.5.0-alpha16"
+composeMaterial3 = "1.5.0-alpha17"
 composeConstraintlayout = "1.1.1"
 # Dagger Hilt
 dagger = "2.59.2"
@@ -47,14 +47,14 @@ playServicesOssLicenses = "17.4.0"
 playServicesOssLicensesPlugin = "0.10.10"
 appcompat = "1.7.1"
 material = "1.13.0"
-androidx-annotation-experimental = "1.5.1"
+androidx-annotation-experimental = "1.6.0"
 
 #https://developer.android.com/jetpack/androidx/releases/navigation3
-nav3Core = "1.1.0-rc01"
+nav3Core = "1.1.0"
 lifecycleViewmodelNav3 = "2.11.0-alpha03"
 kotlinSerialization = "2.2.21"
 kotlinxSerializationCore = "1.10.0"
-material3AdaptiveNav3 = "1.3.0-alpha09"
+material3AdaptiveNav3 = "1.3.0-alpha10"
 mapsCompose = "8.2.2"
 playServicesLocation = "21.3.0"
 secretsGradlePlugin = "2.0.1"

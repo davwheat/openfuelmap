@@ -20,7 +20,6 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
@@ -35,7 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.davwheat.openfuelmap.app.api.LocalBottomNavBarProvider
+import dev.davwheat.openfuelmap.app.api.ProvideTopBar
 import dev.davwheat.openfuelmap.common.ui.chart.ChartDataPoint
 import dev.davwheat.openfuelmap.data.db.FuelTypeIds
 import dev.davwheat.openfuelmap.stats.api.model.DailyMedianPrice
@@ -67,7 +66,7 @@ fun StatsScreen(viewModel: StatsViewModel) {
         }
     }
 
-    val bottomNavBar = LocalBottomNavBarProvider.current
+    ProvideTopBar { TopAppBar(title = { Text("Stats") }) }
 
     val orderedFuelTypes =
         remember(prices, selectedFuelType, fuelTypes) {
@@ -86,105 +85,99 @@ fun StatsScreen(viewModel: StatsViewModel) {
             orderedFuelTypes.filter { it != primaryFuelType }
         }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Stats") }) }, bottomBar = { bottomNavBar() }) {
-        innerPadding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item {
+            TimeRangeSelector(
+                selectedRange = timeRange,
+                onRangeSelected = viewModel::setTimeRange,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            )
+        }
+
+        item {
+            ButtonGroup(modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
+                PriceStat.entries.forEach { stat ->
+                    val checked = stat == priceStat
+                    ToggleButton(
+                        checked = checked,
+                        onCheckedChange = { if (it) viewModel.setPriceStat(stat) },
+                    ) {
+                        Text(stat.label)
+                    }
+                }
+            }
+        }
+
+        item {
+            AnimatedVisibility(
+                visible = showLoadingBar && prices.isNotEmpty(),
+                enter =
+                    expandVertically(
+                        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
+                    ),
+                exit =
+                    shrinkVertically(
+                        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
+                    ),
+            ) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                )
+            }
+        }
+
+        if (isLoading && prices.isEmpty()) {
             item {
-                TimeRangeSelector(
-                    selectedRange = timeRange,
-                    onRangeSelected = viewModel::setTimeRange,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    ContainedLoadingIndicator()
+                }
+            }
+        } else if (error != null && prices.isEmpty()) {
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(text = "Failed to load prices", style = MaterialTheme.typography.bodyLarge)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedButton(onClick = viewModel::retry) { Text("Retry") }
+                }
+            }
+        } else {
+            if (primaryFuelType != null) {
+                item(key = "primary_$primaryFuelType") {
+                    val fuelPrices = prices[primaryFuelType].orEmpty()
+                    Surface(
+                        tonalElevation = 2.dp,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    ) {
+                        MedianPriceCard(
+                            fuelTypeName = fuelTypeNames[primaryFuelType] ?: primaryFuelType,
+                            latestPrice = fuelPrices.lastOrNull()?.price,
+                            chartData = fuelPrices.toChartData(),
+                        )
+                    }
+                }
+            }
+
+            items(otherFuelTypes, key = { "other_$it" }) { fuelType ->
+                val fuelPrices = prices[fuelType].orEmpty()
+                MedianPriceCard(
+                    fuelTypeName = fuelTypeNames[fuelType] ?: fuelType,
+                    latestPrice = fuelPrices.lastOrNull()?.price,
+                    chartData = fuelPrices.toChartData(),
+                    modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
 
-            item {
-                ButtonGroup(modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
-                    PriceStat.entries.forEach { stat ->
-                        val checked = stat == priceStat
-                        ToggleButton(
-                            checked = checked,
-                            onCheckedChange = { if (it) viewModel.setPriceStat(stat) },
-                        ) {
-                            Text(stat.label)
-                        }
-                    }
-                }
-            }
-
-            item {
-                AnimatedVisibility(
-                    visible = showLoadingBar && prices.isNotEmpty(),
-                    enter =
-                        expandVertically(
-                            animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-                        ),
-                    exit =
-                        shrinkVertically(
-                            animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-                        ),
-                ) {
-                    LinearProgressIndicator(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-                    )
-                }
-            }
-
-            if (isLoading && prices.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().height(200.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        ContainedLoadingIndicator()
-                    }
-                }
-            } else if (error != null && prices.isEmpty()) {
-                item {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = "Failed to load prices",
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(onClick = viewModel::retry) { Text("Retry") }
-                    }
-                }
-            } else {
-                if (primaryFuelType != null) {
-                    item(key = "primary_$primaryFuelType") {
-                        val fuelPrices = prices[primaryFuelType].orEmpty()
-                        Surface(
-                            tonalElevation = 2.dp,
-                            shape = MaterialTheme.shapes.medium,
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        ) {
-                            MedianPriceCard(
-                                fuelTypeName = fuelTypeNames[primaryFuelType] ?: primaryFuelType,
-                                latestPrice = fuelPrices.lastOrNull()?.price,
-                                chartData = fuelPrices.toChartData(),
-                            )
-                        }
-                    }
-                }
-
-                items(otherFuelTypes, key = { "other_$it" }) { fuelType ->
-                    val fuelPrices = prices[fuelType].orEmpty()
-                    MedianPriceCard(
-                        fuelTypeName = fuelTypeNames[fuelType] ?: fuelType,
-                        latestPrice = fuelPrices.lastOrNull()?.price,
-                        chartData = fuelPrices.toChartData(),
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-                }
-
-                item { Spacer(modifier = Modifier.height(8.dp)) }
-            }
+            item { Spacer(modifier = Modifier.height(8.dp)) }
         }
     }
 }

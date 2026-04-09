@@ -24,7 +24,7 @@ plugins {
 }
 
 ext {
-    set("appCompileSdk", 36)
+    set("appCompileSdk", 37)
     set("appMinSdk", 26)
 
     val appVersionMajor = 0

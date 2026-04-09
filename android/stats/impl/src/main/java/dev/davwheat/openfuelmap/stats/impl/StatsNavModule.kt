@@ -13,7 +13,5 @@ import dagger.multibindings.IntoSet
 object StatsNavModule {
     @Provides
     @IntoSet
-    fun provideStatsEntryBuilder(): EntryProviderScope<NavKey>.() -> Unit = {
-        statsEntryBuilder()
-    }
+    fun provideStatsEntryBuilder(): EntryProviderScope<NavKey>.() -> Unit = { statsEntryBuilder() }
 }

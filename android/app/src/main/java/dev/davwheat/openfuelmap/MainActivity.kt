@@ -4,13 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,18 +20,18 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
-import androidx.navigation3.scene.DialogSceneStrategy
-import androidx.navigation3.scene.SinglePaneSceneStrategy
 import androidx.navigation3.ui.NavDisplay
 import dagger.hilt.android.AndroidEntryPoint
 import dev.davwheat.openfuelmap.app.api.BottomNavBar
-import dev.davwheat.openfuelmap.app.api.LocalBottomNavBarProvider
 import dev.davwheat.openfuelmap.app.api.LocalNavigator
+import dev.davwheat.openfuelmap.app.api.LocalTopAppBarState
+import dev.davwheat.openfuelmap.app.api.TopAppBarState
 import dev.davwheat.openfuelmap.data.repository.UserPreferencesRepository
 import dev.davwheat.openfuelmap.list.api.ListNav
 import dev.davwheat.openfuelmap.map.api.MapNav
 import dev.davwheat.openfuelmap.nav.Navigator
 import dev.davwheat.openfuelmap.nav.rememberNavigationState
+import dev.davwheat.openfuelmap.nav.rememberTopAppBarDecoratorStrategy
 import dev.davwheat.openfuelmap.nav.toEntries
 import dev.davwheat.openfuelmap.nav.topLevelRouteFromId
 import dev.davwheat.openfuelmap.nav.topLevelRouteId
@@ -54,8 +50,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var userPreferencesRepository: UserPreferencesRepository
 
     @Inject
-    lateinit var entryBuilders:
-        Set<@JvmSuppressWildcards EntryProviderScope<NavKey>.() -> Unit>
+    lateinit var entryBuilders: Set<@JvmSuppressWildcards EntryProviderScope<NavKey>.() -> Unit>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen()
@@ -70,7 +65,7 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             val savedId = userPreferencesRepository.lastTopLevelRoute.first()
-            resolvedStartRoute = topLevelRouteFromId(savedId) ?: MapNav.Home
+            resolvedStartRoute = topLevelRouteFromId(savedId) ?: MapNav.ForecourtMap
         }
 
         setContent {
@@ -80,7 +75,12 @@ class MainActivity : ComponentActivity() {
                 rememberNavigationState(
                     startRoute = startRoute,
                     topLevelRoutes =
-                        setOf(MapNav.Home, ListNav.Home, StatsNav.Home, SettingsNav.Home),
+                        setOf(
+                            MapNav.ForecourtMap,
+                            ListNav.ForecourtList,
+                            StatsNav.FuelStatistics,
+                            SettingsNav.Settings,
+                        ),
                 )
 
             val navigator = remember { Navigator(navigationState) }
@@ -99,26 +99,28 @@ class MainActivity : ComponentActivity() {
             }
 
             AppTheme {
-                CompositionLocalProvider(
-                    LocalNavigator provides navigator,
-                    LocalBottomNavBarProvider provides { BottomNavBar(navigator = navigator) },
-                ) {
-                    SharedTransitionLayout {
-                        NavDisplay(
-                            modifier =
-                                Modifier.fillMaxSize()
-                                    .background(MaterialTheme.colorScheme.background),
-                            entries =
-                            navigationState.toEntries(
-                                entryProvider {
-                                    entryBuilders.forEach { builder -> builder() }
-                                }
-                            ),
-                            onBack =  navigator::goBack,
-                            transitionSpec = { fadeIn() togetherWith fadeOut() },
-                            popTransitionSpec = { fadeIn() togetherWith fadeOut() },
-                            sharedTransitionScope = this,
-                        )
+                CompositionLocalProvider(LocalNavigator provides navigator) {
+                    val topAppBarState = remember { TopAppBarState() }
+                    val topAppBarDecorator = rememberTopAppBarDecoratorStrategy<NavKey>()
+
+                    CompositionLocalProvider(LocalTopAppBarState provides topAppBarState) {
+                        Scaffold(
+                            topBar = { topAppBarState.content() },
+                            bottomBar = { BottomNavBar(navigator = navigator) },
+                        ) { contentPadding ->
+                            Box(Modifier.padding(contentPadding)) {
+                                NavDisplay(
+                                    entries =
+                                        navigationState.toEntries(
+                                            entryProvider {
+                                                entryBuilders.forEach { builder -> builder() }
+                                            }
+                                        ),
+                                    sceneDecoratorStrategies = listOf(topAppBarDecorator),
+                                    onBack = navigator::goBack,
+                                )
+                            }
+                        }
                     }
                 }
             }

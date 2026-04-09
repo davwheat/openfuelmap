@@ -8,7 +8,7 @@ import dev.davwheat.openfuelmap.list.impl.ui.ListScreen
 import dev.davwheat.openfuelmap.list.impl.viewmodel.ListViewModel
 
 fun EntryProviderScope<NavKey>.listEntryBuilder() {
-    entry<ListNav.Home> {
+    entry<ListNav.ForecourtList> {
         val viewModel = hiltViewModel<ListViewModel>()
         ListScreen(viewModel = viewModel)
     }

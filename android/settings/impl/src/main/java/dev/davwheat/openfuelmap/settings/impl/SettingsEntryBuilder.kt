@@ -8,7 +8,7 @@ import dev.davwheat.openfuelmap.settings.impl.ui.SettingsScreen
 import dev.davwheat.openfuelmap.settings.impl.viewmodel.SettingsViewModel
 
 fun EntryProviderScope<NavKey>.settingsEntryBuilder() {
-    entry<SettingsNav.Home> {
+    entry<SettingsNav.Settings> {
         val viewModel = hiltViewModel<SettingsViewModel>()
         SettingsScreen(viewModel = viewModel)
     }

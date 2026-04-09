@@ -8,7 +8,7 @@ import dev.davwheat.openfuelmap.map.impl.ui.MapScreen
 import dev.davwheat.openfuelmap.map.impl.viewmodel.MapViewModel
 
 fun EntryProviderScope<NavKey>.mapEntryBuilder() {
-    entry<MapNav.Home> {
+    entry<MapNav.ForecourtMap> {
         val viewModel = hiltViewModel<MapViewModel>()
         MapScreen(viewModel = viewModel)
     }

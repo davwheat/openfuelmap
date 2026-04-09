@@ -4,5 +4,5 @@ import dev.davwheat.openfuelmap.common.nav.AppNavKey
 import kotlinx.serialization.Serializable
 
 object StatsNav {
-    @Serializable data object Home : AppNavKey()
+    @Serializable data object FuelStatistics : AppNavKey()
 }

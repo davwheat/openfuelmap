@@ -8,7 +8,7 @@ import dev.davwheat.openfuelmap.stats.impl.ui.StatsScreen
 import dev.davwheat.openfuelmap.stats.impl.viewmodel.StatsViewModel
 
 fun EntryProviderScope<NavKey>.statsEntryBuilder() {
-    entry<StatsNav.Home> {
+    entry<StatsNav.FuelStatistics> {
         val viewModel = hiltViewModel<StatsViewModel>()
         StatsScreen(viewModel = viewModel)
     }

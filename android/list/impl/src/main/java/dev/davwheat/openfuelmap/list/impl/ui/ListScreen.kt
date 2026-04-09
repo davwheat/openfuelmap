@@ -35,7 +35,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -54,7 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.maps.model.LatLng
-import dev.davwheat.openfuelmap.app.api.LocalBottomNavBarProvider
+import dev.davwheat.openfuelmap.app.api.ProvideTopBar
 import dev.davwheat.openfuelmap.common.location.rememberLocationPermissionState
 import dev.davwheat.openfuelmap.common.ui.SimpleTooltip
 import dev.davwheat.openfuelmap.forecourts.impl.detail.ForecourtDetailSheet
@@ -104,8 +103,6 @@ fun ListScreen(viewModel: ListViewModel) {
 
     val fuelTypeNames = remember(fuelTypes) { fuelTypes.associate { it.id to it.name } }
 
-    val bottomNavBar = LocalBottomNavBarProvider.current
-
     val locationPermission = rememberLocationPermissionState()
     val hasLocationPermission = locationPermission.hasPermission
 
@@ -126,93 +123,89 @@ fun ListScreen(viewModel: ListViewModel) {
 
     var showPicker by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            ListScreenTopAppBar(
-                usingCustomLocation = customLocation != null,
-                onToggleCustomLocation = {
-                    if (customLocation != null) {
-                        // Revert to current location.
-                        viewModel.setCustomLocation(null)
-                    } else {
-                        showPicker = true
-                    }
-                },
+    ProvideTopBar {
+        ListScreenTopAppBar(
+            usingCustomLocation = customLocation != null,
+            onToggleCustomLocation = {
+                if (customLocation != null) {
+                    // Revert to current location.
+                    viewModel.setCustomLocation(null)
+                } else {
+                    showPicker = true
+                }
+            },
+        )
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            SearchContextHeader(
+                radiusMi = radiusMi,
+                searchCenter = searchCenter,
+                onRadiusChanged = { viewModel.setRadiusMi(it) },
+                onChangePickedLocation = { showPicker = true },
             )
-        },
-        bottomBar = bottomNavBar,
-    ) { contentPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                SearchContextHeader(
-                    radiusMi = radiusMi,
-                    searchCenter = searchCenter,
-                    onRadiusChanged = { viewModel.setRadiusMi(it) },
-                    onChangePickedLocation = { showPicker = true },
-                )
 
-                HorizontalDivider()
+            HorizontalDivider()
 
-                val reason =
-                    when {
-                        searchCenter == null && !isLoading -> ListEmptyReason.NoLocation
-                        error != null && results.isEmpty() ->
-                            ListEmptyReason.Error(message = error ?: "Unknown error")
-                        results.isEmpty() && !isLoading ->
-                            ListEmptyReason.NoneInRadius(radiusMi = radiusMi)
-                        else -> null
-                    }
+            val reason =
+                when {
+                    searchCenter == null && !isLoading -> ListEmptyReason.NoLocation
+                    error != null && results.isEmpty() ->
+                        ListEmptyReason.Error(message = error ?: "Unknown error")
+                    results.isEmpty() && !isLoading ->
+                        ListEmptyReason.NoneInRadius(radiusMi = radiusMi)
+                    else -> null
+                }
 
-                // Box scopes the loading indicator to the list area only — it overlaps the list
-                // without covering the sticky header above.
-                Box(modifier = Modifier.fillMaxSize()) {
-                    if (reason != null) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            ListEmptyState(
-                                reason = reason,
-                                onRequestLocation = { locationPermission.request() },
-                                onPickCustomLocation = { showPicker = true },
-                                onIncreaseRadius = {
-                                    val nextStop =
-                                        RADIUS_STOPS.firstOrNull { it > radiusMi }
-                                            ?: RADIUS_STOPS.last()
-                                    viewModel.setRadiusMi(nextStop)
-                                },
-                                onRetry = { viewModel.setRadiusMi(radiusMi) },
-                            )
-                        }
-                    } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            itemsIndexed(
-                                items = results,
-                                key = { _, item -> item.forecourt.nodeId },
-                            ) { index, item ->
-                                if (index > 0) HorizontalDivider()
-                                ForecourtListItem(
-                                    item = item,
-                                    onClick = { viewModel.selectStation(item.forecourt) },
-                                )
-                            }
-                        }
-                    }
-
-                    if (isLoading) {
-                        ContainedLoadingIndicator(
-                            modifier = Modifier.padding(16.dp).align(Alignment.TopCenter)
+            // Box scopes the loading indicator to the list area only — it overlaps the list
+            // without covering the sticky header above.
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (reason != null) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        ListEmptyState(
+                            reason = reason,
+                            onRequestLocation = { locationPermission.request() },
+                            onPickCustomLocation = { showPicker = true },
+                            onIncreaseRadius = {
+                                val nextStop =
+                                    RADIUS_STOPS.firstOrNull { it > radiusMi }
+                                        ?: RADIUS_STOPS.last()
+                                viewModel.setRadiusMi(nextStop)
+                            },
+                            onRetry = { viewModel.setRadiusMi(radiusMi) },
                         )
                     }
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        itemsIndexed(items = results, key = { _, item -> item.forecourt.nodeId }) {
+                            index,
+                            item ->
+                            if (index > 0) HorizontalDivider()
+                            ForecourtListItem(
+                                item = item,
+                                onClick = { viewModel.selectStation(item.forecourt) },
+                            )
+                        }
+                    }
+                }
+
+                if (isLoading) {
+                    ContainedLoadingIndicator(
+                        modifier = Modifier.padding(16.dp).align(Alignment.TopCenter)
+                    )
                 }
             }
+        }
 
-            if (error != null && results.isNotEmpty()) {
-                // Soft error with stale results present — surface as snackbar rather than
-                // replacing the list with the full empty state.
-                Snackbar(modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)) {
-                    Text(error!!)
-                }
+        if (error != null && results.isNotEmpty()) {
+            // Soft error with stale results present — surface as snackbar rather than
+            // replacing the list with the full empty state.
+            Snackbar(modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)) {
+                Text(error!!)
             }
         }
     }

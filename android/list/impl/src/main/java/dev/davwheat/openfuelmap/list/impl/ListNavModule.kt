@@ -13,7 +13,5 @@ import dagger.multibindings.IntoSet
 object ListNavModule {
     @Provides
     @IntoSet
-    fun provideListEntryBuilder(): EntryProviderScope<NavKey>.() -> Unit = {
-        listEntryBuilder()
-    }
+    fun provideListEntryBuilder(): EntryProviderScope<NavKey>.() -> Unit = { listEntryBuilder() }
 }

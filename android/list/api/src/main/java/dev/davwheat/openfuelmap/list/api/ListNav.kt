@@ -4,5 +4,5 @@ import dev.davwheat.openfuelmap.common.nav.AppNavKey
 import kotlinx.serialization.Serializable
 
 object ListNav {
-    @Serializable data object Home : AppNavKey()
+    @Serializable data object ForecourtList : AppNavKey()
 }

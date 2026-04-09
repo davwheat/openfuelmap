@@ -25,7 +25,7 @@ private data class TopLevelNavMetadata(
 
 private val topLevelNav =
     mutableMapOf(
-        MapNav.Home to
+        MapNav.ForecourtMap to
             TopLevelNavMetadata(
                 icon = { modifier, selected ->
                     Icon(
@@ -39,7 +39,7 @@ private val topLevelNav =
                 },
                 name = "Map",
             ),
-        ListNav.Home to
+        ListNav.ForecourtList to
             TopLevelNavMetadata(
                 icon = { modifier, selected ->
                     Icon(
@@ -52,7 +52,7 @@ private val topLevelNav =
                 },
                 name = "List",
             ),
-        StatsNav.Home to
+        StatsNav.FuelStatistics to
             TopLevelNavMetadata(
                 icon = { modifier, selected ->
                     Icon(
@@ -66,7 +66,7 @@ private val topLevelNav =
                 },
                 name = "Stats",
             ),
-        SettingsNav.Home to
+        SettingsNav.Settings to
             TopLevelNavMetadata(
                 icon = { modifier, selected ->
                     Icon(
@@ -108,12 +108,12 @@ private class PreviewNavigator(override val topLevelRoute: NavKey) : INavigator 
 @Preview
 @Composable
 private fun BottomNavBarMapSelectedPreview() {
-    MaterialExpressiveTheme { BottomNavBar(navigator = PreviewNavigator(MapNav.Home)) }
+    MaterialExpressiveTheme { BottomNavBar(navigator = PreviewNavigator(MapNav.ForecourtMap)) }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Preview
 @Composable
 private fun BottomNavBarListSelectedPreview() {
-    MaterialExpressiveTheme { BottomNavBar(navigator = PreviewNavigator(ListNav.Home)) }
+    MaterialExpressiveTheme { BottomNavBar(navigator = PreviewNavigator(ListNav.ForecourtList)) }
 }
