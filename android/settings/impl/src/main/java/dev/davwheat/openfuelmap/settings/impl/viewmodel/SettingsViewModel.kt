@@ -6,6 +6,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.davwheat.openfuelmap.data.DistanceUnit
 import dev.davwheat.openfuelmap.data.db.FuelTypeIds
 import dev.davwheat.openfuelmap.data.repository.BrandRepository
 import dev.davwheat.openfuelmap.data.repository.FuelTypeRepository
@@ -67,13 +68,25 @@ constructor(
 
     val settingsItems: StateFlow<List<SettingsItem>?> =
         combine(
-                fuelTypes,
-                selectedFuelType,
-                brands,
-                userPreferencesRepository.excludedBrands,
+                combine(
+                    fuelTypes,
+                    selectedFuelType,
+                    brands,
+                    userPreferencesRepository.excludedBrands,
+                ) { fuelTypes, selectedFuel, brands, excluded ->
+                    SettingsInputs(fuelTypes, selectedFuel, brands, excluded)
+                },
                 userPreferencesRepository.colorblindMode,
-            ) { fuelTypes, selectedFuel, brands, excluded, colorblind ->
-                buildSettingsList(fuelTypes, selectedFuel, brands, excluded, colorblind)
+                userPreferencesRepository.distanceUnit,
+            ) { inputs, colorblind, distanceUnit ->
+                buildSettingsList(
+                    inputs.fuelTypes,
+                    inputs.selectedFuel,
+                    inputs.brands,
+                    inputs.excluded,
+                    colorblind,
+                    distanceUnit,
+                )
             }
             .flowOn(dispatcherProvider.default)
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
@@ -84,6 +97,7 @@ constructor(
         brands: List<dev.davwheat.openfuelmap.data.db.BrandEntity>,
         excluded: Set<String>,
         colorblind: Boolean,
+        distanceUnit: DistanceUnit,
     ): List<SettingsItem> = buildList {
         add(
             SettingsItem.Toggle(
@@ -92,6 +106,24 @@ constructor(
                 description = application.getString(R.string.setting_colorblind_description),
                 checked = colorblind,
                 onCheckedChange = ::setColorblindMode,
+            )
+        )
+        add(
+            SettingsItem.SingleSelectChips(
+                key = "distance_unit",
+                title = application.getString(R.string.setting_distance_unit_title),
+                description = application.getString(R.string.setting_distance_unit_description),
+                options = DistanceUnit.entries.toList(),
+                selectedOption = distanceUnit,
+                optionLabel = { unit ->
+                    when (unit) {
+                        DistanceUnit.MILES ->
+                            application.getString(R.string.setting_distance_unit_miles)
+                        DistanceUnit.KILOMETERS ->
+                            application.getString(R.string.setting_distance_unit_km)
+                    }
+                },
+                onOptionSelected = ::setDistanceUnit,
             )
         )
         if (fuelTypes.isNotEmpty()) {
@@ -155,7 +187,18 @@ constructor(
         viewModelScope.launch { userPreferencesRepository.setColorblindMode(enabled) }
     }
 
+    private fun setDistanceUnit(unit: DistanceUnit) {
+        viewModelScope.launch { userPreferencesRepository.setDistanceUnit(unit) }
+    }
+
     private companion object {
         const val TAG = "SettingsViewModel"
     }
 }
+
+private data class SettingsInputs(
+    val fuelTypes: List<dev.davwheat.openfuelmap.data.db.FuelTypeEntity>,
+    val selectedFuel: String?,
+    val brands: List<dev.davwheat.openfuelmap.data.db.BrandEntity>,
+    val excluded: Set<String>,
+)

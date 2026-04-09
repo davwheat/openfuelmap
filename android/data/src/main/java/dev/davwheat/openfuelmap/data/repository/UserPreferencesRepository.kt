@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.davwheat.openfuelmap.data.DistanceUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -43,6 +44,7 @@ constructor(@param:ApplicationContext private val context: Context) {
         val CUSTOM_SEARCH_LNG = doublePreferencesKey("custom_search_lng")
         val LAST_TOP_LEVEL_ROUTE = stringPreferencesKey("last_top_level_route")
         val COLORBLIND_MODE = booleanPreferencesKey("colorblind_mode")
+        val DISTANCE_UNIT = stringPreferencesKey("distance_unit")
     }
 
     val selectedFuelType: Flow<String?> =
@@ -131,5 +133,14 @@ constructor(@param:ApplicationContext private val context: Context) {
 
     suspend fun setColorblindMode(enabled: Boolean) {
         context.dataStore.edit { prefs -> prefs[Keys.COLORBLIND_MODE] = enabled }
+    }
+
+    val distanceUnit: Flow<DistanceUnit> =
+        context.dataStore.data.map { prefs ->
+            DistanceUnit.fromStoredValue(prefs[Keys.DISTANCE_UNIT])
+        }
+
+    suspend fun setDistanceUnit(unit: DistanceUnit) {
+        context.dataStore.edit { prefs -> prefs[Keys.DISTANCE_UNIT] = unit.name }
     }
 }
