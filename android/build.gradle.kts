@@ -1,8 +1,24 @@
+/**
+ * Open Fuel Map
+ * Copyright (C) 2026  David Wheatley
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 import com.diffplug.spotless.extra.wtp.EclipseWtpFormatterStep
 import java.text.SimpleDateFormat
 import java.time.Duration
 
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
     alias(libs.plugins.spotless)
 
@@ -54,11 +70,18 @@ spotless {
         target("**/src/**/*.java")
         googleJavaFormat("1.35.0").reflowLongStrings()
         formatAnnotations()
+
+        licenseHeaderFile(rootProject.file("./LICENSE_HEADER.java"))
     }
 
     kotlin {
         target("**/src/**/*.kt", "**/*.kts")
         ktfmt("0.62").kotlinlangStyle()
+
+        licenseHeaderFile(
+            rootProject.file("./LICENSE_HEADER.kt"),
+            """(plugins \{|pluginManagement \{|import |package |@file)""",
+        )
     }
 
     format("xml") {
@@ -66,6 +89,8 @@ spotless {
             fileTree(".") {
                 include("**/*.xml")
                 exclude("**/build/**")
+                exclude(".idea/**")
+                exclude("LICENSE_HEADER.xml")
             }
         )
 
@@ -73,5 +98,10 @@ spotless {
         trimTrailingWhitespace()
         leadingTabsToSpaces()
         eclipseWtp(EclipseWtpFormatterStep.XML).configFile("xml.prefs")
+
+        licenseHeaderFile(rootProject.file("./LICENSE_HEADER.xml"), """(<[a-zA-Z])""")
+            .named("GPL3")
+            .onlyIfContentMatches("GNU General Public License")
+            .skipLinesMatching("""<\?xml|<!DOCTYPE""")
     }
 }

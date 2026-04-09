@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <!--
     ~ Open Fuel Map
     ~ Copyright (C) 2026 David Wheatley
@@ -16,13 +15,3 @@
     ~ You should have received a copy of the GNU General Public License
     ~ along with this program. If not, see <http://www.gnu.org/licenses/>.
 -->
-<resources>
-
-    <style name="Theme.FuelPricesMap" parent="android:Theme.Material.NoActionBar" />
-
-    <style name="Theme.FuelPricesMap.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/splash_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
-        <item name="postSplashScreenTheme">@style/Theme.FuelPricesMap</item>
-    </style>
-</resources>
