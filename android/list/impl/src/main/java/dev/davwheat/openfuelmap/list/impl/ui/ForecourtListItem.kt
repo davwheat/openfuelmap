@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -91,11 +92,13 @@ fun ForecourtListItem(
             Column(horizontalAlignment = Alignment.End) {
                 val price = forecourt.price?.price
                 if (price != null) {
+                    val isInaccurate = forecourt.price?.possiblyInaccurate != null
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.alpha(if (isInaccurate) 0.5f else 1f),
                     ) {
-                        if (forecourt.price?.possiblyInaccurate != null) {
+                        if (isInaccurate) {
                             Icon(
                                 painter = painterResource(CommonUiR.drawable.warning_20dp),
                                 contentDescription = "Price may be inaccurate",
