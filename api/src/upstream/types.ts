@@ -92,12 +92,16 @@ export const UpstreamTokenResponseSchema = z.object({
 });
 
 /**
- * Response shape for `regenerate_access_token`. Per the upstream OpenAPI
- * spec, the 200 body is the token payload directly, without the
- * `{ success, data, message }` wrapper used by `generate_access_token`.
+ * Response shape for `regenerate_access_token`. Despite the upstream OpenAPI
+ * spec suggesting a flat payload, in practice the response uses the same
+ * `{ success, data, message }` wrapper as `generate_access_token`.
  */
 export const UpstreamRegenerateTokenResponseSchema = z.object({
-  access_token: z.string(),
-  token_type: z.string().optional(),
-  expires_in: z.number().optional(),
+  success: z.boolean(),
+  data: z.object({
+    access_token: z.string(),
+    token_type: z.string().optional(),
+    expires_in: z.number().optional(),
+  }),
+  message: z.string().optional(),
 });

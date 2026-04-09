@@ -30,6 +30,9 @@
       "id": "8452f2bacfe94031ad0a5fd25269fde8",
     },
   ],
+  "vars": {
+    "DISABLE_OAUTH_REFRESH": "false",
+  },
   "triggers": {
     "crons": [
       // every 30 minutes

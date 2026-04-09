@@ -55,13 +55,14 @@ export async function syncForecourts(
 
   sanitizeForecourtCoordinates(forecourts);
 
+  let upserted = 0;
+
   if (forecourts.length === 0) {
     console.log("[forecourts] Nothing to upsert, skipping DB write");
-    return { fetched: 0, upserted: 0 };
+  } else {
+    ({ upserted } = await upsertForecourts(db, forecourts));
+    console.log(`[forecourts] Upserted ${upserted} forecourts into DB`);
   }
-
-  const { upserted } = await upsertForecourts(db, forecourts);
-  console.log(`[forecourts] Upserted ${upserted} forecourts into DB`);
 
   const today = new Date().toISOString().split("T")[0]!;
   await setLastSync(kv, SYNC_KEY_FORECOURTS, today);

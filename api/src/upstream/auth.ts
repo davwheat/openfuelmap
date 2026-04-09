@@ -71,7 +71,12 @@ export async function getAccessToken(
   kv: KVNamespace,
   clientId: string,
   clientSecret: string,
+  disableRefresh = false,
 ): Promise<string> {
+  if (disableRefresh) {
+    return generateAccessToken(kv, clientId, clientSecret);
+  }
+
   const cached = await kv.get(KV_OAUTH_TOKEN_KEY);
   if (cached) {
     return cached;
@@ -109,12 +114,13 @@ export function createAccessTokenProvider(
   kv: KVNamespace,
   clientId: string,
   clientSecret: string,
+  disableRefresh = false,
 ): AccessTokenProvider {
   return {
-    get: () => getAccessToken(kv, clientId, clientSecret),
+    get: () => getAccessToken(kv, clientId, clientSecret, disableRefresh),
     refresh: async () => {
       await kv.delete(KV_OAUTH_TOKEN_KEY);
-      return getAccessToken(kv, clientId, clientSecret);
+      return getAccessToken(kv, clientId, clientSecret, disableRefresh);
     },
   };
 }
@@ -137,6 +143,14 @@ async function generateAccessToken(
       client_secret: clientSecret,
     }).toString(),
   });
+
+  if (response.status === 403) {
+    const headers = Object.fromEntries(response.headers.entries());
+    console.error(
+      `[oauth] generate_access_token returned 403; response headers:`,
+      JSON.stringify(headers),
+    );
+  }
 
   if (!response.ok) {
     const text = await response.text();
@@ -208,6 +222,14 @@ async function tryRegenerateAccessToken(
     return null;
   }
 
+  if (response.status === 403) {
+    const headers = Object.fromEntries(response.headers.entries());
+    console.error(
+      `[oauth] regenerate_access_token returned 403; response headers:`,
+      JSON.stringify(headers),
+    );
+  }
+
   if (!response.ok) {
     const text = await response.text();
     console.warn(
@@ -221,21 +243,29 @@ async function tryRegenerateAccessToken(
     return null;
   }
 
-  let parsed: { access_token: string; expires_in?: number };
+  const json = await response.json();
+  let parsed: ReturnType<typeof UpstreamRegenerateTokenResponseSchema.parse>;
   try {
-    const json = await response.json();
     parsed = UpstreamRegenerateTokenResponseSchema.parse(json);
   } catch (err) {
     console.warn(
       `OAuth refresh response parse failed, falling back to full auth: ${err}`,
     );
+    console.warn(`Raw regenerate response body:`, JSON.stringify(json));
     return null;
   }
 
-  const ttl = computeAccessTokenTtl(parsed.expires_in);
-  await kv.put(KV_OAUTH_TOKEN_KEY, parsed.access_token, {
+  if (!parsed.success) {
+    console.warn(
+      `OAuth refresh returned success=false: ${parsed.message}. Falling back to full auth.`,
+    );
+    return null;
+  }
+
+  const ttl = computeAccessTokenTtl(parsed.data.expires_in);
+  await kv.put(KV_OAUTH_TOKEN_KEY, parsed.data.access_token, {
     expirationTtl: ttl,
   });
 
-  return parsed.access_token;
+  return parsed.data.access_token;
 }

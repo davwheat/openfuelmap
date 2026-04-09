@@ -25,15 +25,17 @@ export async function syncPrices(
     `[prices] Fetched ${stations.length} stations with ${totalPrices} price entries from upstream`,
   );
 
+  let inserted = 0;
+  let skippedOrphans = 0;
+
   if (stations.length === 0) {
     console.log("[prices] Nothing to upsert, skipping DB write");
-    return { fetched: 0, inserted: 0, skippedOrphans: 0 };
+  } else {
+    ({ inserted, skippedOrphans } = await upsertPrices(db, stations));
+    console.log(
+      `[prices] Upserted ${inserted} price entries into DB (${skippedOrphans} orphaned stations skipped)`,
+    );
   }
-
-  const { inserted, skippedOrphans } = await upsertPrices(db, stations);
-  console.log(
-    `[prices] Upserted ${inserted} price entries into DB (${skippedOrphans} orphaned stations skipped)`,
-  );
 
   const today = new Date().toISOString().split("T")[0]!;
   await setLastSync(kv, SYNC_KEY_PRICES, today);

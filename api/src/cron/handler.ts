@@ -22,6 +22,7 @@ export async function handleScheduled(env: Env): Promise<SyncResult> {
       env.KV,
       env.UPSTREAM_CLIENT_ID,
       env.UPSTREAM_CLIENT_SECRET,
+      env.DISABLE_OAUTH_REFRESH === "true",
     );
     // Prime so auth failures surface here, before we start any DB work.
     await tokenProvider.get();
