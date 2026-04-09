@@ -42,10 +42,11 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
-
+    
       - name: Set up local.properties
         working-directory: android
-        run: touch local.properties
+        run: |
+          echo -e 'MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}\nsigning.storeFilePath=/tmp/keystore\nsigning.keyPassword=${{ secrets.STORE_PAS$
 
       - name: Grant execute permission for gradlew
         working-directory: android
