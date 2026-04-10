@@ -43,8 +43,10 @@
   },
   "triggers": {
     "crons": [
-      // every 30 minutes
-      "*/30 * * * *",
+      // Disabled because the Fuel Finder API rejects any IPs outside the UK,
+      // and Cloudflare's cron jobs run from random regions...
+      //
+      // "*/30 * * * *",
     ],
   },
   "routes": [
