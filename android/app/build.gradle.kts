@@ -60,18 +60,22 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
     signingConfigs {
         create("release") {
-            var properties = Properties()
-            properties.load(project.rootProject.file("local.properties").inputStream())
+            val localPropertiesFile = project.rootProject.file("local.properties")
+            if (localPropertiesFile.exists()) {
+                val properties = Properties()
+                properties.load(localPropertiesFile.inputStream())
 
-            storeFile = file(properties.getProperty("signing.storeFilePath"))
-            storePassword = properties.getProperty("signing.storePassword")
-            keyAlias = properties.getProperty("signing.keyAlias")
-            keyPassword = properties.getProperty("signing.keyPassword")
+                properties.getProperty("signing.storeFilePath")?.let { storeFile = file(it) }
+                storePassword = properties.getProperty("signing.storePassword")
+                keyAlias = properties.getProperty("signing.keyAlias")
+                keyPassword = properties.getProperty("signing.keyPassword")
+            }
         }
     }
 
