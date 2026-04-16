@@ -37,6 +37,10 @@ export const INACCURACY_PRICE_THRESHOLD = 20;
 /** Prices not updated within this many days are flagged as possibly inaccurate. */
 export const STALE_PRICE_DAYS = 14;
 
+/** Price change direction (increase/decrease) is only returned when the most
+ *  recent price change occurred within this many hours. */
+export const PRICE_CHANGE_MAX_AGE_HOURS = 48;
+
 export type InaccuracyReason = "price_too_low" | "stale_price" | null;
 
 /**

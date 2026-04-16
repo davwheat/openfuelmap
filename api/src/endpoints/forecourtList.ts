@@ -21,6 +21,7 @@ import { z } from "zod";
 import {
   type AppContext,
   ForecourtSummarySchema,
+  PRICE_CHANGE_MAX_AGE_HOURS,
   PRICE_PERCENTILE_HIGH,
   PRICE_PERCENTILE_LOW,
   getInaccuracyReason,
@@ -227,6 +228,13 @@ export class ForecourtList extends OpenAPIRoute {
       if (row.fp_price != null) {
         const current = row.fp_price as number;
         const prev = row.fp_prev_price as number | null;
+        const changeEffectiveMs = new Date(
+          row.fp_price_change_effective_timestamp as string,
+        ).getTime();
+        const changeCutoffMs =
+          Date.now() - PRICE_CHANGE_MAX_AGE_HOURS * 60 * 60 * 1000;
+        const isRecentChange = changeEffectiveMs >= changeCutoffMs;
+
         price = {
           price: current,
           price_last_updated: row.fp_price_last_updated as string,
@@ -234,7 +242,11 @@ export class ForecourtList extends OpenAPIRoute {
             row.fp_price_change_effective_timestamp as string,
           previous_price: prev ?? null,
           price_change:
-            prev != null ? (current > prev ? "increase" : "decrease") : null,
+            prev != null && isRecentChange
+              ? current > prev
+                ? "increase"
+                : "decrease"
+              : null,
           possibly_inaccurate: getInaccuracyReason(
             current,
             row.fp_price_last_updated as string,
