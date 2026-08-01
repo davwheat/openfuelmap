@@ -66,6 +66,7 @@ import dev.davwheat.openfuelmap.stats.impl.R
 import dev.davwheat.openfuelmap.stats.impl.viewmodel.StatsViewModel
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
@@ -90,7 +91,7 @@ fun StatsScreen(viewModel: StatsViewModel) {
     var showLoadingBar by remember { mutableStateOf(false) }
     LaunchedEffect(isLoading) {
         if (isLoading) {
-            delay(300)
+            delay(300.milliseconds)
             showLoadingBar = true
         } else {
             showLoadingBar = false

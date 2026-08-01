@@ -69,6 +69,7 @@ import dev.davwheat.openfuelmap.map.impl.viewmodel.InitialPosition
 import dev.davwheat.openfuelmap.map.impl.viewmodel.MapViewModel
 import kotlin.math.log2
 import kotlin.math.min
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
@@ -179,7 +180,7 @@ fun MapScreen(viewModel: MapViewModel) {
                     bounds.northeast.latitude,
                     bounds.northeast.longitude,
                 )
-                delay(100)
+                delay(100.milliseconds)
                 Timber.d("map-idle: calling onCameraIdle")
                 val position = cameraPositionState.position
                 viewModel.onCameraIdle(
