@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -39,7 +40,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -135,22 +135,28 @@ fun StatsScreen(viewModel: StatsViewModel) {
         }
 
         item {
-            ButtonGroup(modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
+            val stringMap =
+                PriceStat.entries.associateWith {
+                    stringResource(
+                        when (it) {
+                            PriceStat.MEDIAN -> R.string.price_stat_median
+                            PriceStat.TRIMMED_MEAN -> R.string.price_stat_trimmed_mean
+                        }
+                    )
+                }
+
+            ButtonGroup(
+                modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+                overflowIndicator = { menuState ->
+                    ButtonGroupDefaults.OverflowIndicator(menuState = menuState)
+                },
+            ) {
                 PriceStat.entries.forEach { stat ->
-                    val checked = stat == priceStat
-                    ToggleButton(
-                        checked = checked,
+                    toggleableItem(
+                        checked = stat == priceStat,
+                        label = stringMap[stat]!!,
                         onCheckedChange = { if (it) viewModel.setPriceStat(stat) },
-                    ) {
-                        Text(
-                            stringResource(
-                                when (stat) {
-                                    PriceStat.MEDIAN -> R.string.price_stat_median
-                                    PriceStat.TRIMMED_MEAN -> R.string.price_stat_trimmed_mean
-                                }
-                            )
-                        )
-                    }
+                    )
                 }
             }
         }

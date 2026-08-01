@@ -1,27 +1,27 @@
 [versions]
-agp = "9.1.1"
-stabilityAnalyzer = "0.7.3"
+agp = "9.3.1"
+stabilityAnalyzer = "0.12.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
-lifecycleRuntimeKtx = "2.10.0"
+lifecycleRuntimeKtx = "2.11.0"
 activityCompose = "1.13.0"
-kotlin = "2.3.20"
+kotlin = "2.4.10"
 ksp = "2.3.6"
-spotless = "8.4.0"
+spotless = "8.9.0"
 # https://developer.android.com/develop/ui/compose/bom/bom-mapping
-composeBom = "2026.03.01"
+composeBom = "2026.06.01"
 # https://developer.android.com/jetpack/androidx/releases/compose-material3
-composeMaterial3 = "1.5.0-alpha17"
+composeMaterial3 = "1.5.0-alpha25"
 # Dagger Hilt
-dagger = "2.59.2"
+dagger = "2.60.1"
 # https://developer.android.com/jetpack/androidx/releases/hilt
-hiltAndroidx = "1.3.0"
+hiltAndroidx = "1.4.0"
 
 # https://developer.android.com/jetpack/androidx/releases/browser
 androidxBrowser = "1.10.0"
 # https://developer.android.com/jetpack/androidx/releases/core
-androidxCore = "1.18.0"
+androidxCore = "1.19.0"
 androidxCoreGoogleShortcuts = "1.1.0"
 # https://developer.android.com/jetpack/androidx/releases/datastore
 androidxDatastorePreferences = "1.2.1"
@@ -33,29 +33,29 @@ androidxSplashscreen = "1.2.0"
 androidxWork = "2.11.2"
 
 # KotlinX
-kotlinxCoroutines = "1.10.2"
+kotlinxCoroutines = "1.11.0"
 kotlinxSerializationJson = "1.11.0"
 kotlinxCollectionsImmutable = "0.4.0"
 
 # Square OkHttp
-okhttp = "5.3.2"
+okhttp = "5.4.0"
 
 # OSS licenses
-playServicesOssLicenses = "17.5.0"
+playServicesOssLicenses = "17.5.1"
 # Higher versions result in no licenses data being shown at all
-playServicesOssLicensesPlugin = "0.11.0"
+playServicesOssLicensesPlugin = "0.13.0"
 appcompat = "1.7.1"
 material = "1.13.0"
 androidx-annotation-experimental = "1.6.0"
 
 #https://developer.android.com/jetpack/androidx/releases/navigation3
-nav3Core = "1.1.0"
-lifecycleViewmodelNav3 = "2.11.0-alpha03"
-material3AdaptiveNav3 = "1.3.0-alpha10"
-mapsCompose = "8.3.0"
-playServicesLocation = "21.3.0"
+nav3Core = "1.1.5"
+lifecycleViewmodelNav3 = "2.11.0"
+material3AdaptiveNav3 = "1.3.0-rc01"
+mapsCompose = "8.4.0"
+playServicesLocation = "21.4.0"
 secretsGradlePlugin = "2.0.1"
-shimmerCompose = "1.3.3"
+shimmerCompose = "1.5.0"
 timber = "5.0.1"
 
 [libraries]
@@ -70,6 +70,7 @@ androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lif
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-compose-runtime-annotation = { group = "androidx.compose.runtime", name = "runtime-annotation" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
