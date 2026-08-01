@@ -95,11 +95,14 @@ constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    /** Bumped by [retry] to re-run the fetch with unchanged parameters. */
+    private val _refreshTrigger = MutableStateFlow(0)
+
     init {
         Timber.tag(TAG).d("StatsViewModel created (instance=%s)", System.identityHashCode(this))
         viewModelScope.launch {
             Timber.tag(TAG).d("collect coroutine started")
-            combine(_timeRange, _priceStat) { range, stat -> range to stat }
+            combine(_timeRange, _priceStat, _refreshTrigger) { range, stat, _ -> range to stat }
                 .collect { (range, stat) -> fetchPrices(range, stat) }
         }
     }
@@ -118,7 +121,9 @@ constructor(
     }
 
     fun retry() {
-        viewModelScope.launch { fetchPrices(_timeRange.value, _priceStat.value) }
+        _error.value = null
+        _isLoading.value = true
+        _refreshTrigger.value += 1
     }
 
     private suspend fun fetchPrices(timeRange: TimeRange, stat: PriceStat) {

@@ -229,7 +229,7 @@ fun ListScreen(viewModel: ListViewModel) {
                                 val nextStop = stops.firstOrNull { it > radiusMi } ?: stops.last()
                                 viewModel.setRadiusMi(nextStop)
                             },
-                            onRetry = { viewModel.setRadiusMi(radiusMi) },
+                            onRetry = { viewModel.retry() },
                         )
                     }
                 } else {
