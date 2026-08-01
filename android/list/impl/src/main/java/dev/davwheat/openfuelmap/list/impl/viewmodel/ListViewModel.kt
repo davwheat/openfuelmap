@@ -176,6 +176,12 @@ constructor(
 
     private var detailFetchJob: Job? = null
 
+    /**
+     * Bumped by [retry] to re-run the search with unchanged parameters, which
+     * [distinctUntilChanged] would otherwise swallow.
+     */
+    private val _refreshTrigger = MutableStateFlow(0)
+
     private val _priceHistory = MutableStateFlow<Map<String, List<PriceHistoryEntry>>>(emptyMap())
     val priceHistory: StateFlow<Map<String, List<PriceHistoryEntry>>> = _priceHistory.asStateFlow()
 
@@ -195,13 +201,15 @@ constructor(
                     excluded ->
                     Quadruple(center, radius, fuel, excluded)
                 }
+                .combine(_refreshTrigger) { params, attempt -> params to attempt }
                 .distinctUntilChanged()
                 // Flip to loading as soon as params change so the UI doesn't briefly show the
                 // "none in radius" empty state during the debounce window before the fetch fires.
                 .onEach { _isLoading.value = true }
                 // Debounce so dragging the radius slider doesn't fire a request every frame.
                 .debounce(250L)
-                .collect { (center, radius, fuel, excluded) ->
+                .collect { (params, _) ->
+                    val (center, radius, fuel, excluded) = params
                     fetchForecourts(center, radius, fuel, excluded)
                 }
         }
@@ -234,6 +242,12 @@ constructor(
 
     fun setRadiusMi(radius: Float) {
         viewModelScope.launch { userPreferencesRepository.setSearchRadiusMi(radius) }
+    }
+
+    fun retry() {
+        _error.value = null
+        _isLoading.value = true
+        _refreshTrigger.value += 1
     }
 
     fun setCustomLocation(location: SavedLocation?) {
