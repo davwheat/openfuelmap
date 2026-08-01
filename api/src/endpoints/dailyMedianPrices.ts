@@ -18,6 +18,12 @@
 
 import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
+import {
+  computeDailyStats,
+  DAILY_STATS_CACHE_TTL_SECONDS,
+  dailyStatsCacheKey,
+  type DailyPriceStat,
+} from "../cache/derived";
 import type { AppContext } from "../types";
 
 const DailyPriceStatSchema = z.object({
@@ -25,12 +31,6 @@ const DailyPriceStatSchema = z.object({
   fuel_type: z.string().openapi({ example: "E10" }),
   price: z.number().openapi({ example: 132.9 }),
 });
-
-/** Earliest date to include in stats results (data before this is discarded). */
-const STATS_MIN_DATE = "2026-03-25";
-
-const MAX_RANGE_DAYS = 365;
-const CACHE_TTL_SECONDS = 2 * 60 * 60;
 
 export class DailyMedianPrices extends OpenAPIRoute {
   schema = {
@@ -75,96 +75,19 @@ export class DailyMedianPrices extends OpenAPIRoute {
     const { stat } = data.query;
     const days = parseInt(data.query.range, 10);
 
-    const cacheKey = `daily-prices:v3:${stat}`;
+    const cacheKey = dailyStatsCacheKey(stat);
 
-    let all = await c.env.KV.get<z.infer<typeof DailyPriceStatSchema>[]>(
-      cacheKey,
-      "json",
-    );
+    let all = await c.env.KV.get<DailyPriceStat[]>(cacheKey, "json");
 
     if (!all) {
-      // Shared CTEs: generate a date series and compute the active period for
-      // every price row so we can find all prices in effect on each day.
-      const sharedCtes = `
-        RECURSIVE dates(date) AS (
-          SELECT MAX(DATE('now', '-' || ? || ' days'), ?)
-          UNION ALL
-          SELECT DATE(date, '+1 day') FROM dates WHERE date < DATE('now')
-        ),
-        price_periods AS (
-          SELECT
-            fp.fuel_type,
-            fp.price,
-            DATE(fp.price_change_effective_timestamp) AS start_date,
-            COALESCE(
-              DATE(LEAD(fp.price_change_effective_timestamp) OVER (
-                PARTITION BY fp.node_id, fp.fuel_type
-                ORDER BY fp.price_change_effective_timestamp
-              )),
-              DATE('now', '+1 day')
-            ) AS end_date
-          FROM fuel_prices fp
-          JOIN forecourts f ON f.node_id = fp.node_id AND f.is_active = 1
-        )`;
+      // Fallback path: the sync normally keeps this warm.
+      all = await computeDailyStats(c.env.fuel_prices_db, stat);
 
-      const sql =
-        stat === "trimmed_mean"
-          ? `WITH ${sharedCtes},
-             daily_prices AS (
-               SELECT
-                 d.date,
-                 pp.fuel_type,
-                 pp.price,
-                 PERCENT_RANK() OVER (
-                   PARTITION BY pp.fuel_type, d.date
-                   ORDER BY pp.price
-                 ) AS pct
-               FROM dates d
-               JOIN price_periods pp ON d.date >= pp.start_date AND d.date < pp.end_date
-             )
-             SELECT
-               date,
-               fuel_type,
-               ROUND(AVG(price), 1) AS price
-             FROM daily_prices
-             WHERE pct >= 0.1 AND pct <= 0.9
-             GROUP BY fuel_type, date
-             ORDER BY date, fuel_type`
-          : `WITH ${sharedCtes},
-             daily_prices AS (
-               SELECT
-                 d.date,
-                 pp.fuel_type,
-                 pp.price,
-                 ROW_NUMBER() OVER (
-                   PARTITION BY pp.fuel_type, d.date
-                   ORDER BY pp.price
-                 ) AS rn,
-                 COUNT(*) OVER (
-                   PARTITION BY pp.fuel_type, d.date
-                 ) AS cnt
-               FROM dates d
-               JOIN price_periods pp ON d.date >= pp.start_date AND d.date < pp.end_date
-             )
-             SELECT
-               date,
-               fuel_type,
-               ROUND(AVG(price), 1) AS price
-             FROM daily_prices
-             WHERE rn IN ((cnt + 1) / 2, (cnt + 2) / 2)
-             GROUP BY fuel_type, date
-             ORDER BY date, fuel_type`;
-
-      const rows = await c.env.fuel_prices_db
-        .prepare(sql)
-        .bind(MAX_RANGE_DAYS, STATS_MIN_DATE)
-        .all<{ date: string; fuel_type: string; price: number }>();
-
-      all = rows.results;
-
-      await c.env.KV.put(cacheKey, JSON.stringify(all), {
-        expirationTtl: CACHE_TTL_SECONDS,
-      });
+      c.executionCtx.waitUntil(
+        c.env.KV.put(cacheKey, JSON.stringify(all), {
+          expirationTtl: DAILY_STATS_CACHE_TTL_SECONDS,
+        }),
+      );
     }
 
     // Trim to the requested range

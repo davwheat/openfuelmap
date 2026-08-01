@@ -23,6 +23,13 @@
   },
   "upload_source_maps": true,
   "compatibility_flags": ["nodejs_compat"],
+  // The sync is driven manually over HTTP (see the disabled cron trigger
+  // below), so it runs under the fetch handler's CPU budget. Parsing and
+  // writing a day's worth of upstream price data needs more than the 30s
+  // default; 300s is the maximum a Paid account can request.
+  "limits": {
+    "cpu_ms": 300000,
+  },
   "d1_databases": [
     {
       "binding": "fuel_prices_db",

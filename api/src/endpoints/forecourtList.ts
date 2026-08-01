@@ -19,11 +19,15 @@
 import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
 import {
+  computePricePercentiles,
+  PERCENTILES_CACHE_TTL_SECONDS,
+  percentilesCacheKey,
+  type PricePercentiles,
+} from "../cache/derived";
+import {
   type AppContext,
   ForecourtSummarySchema,
   PRICE_CHANGE_MAX_AGE_HOURS,
-  PRICE_PERCENTILE_HIGH,
-  PRICE_PERCENTILE_LOW,
   getInaccuracyReason,
 } from "../types";
 
@@ -257,38 +261,27 @@ export class ForecourtList extends OpenAPIRoute {
       return { ...base, price };
     });
 
-    let price_percentiles: { low: number; high: number } | null = null;
+    let price_percentiles: PricePercentiles | null = null;
     if (fuel_type) {
-      const cacheKey = `price-percentiles:${fuel_type}`;
-      const cached = await c.env.KV.get<{ low: number; high: number }>(
+      const cacheKey = percentilesCacheKey(fuel_type);
+      price_percentiles = await c.env.KV.get<PricePercentiles>(
         cacheKey,
         "json",
       );
 
-      if (cached) {
-        price_percentiles = cached;
-      } else {
-        const pctRow = await c.env.fuel_prices_db
-          .prepare(
-            `WITH ranked AS (
-               SELECT price, PERCENT_RANK() OVER (ORDER BY price) AS pct
-               FROM fuel_prices fp
-               JOIN forecourts f ON f.node_id = fp.node_id
-               WHERE fp.is_latest = 1 AND fp.fuel_type = ? AND f.is_active = 1
-             )
-             SELECT
-               ROUND(MIN(CASE WHEN pct >= ? THEN price END), 1) AS low,
-               ROUND(MAX(CASE WHEN pct <= ? THEN price END), 1) AS high
-             FROM ranked`,
-          )
-          .bind(fuel_type, PRICE_PERCENTILE_LOW, PRICE_PERCENTILE_HIGH)
-          .first<{ low: number | null; high: number | null }>();
+      if (!price_percentiles) {
+        // Fallback path: the sync normally keeps this warm.
+        price_percentiles = await computePricePercentiles(
+          c.env.fuel_prices_db,
+          fuel_type,
+        );
 
-        if (pctRow?.low != null && pctRow?.high != null) {
-          price_percentiles = { low: pctRow.low, high: pctRow.high };
-          await c.env.KV.put(cacheKey, JSON.stringify(price_percentiles), {
-            expirationTtl: 3600,
-          });
+        if (price_percentiles) {
+          c.executionCtx.waitUntil(
+            c.env.KV.put(cacheKey, JSON.stringify(price_percentiles), {
+              expirationTtl: PERCENTILES_CACHE_TTL_SECONDS,
+            }),
+          );
         }
       }
     }

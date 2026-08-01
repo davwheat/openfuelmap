@@ -45,14 +45,21 @@ function getRequestDelayMs(): number {
  * Generic paginated fetch. Loops batch-number from 1 upward until an
  * empty data array is returned. Delays between requests to respect
  * the upstream rate limit (1 concurrent, N req/min).
+ *
+ * Each batch is handed to `onBatch` as soon as it arrives rather than
+ * being accumulated. Because the rate-limit clock starts when a request is
+ * issued, any time `onBatch` spends writing to the database is subtracted
+ * from the delay before the next request — so DB writes overlap with time
+ * we would otherwise spend idle, and peak memory stays at one batch.
  */
 async function fetchAllBatches<T>(
   basePath: string,
   tokenProvider: AccessTokenProvider,
   effectiveStartTimestamp: string | null,
   parseResponse: (json: unknown) => T[],
-): Promise<T[]> {
-  const allResults: T[] = [];
+  onBatch: (items: T[], batchNumber: number) => Promise<void>,
+): Promise<number> {
+  let totalItems = 0;
   const delayMs = getRequestDelayMs();
   let lastRequestStart = 0;
   let accessToken = await tokenProvider.get();
@@ -125,31 +132,40 @@ async function fetchAllBatches<T>(
       break;
     }
 
-    allResults.push(...items);
+    totalItems += items.length;
+    await onBatch(items, batch);
   }
 
-  return allResults;
+  return totalItems;
 }
 
 export async function fetchForecourts(
   tokenProvider: AccessTokenProvider,
   since: string | null,
-): Promise<UpstreamForecourt[]> {
-  return fetchAllBatches(UPSTREAM_PFS_PATH, tokenProvider, since, (json) => {
-    return UpstreamForecourtResponseSchema.parse(json);
-  });
+  onBatch: (items: UpstreamForecourt[], batchNumber: number) => Promise<void>,
+): Promise<number> {
+  return fetchAllBatches(
+    UPSTREAM_PFS_PATH,
+    tokenProvider,
+    since,
+    (json) => UpstreamForecourtResponseSchema.parse(json),
+    onBatch,
+  );
 }
 
 export async function fetchFuelPrices(
   tokenProvider: AccessTokenProvider,
   since: string | null,
-): Promise<UpstreamFuelPriceStation[]> {
+  onBatch: (
+    items: UpstreamFuelPriceStation[],
+    batchNumber: number,
+  ) => Promise<void>,
+): Promise<number> {
   return fetchAllBatches(
     UPSTREAM_FUEL_PRICES_PATH,
     tokenProvider,
     since,
-    (json) => {
-      return UpstreamFuelPriceResponseSchema.parse(json);
-    },
+    (json) => UpstreamFuelPriceResponseSchema.parse(json),
+    onBatch,
   );
 }

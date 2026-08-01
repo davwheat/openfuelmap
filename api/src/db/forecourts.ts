@@ -93,9 +93,6 @@ export async function upsertForecourts(
     const chunk = statements.slice(i, i + BATCH_SIZE);
     await db.batch(chunk);
     upserted += chunk.length;
-    console.log(
-      `[forecourts:db] Batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(statements.length / BATCH_SIZE)} — ${upserted}/${statements.length} upserted`,
-    );
   }
 
   return { upserted };

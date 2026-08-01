@@ -18,17 +18,18 @@
 
 import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
+import {
+  BRANDS_CACHE_KEY,
+  BRANDS_CACHE_TTL_SECONDS,
+  computeBrands,
+  type Brand,
+} from "../cache/derived";
 import type { AppContext } from "../types";
 
 const BrandSchema = z.object({
   name: z.string().openapi({ example: "Shell" }),
   forecourt_count: z.number().openapi({ example: 1042 }),
 });
-
-type Brand = { name: string; forecourt_count: number };
-
-const BRANDS_CACHE_KEY = "brands:v1";
-const BRANDS_CACHE_TTL_SECONDS = 8 * 60 * 60;
 
 export class BrandList extends OpenAPIRoute {
   schema = {
@@ -61,24 +62,14 @@ export class BrandList extends OpenAPIRoute {
       };
     }
 
-    const rows = await c.env.fuel_prices_db
-      .prepare(
-        `SELECT brand_name, COUNT(*) as forecourt_count
-         FROM forecourts
-         WHERE is_active = 1
-         GROUP BY brand_name
-         ORDER BY brand_name`,
-      )
-      .all<{ brand_name: string; forecourt_count: number }>();
+    // Fallback path: the sync normally keeps this warm.
+    const brands: Brand[] = await computeBrands(c.env.fuel_prices_db);
 
-    const brands: Brand[] = rows.results.map((row) => ({
-      name: row.brand_name,
-      forecourt_count: row.forecourt_count,
-    }));
-
-    await c.env.KV.put(BRANDS_CACHE_KEY, JSON.stringify(brands), {
-      expirationTtl: BRANDS_CACHE_TTL_SECONDS,
-    });
+    c.executionCtx.waitUntil(
+      c.env.KV.put(BRANDS_CACHE_KEY, JSON.stringify(brands), {
+        expirationTtl: BRANDS_CACHE_TTL_SECONDS,
+      }),
+    );
 
     return {
       success: true,

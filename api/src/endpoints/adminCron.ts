@@ -17,6 +17,7 @@
 */
 
 import type { Context } from "hono";
+import { refreshDerivedCaches } from "../cache/derived";
 import { handleScheduled } from "../cron/handler";
 import { syncForecourts } from "../cron/syncForecourts";
 import { syncPrices } from "../cron/syncPrices";
@@ -85,10 +86,12 @@ export async function adminCronForecourts(c: AdminContext) {
       c.env.KV,
       tokenProvider,
     );
+    const caches = await refreshDerivedCaches(c.env.fuel_prices_db, c.env.KV);
     return c.json({
       status: "ok",
       durationMs: Date.now() - start,
       forecourts: result,
+      caches,
     });
   } catch (err) {
     return errorResponse(c, err);
@@ -114,10 +117,12 @@ export async function adminCronPrices(c: AdminContext) {
       c.env.KV,
       tokenProvider,
     );
+    const caches = await refreshDerivedCaches(c.env.fuel_prices_db, c.env.KV);
     return c.json({
       status: "ok",
       durationMs: Date.now() - start,
       prices: result,
+      caches,
     });
   } catch (err) {
     return errorResponse(c, err);

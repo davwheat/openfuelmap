@@ -17,7 +17,12 @@
 */
 
 import { SYNC_KEY_PRICES } from "../config";
-import { upsertPrices } from "../db/prices";
+import {
+  loadKnownForecourtIds,
+  loadRecentPriceKeys,
+  upsertPriceBatch,
+  type PriceSyncState,
+} from "../db/prices";
 import { getLastSync, setLastSync } from "../db/syncMeta";
 import type { AccessTokenProvider } from "../upstream/auth";
 import { fetchFuelPrices } from "../upstream/client";
@@ -26,38 +31,59 @@ export async function syncPrices(
   db: D1Database,
   kv: KVNamespace,
   tokenProvider: AccessTokenProvider,
-): Promise<{ fetched: number; inserted: number; skippedOrphans: number }> {
+): Promise<{
+  fetched: number;
+  inserted: number;
+  skippedDuplicates: number;
+  skippedOrphans: number;
+}> {
   const lastSync = await getLastSync(kv, SYNC_KEY_PRICES);
   const since = lastSync || null;
+
+  // Captured before fetching so changes that become effective during this
+  // run are picked up next time rather than falling into the gap.
+  const syncStartedDate = new Date().toISOString().split("T")[0]!;
 
   console.log(
     `[prices] Starting ${since ? `incremental sync since ${since}` : "full sync"}`,
   );
 
-  const stations = await fetchFuelPrices(tokenProvider, since);
-  const totalPrices = stations.reduce(
-    (sum, s) => sum + s.fuel_prices.length,
-    0,
-  );
+  const [knownNodeIds, seenPriceKeys] = await Promise.all([
+    loadKnownForecourtIds(db),
+    loadRecentPriceKeys(db, since),
+  ]);
   console.log(
-    `[prices] Fetched ${stations.length} stations with ${totalPrices} price entries from upstream`,
+    `[prices] ${knownNodeIds.size} known forecourts, ${seenPriceKeys.size} price entries already stored since ${since ?? "the beginning"}`,
   );
 
+  const state: PriceSyncState = { knownNodeIds, seenPriceKeys };
+  let fetched = 0;
   let inserted = 0;
+  let skippedDuplicates = 0;
   let skippedOrphans = 0;
 
-  if (stations.length === 0) {
-    console.log("[prices] Nothing to upsert, skipping DB write");
-  } else {
-    ({ inserted, skippedOrphans } = await upsertPrices(db, stations));
-    console.log(
-      `[prices] Upserted ${inserted} price entries into DB (${skippedOrphans} orphaned stations skipped)`,
-    );
-  }
+  const stationCount = await fetchFuelPrices(
+    tokenProvider,
+    since,
+    async (stations, batchNumber) => {
+      for (const s of stations) fetched += s.fuel_prices.length;
 
-  const today = new Date().toISOString().split("T")[0]!;
-  await setLastSync(kv, SYNC_KEY_PRICES, today);
-  console.log(`[prices] Updated last sync timestamp to ${today}`);
+      const result = await upsertPriceBatch(db, stations, state);
+      inserted += result.inserted;
+      skippedDuplicates += result.skippedDuplicates;
+      skippedOrphans += result.skippedOrphans;
+      console.log(
+        `[prices] Batch ${batchNumber}: ${stations.length} stations — inserted=${result.inserted}, duplicates=${result.skippedDuplicates}, orphans=${result.skippedOrphans}`,
+      );
+    },
+  );
 
-  return { fetched: totalPrices, inserted, skippedOrphans };
+  console.log(
+    `[prices] Fetched ${stationCount} stations with ${fetched} price entries; inserted ${inserted} new (${skippedDuplicates} already stored, ${skippedOrphans} orphaned stations skipped)`,
+  );
+
+  await setLastSync(kv, SYNC_KEY_PRICES, syncStartedDate);
+  console.log(`[prices] Updated last sync timestamp to ${syncStartedDate}`);
+
+  return { fetched, inserted, skippedDuplicates, skippedOrphans };
 }

@@ -62,29 +62,35 @@ export async function syncForecourts(
   const lastSync = await getLastSync(kv, SYNC_KEY_FORECOURTS);
   const since = lastSync || null;
 
+  // Captured before fetching so changes that land during this run are picked
+  // up next time rather than falling into the gap.
+  const syncStartedDate = new Date().toISOString().split("T")[0]!;
+
   console.log(
     `[forecourts] Starting ${since ? `incremental sync since ${since}` : "full sync"}`,
   );
 
-  const forecourts = await fetchForecourts(tokenProvider, since);
-  console.log(
-    `[forecourts] Fetched ${forecourts.length} forecourts from upstream`,
-  );
-
-  sanitizeForecourtCoordinates(forecourts);
-
   let upserted = 0;
 
-  if (forecourts.length === 0) {
-    console.log("[forecourts] Nothing to upsert, skipping DB write");
-  } else {
-    ({ upserted } = await upsertForecourts(db, forecourts));
-    console.log(`[forecourts] Upserted ${upserted} forecourts into DB`);
-  }
+  const fetched = await fetchForecourts(
+    tokenProvider,
+    since,
+    async (forecourts, batchNumber) => {
+      sanitizeForecourtCoordinates(forecourts);
+      const result = await upsertForecourts(db, forecourts);
+      upserted += result.upserted;
+      console.log(
+        `[forecourts] Batch ${batchNumber}: upserted ${result.upserted} forecourts`,
+      );
+    },
+  );
 
-  const today = new Date().toISOString().split("T")[0]!;
-  await setLastSync(kv, SYNC_KEY_FORECOURTS, today);
-  console.log(`[forecourts] Updated last sync timestamp to ${today}`);
+  console.log(
+    `[forecourts] Fetched ${fetched} forecourts from upstream, upserted ${upserted}`,
+  );
 
-  return { fetched: forecourts.length, upserted };
+  await setLastSync(kv, SYNC_KEY_FORECOURTS, syncStartedDate);
+  console.log(`[forecourts] Updated last sync timestamp to ${syncStartedDate}`);
+
+  return { fetched, upserted };
 }

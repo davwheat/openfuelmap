@@ -16,6 +16,10 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+import {
+  refreshDerivedCaches,
+  type CacheRefreshResult,
+} from "../cache/derived";
 import { createAccessTokenProvider } from "../upstream/auth";
 import { syncForecourts } from "./syncForecourts";
 import { syncPrices } from "./syncPrices";
@@ -26,9 +30,11 @@ export interface SyncResult {
   prices: {
     fetched: number;
     inserted: number;
+    skippedDuplicates: number;
     skippedOrphans: number;
     durationMs: number;
   };
+  caches: CacheRefreshResult;
 }
 
 export async function handleScheduled(env: Env): Promise<SyncResult> {
@@ -70,8 +76,12 @@ export async function handleScheduled(env: Env): Promise<SyncResult> {
     );
     const prDuration = Date.now() - prStart;
     console.log(
-      `[cron] Price sync complete in ${prDuration}ms: fetched=${priceResult.fetched}, inserted=${priceResult.inserted}, skippedOrphans=${priceResult.skippedOrphans}`,
+      `[cron] Price sync complete in ${prDuration}ms: fetched=${priceResult.fetched}, inserted=${priceResult.inserted}, skippedDuplicates=${priceResult.skippedDuplicates}, skippedOrphans=${priceResult.skippedOrphans}`,
     );
+
+    // Rebuild the derived caches now that the underlying data has changed,
+    // so no user request has to compute them.
+    const caches = await refreshDerivedCaches(env.fuel_prices_db, env.KV);
 
     const durationMs = Date.now() - startTime;
     console.log(`[cron] Sync finished successfully in ${durationMs}ms`);
@@ -80,6 +90,7 @@ export async function handleScheduled(env: Env): Promise<SyncResult> {
       durationMs,
       forecourts: { ...forecourtResult, durationMs: fcDuration },
       prices: { ...priceResult, durationMs: prDuration },
+      caches,
     };
   } catch (err) {
     console.error(`[cron] Sync failed after ${Date.now() - startTime}ms:`, err);
