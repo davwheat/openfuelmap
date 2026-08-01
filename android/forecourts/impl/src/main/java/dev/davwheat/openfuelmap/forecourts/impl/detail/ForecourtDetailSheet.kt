@@ -557,7 +557,7 @@ fun ForecourtDetailSheet(
  * while loading), with an expandable [StepChart] of historical prices toggled by the history
  * button.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun FuelPriceRow(
     fuelType: String,
