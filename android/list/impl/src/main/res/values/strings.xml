@@ -26,15 +26,15 @@
 
     <!-- ListEmptyState -->
     <string name="empty_no_location_title">We need a location</string>
-    <string name="empty_no_location_body">Share your location to see nearby stations, or pick a spot on a map.</string>
+    <string name="empty_no_location_body">Share your location to see nearby forecourts, or pick a spot on a map.</string>
     <string name="empty_use_my_location">Use my location</string>
     <string name="empty_pick_a_location">Pick a location</string>
-    <string name="empty_none_in_radius_title_mi">No stations within %1$s mi</string>
-    <string name="empty_none_in_radius_title_km">No stations within %1$s km</string>
+    <string name="empty_none_in_radius_title_mi">No forecourts within %1$s mi</string>
+    <string name="empty_none_in_radius_title_km">No forecourts within %1$s km</string>
     <string name="empty_none_in_radius_body">Try widening the search radius or showing more brands.</string>
     <string name="empty_increase_radius">Increase radius</string>
     <string name="empty_unknown_error">Unknown error</string>
-    <string name="empty_error_title">Couldn\'t load stations</string>
+    <string name="empty_error_title">Couldn\'t load forecourts</string>
     <string name="empty_try_again">Try again</string>
 
     <!-- CustomLocationPickerSheet -->
