@@ -44,6 +44,9 @@ android {
 
 dependencies {
     implementation(libs.androidx.annotation.experimental)
+    api(platform(libs.androidx.compose.bom))
+    api(libs.androidx.compose.runtime.annotation)
+    api(libs.kotlinx.collections.immutable)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

@@ -41,6 +41,9 @@ android {
 
 dependencies {
     implementation(libs.androidx.annotation.experimental)
+    api(platform(libs.androidx.compose.bom))
+    api(libs.androidx.compose.runtime.annotation)
+    api(libs.kotlinx.collections.immutable)
     implementation(libs.kotlinx.serialization.core)
     implementation(project(":data"))
 }

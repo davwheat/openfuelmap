@@ -32,6 +32,9 @@ import dev.davwheat.openfuelmap.data.utils.DispatcherProvider
 import dev.davwheat.openfuelmap.settings.impl.R
 import dev.davwheat.openfuelmap.settings.impl.model.SettingsItem
 import javax.inject.Inject
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -83,7 +86,7 @@ constructor(
             }
         }
 
-    val settingsItems: StateFlow<List<SettingsItem>?> =
+    val settingsItems: StateFlow<ImmutableList<SettingsItem>?> =
         combine(
                 combine(
                     fuelTypes,
@@ -115,68 +118,75 @@ constructor(
         excluded: Set<String>,
         colorblind: Boolean,
         distanceUnit: DistanceUnit,
-    ): List<SettingsItem> = buildList {
-        add(
-            SettingsItem.Toggle(
-                key = "colorblind_mode",
-                title = application.getString(R.string.setting_colorblind_title),
-                description = application.getString(R.string.setting_colorblind_description),
-                checked = colorblind,
-                onCheckedChange = ::setColorblindMode,
-            )
-        )
-        add(
-            SettingsItem.SingleSelectChips(
-                key = "distance_unit",
-                title = application.getString(R.string.setting_distance_unit_title),
-                description = application.getString(R.string.setting_distance_unit_description),
-                options = DistanceUnit.entries.toList(),
-                selectedOption = distanceUnit,
-                optionLabel = { unit ->
-                    when (unit) {
-                        DistanceUnit.MILES ->
-                            application.getString(R.string.setting_distance_unit_miles)
-                        DistanceUnit.KILOMETERS ->
-                            application.getString(R.string.setting_distance_unit_km)
+    ): ImmutableList<SettingsItem> =
+        buildList<SettingsItem> {
+                add(
+                    SettingsItem.Toggle(
+                        key = "colorblind_mode",
+                        title = application.getString(R.string.setting_colorblind_title),
+                        description =
+                            application.getString(R.string.setting_colorblind_description),
+                        checked = colorblind,
+                        onCheckedChange = ::setColorblindMode,
+                    )
+                )
+                add(
+                    SettingsItem.SingleSelectChips(
+                        key = "distance_unit",
+                        title = application.getString(R.string.setting_distance_unit_title),
+                        description =
+                            application.getString(R.string.setting_distance_unit_description),
+                        options = DistanceUnit.entries.toImmutableList(),
+                        selectedOption = distanceUnit,
+                        optionLabel = { unit ->
+                            when (unit) {
+                                DistanceUnit.MILES ->
+                                    application.getString(R.string.setting_distance_unit_miles)
+                                DistanceUnit.KILOMETERS ->
+                                    application.getString(R.string.setting_distance_unit_km)
+                            }
+                        },
+                        onOptionSelected = ::setDistanceUnit,
+                    )
+                )
+                if (fuelTypes.isNotEmpty()) {
+                    val sortedFuelTypes = fuelTypes.sortedBy { type ->
+                        val idx = FuelTypeIds.PRIORITY_ORDER.indexOf(type.id)
+                        if (idx >= 0) idx else FuelTypeIds.PRIORITY_ORDER.size
                     }
-                },
-                onOptionSelected = ::setDistanceUnit,
-            )
-        )
-        if (fuelTypes.isNotEmpty()) {
-            val sortedFuelTypes = fuelTypes.sortedBy { type ->
-                val idx = FuelTypeIds.PRIORITY_ORDER.indexOf(type.id)
-                if (idx >= 0) idx else FuelTypeIds.PRIORITY_ORDER.size
+                    add(
+                        SettingsItem.SingleSelectChips(
+                            key = "fuel_type",
+                            title = application.getString(R.string.setting_fuel_type_title),
+                            description =
+                                application.getString(R.string.setting_fuel_type_description),
+                            options = sortedFuelTypes.toImmutableList(),
+                            selectedOption = sortedFuelTypes.find { it.id == selectedFuel },
+                            optionLabel = { it.name },
+                            onOptionSelected = { selectFuelType(it.id) },
+                        )
+                    )
+                }
+                if (brands.isNotEmpty()) {
+                    val sortedBrands = brands.sortedBy { it.name }
+                    add(
+                        SettingsItem.MultiSelectChips(
+                            key = "brands",
+                            title = application.getString(R.string.setting_brands_title),
+                            description =
+                                application.getString(R.string.setting_brands_description),
+                            options = sortedBrands.toImmutableList(),
+                            excludedOptions =
+                                sortedBrands.filter { it.name in excluded }.toImmutableSet(),
+                            optionLabel = { it.name },
+                            onOptionToggled = { toggleBrandExcluded(it.name) },
+                            onSelectAll = ::selectAllBrands,
+                            onDeselectAll = ::deselectAllBrands,
+                        )
+                    )
+                }
             }
-            add(
-                SettingsItem.SingleSelectChips(
-                    key = "fuel_type",
-                    title = application.getString(R.string.setting_fuel_type_title),
-                    description = application.getString(R.string.setting_fuel_type_description),
-                    options = sortedFuelTypes,
-                    selectedOption = sortedFuelTypes.find { it.id == selectedFuel },
-                    optionLabel = { it.name },
-                    onOptionSelected = { selectFuelType(it.id) },
-                )
-            )
-        }
-        if (brands.isNotEmpty()) {
-            val sortedBrands = brands.sortedBy { it.name }
-            add(
-                SettingsItem.MultiSelectChips(
-                    key = "brands",
-                    title = application.getString(R.string.setting_brands_title),
-                    description = application.getString(R.string.setting_brands_description),
-                    options = sortedBrands,
-                    excludedOptions = sortedBrands.filter { it.name in excluded }.toSet(),
-                    optionLabel = { it.name },
-                    onOptionToggled = { toggleBrandExcluded(it.name) },
-                    onSelectAll = ::selectAllBrands,
-                    onDeselectAll = ::deselectAllBrands,
-                )
-            )
-        }
-    }
+            .toImmutableList()
 
     private fun selectFuelType(id: String) {
         viewModelScope.launch { userPreferencesRepository.setSelectedFuelType(id) }

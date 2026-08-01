@@ -28,6 +28,8 @@ import dev.davwheat.openfuelmap.forecourts.data.api.dto.PriceHistoryResponse
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Named
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
@@ -114,7 +116,7 @@ constructor(
         fuelType: String,
         since: String? = null,
         limit: Int = 500,
-    ): ApiResult<List<PriceHistoryEntry>> =
+    ): ApiResult<ImmutableList<PriceHistoryEntry>> =
         withContext(Dispatchers.IO) {
             try {
                 val url =
@@ -131,7 +133,7 @@ constructor(
 
                 val parsed = json.decodeFromString<PriceHistoryResponse>(body)
                 if (parsed.success && parsed.result != null) {
-                    ApiResult.Success(parsed.result.prices.map { it.toDomain() })
+                    ApiResult.Success(parsed.result.prices.map { it.toDomain() }.toImmutableList())
                 } else {
                     ApiResult.ApiError(
                         parsed.error

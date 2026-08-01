@@ -58,6 +58,8 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.roundToInt
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 
 enum class ChartStyle {
     /** Horizontal then vertical segments — best for discrete price-change events. */
@@ -82,7 +84,7 @@ enum class ChartStyle {
  */
 @Composable
 fun StepChart(
-    data: List<ChartDataPoint>,
+    data: ImmutableList<ChartDataPoint>,
     modifier: Modifier = Modifier,
     chartStyle: ChartStyle = ChartStyle.STEP,
     endTimestamp: Instant = Instant.now(),
@@ -410,7 +412,7 @@ private fun StepChartPreview() {
         Surface {
             StepChart(
                 data =
-                    listOf(
+                    persistentListOf(
                         ChartDataPoint(
                             value = 142.9,
                             timestamp = Instant.parse("2026-03-01T08:00:00.000Z"),

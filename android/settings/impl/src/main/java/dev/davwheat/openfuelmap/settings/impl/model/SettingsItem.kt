@@ -17,12 +17,17 @@
  */
 package dev.davwheat.openfuelmap.settings.impl.model
 
+import androidx.compose.runtime.Stable
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableSet
+
 /**
  * A single item rendered on the settings screen. Each subtype carries its own state and callbacks,
  * so the screen simply iterates a `List<SettingsItem>` and dispatches rendering via exhaustive
  * `when`. Adding a new setting type means adding a sealed subtype here, a renderer in
  * `SettingsItemRow`, and a new entry in the ViewModel's list builder.
  */
+@Stable
 sealed interface SettingsItem {
     /** Stable key used for `LazyColumn` item identity. */
     val key: String
@@ -43,7 +48,7 @@ sealed interface SettingsItem {
         override val key: String,
         override val title: String,
         override val description: String?,
-        val options: List<T>,
+        val options: ImmutableList<T>,
         val selectedOption: T?,
         val optionLabel: (T) -> String,
         val onOptionSelected: (T) -> Unit,
@@ -54,8 +59,8 @@ sealed interface SettingsItem {
         override val key: String,
         override val title: String,
         override val description: String?,
-        val options: List<T>,
-        val excludedOptions: Set<T>,
+        val options: ImmutableList<T>,
+        val excludedOptions: ImmutableSet<T>,
         val optionLabel: (T) -> String,
         val onOptionToggled: (T) -> Unit,
         val onSelectAll: () -> Unit,

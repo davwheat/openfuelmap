@@ -45,6 +45,7 @@ android {
 
 dependencies {
     implementation(libs.androidx.annotation.experimental)
+    implementation(libs.kotlinx.collections.immutable)
 
     implementation(project(":common:ui"))
     implementation(project(":common:location"))

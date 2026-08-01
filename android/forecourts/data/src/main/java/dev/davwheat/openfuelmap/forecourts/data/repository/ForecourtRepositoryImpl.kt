@@ -28,6 +28,8 @@ import dev.davwheat.openfuelmap.forecourts.api.model.PriceHistoryEntry
 import dev.davwheat.openfuelmap.forecourts.api.repository.ForecourtRepository
 import dev.davwheat.openfuelmap.forecourts.data.api.FuelPricesApiClient
 import javax.inject.Inject
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 
 class ForecourtRepositoryImpl @Inject constructor(private val apiClient: FuelPricesApiClient) :
     ForecourtRepository {
@@ -47,7 +49,7 @@ class ForecourtRepositoryImpl @Inject constructor(private val apiClient: FuelPri
         fuelType: String?,
         excludeBrands: Set<String>,
         limit: Int,
-    ): ApiResult<List<ForecourtWithDistance>> {
+    ): ApiResult<ImmutableList<ForecourtWithDistance>> {
         val bbox = boundingBoxForRadius(centerLat, centerLng, radiusMiles)
         return when (val result = apiClient.getForecourts(bbox, fuelType, excludeBrands, limit)) {
             is ApiResult.Success -> {
@@ -68,7 +70,7 @@ class ForecourtRepositoryImpl @Inject constructor(private val apiClient: FuelPri
                         }
                         .filter { it.distanceMiles <= radiusMiles }
                         .sortedBy { it.distanceMiles }
-                        .toList()
+                        .toImmutableList()
                 ApiResult.Success(enriched)
             }
             is ApiResult.Failure -> result
@@ -83,6 +85,6 @@ class ForecourtRepositoryImpl @Inject constructor(private val apiClient: FuelPri
         fuelType: String,
         since: String?,
         limit: Int,
-    ): ApiResult<List<PriceHistoryEntry>> =
+    ): ApiResult<ImmutableList<PriceHistoryEntry>> =
         apiClient.getPriceHistory(nodeId, fuelType, since, limit)
 }

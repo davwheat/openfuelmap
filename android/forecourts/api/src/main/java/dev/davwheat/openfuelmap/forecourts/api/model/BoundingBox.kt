@@ -17,4 +17,7 @@
  */
 package dev.davwheat.openfuelmap.forecourts.api.model
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class BoundingBox(val swLat: Double, val swLng: Double, val neLat: Double, val neLng: Double)

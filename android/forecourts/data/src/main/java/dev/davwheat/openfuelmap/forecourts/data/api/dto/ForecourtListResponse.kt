@@ -22,6 +22,7 @@ import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtFuelPrice
 import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtListResult
 import dev.davwheat.openfuelmap.forecourts.api.model.PriceChange
 import dev.davwheat.openfuelmap.forecourts.api.model.PricePercentiles
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -42,7 +43,7 @@ data class ForecourtListResultDto(
 ) {
     fun toDomain(): ForecourtListResult =
         ForecourtListResult(
-            forecourts = forecourts.map { it.toDomain() },
+            forecourts = forecourts.map { it.toDomain() }.toImmutableList(),
             pricePercentiles = pricePercentiles?.toDomain(),
         )
 }
@@ -81,7 +82,7 @@ data class ForecourtDto(
             isSupermarketServiceStation = isSupermarketServiceStation,
             temporaryClosure = temporaryClosure,
             permanentClosure = permanentClosure,
-            fuelTypes = fuelTypes,
+            fuelTypes = fuelTypes.toImmutableList(),
             price = price?.toDomain(),
         )
 }

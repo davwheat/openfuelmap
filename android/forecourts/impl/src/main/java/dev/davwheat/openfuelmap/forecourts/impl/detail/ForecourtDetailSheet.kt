@@ -110,6 +110,9 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toImmutableList
 
 /**
  * Modal bottom sheet showing the details of a selected forecourt: name, brand, address, fuel prices
@@ -672,11 +675,13 @@ private fun FuelPriceRow(
                 else -> {
                     val chartData =
                         remember(history) {
-                            history.mapNotNull { entry ->
-                                parseInstant(entry.priceChangeEffectiveTimestamp)?.let { ts ->
-                                    ChartDataPoint(value = entry.price, timestamp = ts)
+                            history
+                                .mapNotNull { entry ->
+                                    parseInstant(entry.priceChangeEffectiveTimestamp)?.let { ts ->
+                                        ChartDataPoint(value = entry.price, timestamp = ts)
+                                    }
                                 }
-                            }
+                                .toImmutableList()
                         }
                     StepChart(
                         data = chartData,
@@ -872,12 +877,12 @@ private val previewForecourt =
         isSupermarketServiceStation = false,
         temporaryClosure = false,
         permanentClosure = false,
-        fuelTypes = listOf("E10", "E5", "B7_STANDARD"),
+        fuelTypes = persistentListOf("E10", "E5", "B7_STANDARD"),
         price = null,
     )
 
 private val previewFuelTypeNames =
-    mapOf("E10" to "Unleaded", "E5" to "Super Unleaded", "B7_STANDARD" to "Diesel")
+    persistentMapOf("E10" to "Unleaded", "E5" to "Super Unleaded", "B7_STANDARD" to "Diesel")
 
 private val previewDetail =
     ForecourtDetail(
@@ -918,7 +923,7 @@ private val previewDetail =
                         is24Hours = false,
                     ),
             ),
-        fuelTypes = listOf("E10", "E5", "B7_STANDARD"),
+        fuelTypes = persistentListOf("E10", "E5", "B7_STANDARD"),
         updatedAt = "2026-04-05T08:30:00.000Z",
         currentPrices =
             listOf(

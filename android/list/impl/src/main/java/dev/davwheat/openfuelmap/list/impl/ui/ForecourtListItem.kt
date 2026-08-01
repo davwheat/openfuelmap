@@ -51,6 +51,7 @@ import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtFuelPrice
 import dev.davwheat.openfuelmap.forecourts.api.model.ForecourtWithDistance
 import dev.davwheat.openfuelmap.list.impl.R
 import java.util.Locale
+import kotlinx.collections.immutable.persistentListOf
 
 /**
  * One row in the list. Shows trading name, brand (if different), city/postcode, distance, and
@@ -182,7 +183,7 @@ private fun previewForecourt(
         isSupermarketServiceStation = false,
         temporaryClosure = false,
         permanentClosure = false,
-        fuelTypes = listOf("E10"),
+        fuelTypes = persistentListOf("E10"),
         price =
             priceP?.let {
                 ForecourtFuelPrice(

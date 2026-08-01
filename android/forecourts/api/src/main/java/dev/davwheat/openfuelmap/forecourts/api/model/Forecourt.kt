@@ -17,6 +17,10 @@
  */
 package dev.davwheat.openfuelmap.forecourts.api.model
 
+import androidx.compose.runtime.Immutable
+import kotlinx.collections.immutable.ImmutableList
+
+@Immutable
 data class Forecourt(
     val nodeId: String,
     val tradingName: String,
@@ -29,6 +33,6 @@ data class Forecourt(
     val isSupermarketServiceStation: Boolean,
     val temporaryClosure: Boolean,
     val permanentClosure: Boolean?,
-    val fuelTypes: List<String>,
+    val fuelTypes: ImmutableList<String>,
     val price: ForecourtFuelPrice? = null,
 )

@@ -49,6 +49,9 @@ room { schemaDirectory("$projectDir/schemas") }
 
 dependencies {
     implementation(libs.androidx.annotation.experimental)
+    api(platform(libs.androidx.compose.bom))
+    api(libs.androidx.compose.runtime.annotation)
+    api(libs.kotlinx.collections.immutable)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

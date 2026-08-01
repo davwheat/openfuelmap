@@ -66,6 +66,8 @@ import dev.davwheat.openfuelmap.stats.impl.R
 import dev.davwheat.openfuelmap.stats.impl.viewmodel.StatsViewModel
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 
 /**
@@ -247,9 +249,11 @@ fun StatsScreen(viewModel: StatsViewModel) {
     }
 }
 
-private fun List<DailyMedianPrice>.toChartData(): List<ChartDataPoint> = map { entry ->
-    ChartDataPoint(
-        value = entry.price,
-        timestamp = LocalDate.parse(entry.date).atStartOfDay().toInstant(ZoneOffset.UTC),
-    )
-}
+private fun List<DailyMedianPrice>.toChartData(): ImmutableList<ChartDataPoint> =
+    map { entry ->
+            ChartDataPoint(
+                value = entry.price,
+                timestamp = LocalDate.parse(entry.date).atStartOfDay().toInstant(ZoneOffset.UTC),
+            )
+        }
+        .toImmutableList()

@@ -18,6 +18,7 @@
 package dev.davwheat.openfuelmap.list.impl.viewmodel
 
 import android.app.Application
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -39,6 +40,15 @@ import dev.davwheat.openfuelmap.forecourts.api.repository.ForecourtRepository
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
+import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -53,6 +63,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -60,6 +71,7 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 /** Location used as the centre of the radius search. */
+@Immutable
 sealed interface SearchCenter {
     val latitude: Double
     val longitude: Double
@@ -134,17 +146,16 @@ constructor(
             }
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val excludedBrands: StateFlow<Set<String>> =
-        userPreferencesRepository.excludedBrands.stateIn(
-            viewModelScope,
-            SharingStarted.Eagerly,
-            emptySet(),
-        )
+    val excludedBrands: StateFlow<ImmutableSet<String>> =
+        userPreferencesRepository.excludedBrands
+            .map { it.toImmutableSet() }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, persistentSetOf())
 
-    val fuelTypes: StateFlow<List<FuelTypeEntity>> =
+    val fuelTypes: StateFlow<ImmutableList<FuelTypeEntity>> =
         fuelTypeRepository
             .getAllFuelTypes()
-            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+            .map { it.toImmutableList() }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, persistentListOf())
 
     val selectedFuelType: StateFlow<String?> =
         combine(fuelTypes, userPreferencesRepository.selectedFuelType) { types, saved ->
@@ -162,8 +173,9 @@ constructor(
             }
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    private val _results = MutableStateFlow<List<ForecourtWithDistance>>(emptyList())
-    val results: StateFlow<List<ForecourtWithDistance>> = _results.asStateFlow()
+    private val _results =
+        MutableStateFlow<ImmutableList<ForecourtWithDistance>>(persistentListOf())
+    val results: StateFlow<ImmutableList<ForecourtWithDistance>> = _results.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -182,11 +194,13 @@ constructor(
      */
     private val _refreshTrigger = MutableStateFlow(0)
 
-    private val _priceHistory = MutableStateFlow<Map<String, List<PriceHistoryEntry>>>(emptyMap())
-    val priceHistory: StateFlow<Map<String, List<PriceHistoryEntry>>> = _priceHistory.asStateFlow()
+    private val _priceHistory =
+        MutableStateFlow<ImmutableMap<String, ImmutableList<PriceHistoryEntry>>>(persistentMapOf())
+    val priceHistory: StateFlow<ImmutableMap<String, ImmutableList<PriceHistoryEntry>>> =
+        _priceHistory.asStateFlow()
 
-    private val _priceHistoryLoading = MutableStateFlow<Set<String>>(emptySet())
-    val priceHistoryLoading: StateFlow<Set<String>> = _priceHistoryLoading.asStateFlow()
+    private val _priceHistoryLoading = MutableStateFlow<ImmutableSet<String>>(persistentSetOf())
+    val priceHistoryLoading: StateFlow<ImmutableSet<String>> = _priceHistoryLoading.asStateFlow()
 
     /**
      * After the first successful result we sort by ascending price. Before that first result
@@ -276,19 +290,23 @@ constructor(
     fun fetchPriceHistory(fuelType: String) {
         val nodeId = _selectedStation.value?.basic?.nodeId ?: return
         if (fuelType in _priceHistoryLoading.value || fuelType in _priceHistory.value) return
-        _priceHistoryLoading.value = _priceHistoryLoading.value + fuelType
+        _priceHistoryLoading.value = (_priceHistoryLoading.value + fuelType).toImmutableSet()
         viewModelScope.launch {
             val since = LocalDate.now().minusDays(90).format(DateTimeFormatter.ISO_LOCAL_DATE)
             when (val result = forecourtRepository.getPriceHistory(nodeId, fuelType, since)) {
                 is ApiResult.Success -> {
-                    _priceHistory.value = _priceHistory.value + (fuelType to result.data)
+                    _priceHistory.value =
+                        (_priceHistory.value + (fuelType to result.data.toImmutableList()))
+                            .toImmutableMap()
                 }
                 is ApiResult.Failure -> {
                     logFailure("fetchPriceHistory(fuelType=$fuelType)", result)
-                    _priceHistory.value = _priceHistory.value + (fuelType to emptyList())
+                    _priceHistory.value =
+                        (_priceHistory.value + (fuelType to persistentListOf<PriceHistoryEntry>()))
+                            .toImmutableMap()
                 }
             }
-            _priceHistoryLoading.value = _priceHistoryLoading.value - fuelType
+            _priceHistoryLoading.value = (_priceHistoryLoading.value - fuelType).toImmutableSet()
         }
     }
 
@@ -296,18 +314,22 @@ constructor(
         detailFetchJob?.cancel()
         detailFetchJob = null
         _selectedStation.value = null
-        _priceHistory.value = emptyMap()
-        _priceHistoryLoading.value = emptySet()
+        _priceHistory.value = persistentMapOf()
+        _priceHistoryLoading.value = persistentSetOf()
     }
 
     /**
      * Re-sort the already-sorted-by-distance result list to ascending price. Stations without a
      * price sink to the bottom so users can still see them but never near the "cheapest" position.
      */
-    private fun sortByPriceAsc(list: List<ForecourtWithDistance>): List<ForecourtWithDistance> =
-        list.sortedWith(
-            compareBy(nullsLast()) { it.forecourt.price?.price } //
-        )
+    private fun sortByPriceAsc(
+        list: List<ForecourtWithDistance>
+    ): ImmutableList<ForecourtWithDistance> =
+        list
+            .sortedWith(
+                compareBy(nullsLast()) { it.forecourt.price?.price } //
+            )
+            .toImmutableList()
 
     private suspend fun fetchForecourts(
         center: SearchCenter,
@@ -347,6 +369,6 @@ constructor(
 }
 
 /** Currently-tapped station shown in the detail sheet. Mirrors the map's SelectedStation. */
-data class SelectedListStation(val basic: Forecourt, val detail: ForecourtDetail? = null)
+@Immutable data class SelectedListStation(val basic: Forecourt, val detail: ForecourtDetail? = null)
 
 private data class Quadruple<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)

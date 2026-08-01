@@ -37,6 +37,7 @@ import dev.davwheat.openfuelmap.stats.impl.R
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.collections.immutable.ImmutableList
 
 /**
  * Card displaying a fuel type's name, latest median price, and a [StepChart] of daily median prices
@@ -46,7 +47,7 @@ import java.time.format.DateTimeFormatter
 fun MedianPriceCard(
     fuelTypeName: String,
     latestPrice: Double?,
-    chartData: List<ChartDataPoint>,
+    chartData: ImmutableList<ChartDataPoint>,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {

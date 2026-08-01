@@ -17,5 +17,7 @@
  */
 package dev.davwheat.openfuelmap.common.location
 
+import androidx.compose.runtime.Immutable
+
 /** Minimal lat/lng pair, decoupled from the Google Maps SDK's `LatLng`. */
-data class UserLocation(val latitude: Double, val longitude: Double)
+@Immutable data class UserLocation(val latitude: Double, val longitude: Double)

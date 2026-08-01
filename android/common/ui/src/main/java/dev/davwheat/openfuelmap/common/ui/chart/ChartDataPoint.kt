@@ -17,6 +17,7 @@
  */
 package dev.davwheat.openfuelmap.common.ui.chart
 
+import androidx.compose.runtime.Immutable
 import java.time.Instant
 
-data class ChartDataPoint(val value: Double, val timestamp: Instant)
+@Immutable data class ChartDataPoint(val value: Double, val timestamp: Instant)

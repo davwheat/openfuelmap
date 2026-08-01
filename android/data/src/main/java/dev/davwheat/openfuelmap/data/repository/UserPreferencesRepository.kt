@@ -18,6 +18,7 @@
 package dev.davwheat.openfuelmap.data.repository
 
 import android.content.Context
+import androidx.compose.runtime.Immutable
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -37,10 +38,11 @@ import kotlinx.coroutines.flow.map
 private val Context.dataStore: DataStore<Preferences> by
     preferencesDataStore(name = "user_preferences")
 
+@Immutable
 data class SavedCameraPosition(val latitude: Double, val longitude: Double, val zoom: Float)
 
 /** A user-chosen pin on the map, used by the List screen when "custom location" is selected. */
-data class SavedLocation(val latitude: Double, val longitude: Double)
+@Immutable data class SavedLocation(val latitude: Double, val longitude: Double)
 
 /** Default radius (miles) applied when the user opens the List screen for the first time. */
 const val DEFAULT_SEARCH_RADIUS_MI: Float = 10f

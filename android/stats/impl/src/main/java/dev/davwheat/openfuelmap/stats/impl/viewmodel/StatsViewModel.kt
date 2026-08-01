@@ -33,6 +33,12 @@ import dev.davwheat.openfuelmap.stats.api.model.TimeRange
 import dev.davwheat.openfuelmap.stats.api.repository.StatsRepository
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -54,10 +60,11 @@ constructor(
     userPreferencesRepository: UserPreferencesRepository,
 ) : AndroidViewModel(application) {
 
-    val fuelTypes: StateFlow<List<FuelTypeEntity>> =
+    val fuelTypes: StateFlow<ImmutableList<FuelTypeEntity>> =
         fuelTypeRepository
             .getAllFuelTypes()
-            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+            .map { it.toImmutableList() }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, persistentListOf())
 
     val selectedFuelType: StateFlow<String?> =
         combine(fuelTypes, userPreferencesRepository.selectedFuelType) { types, saved ->
@@ -75,10 +82,10 @@ constructor(
             }
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val fuelTypeNames: StateFlow<Map<String, String>> =
+    val fuelTypeNames: StateFlow<ImmutableMap<String, String>> =
         fuelTypes
-            .map { types -> types.associate { it.id to it.name } }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+            .map { types -> types.associate { it.id to it.name }.toImmutableMap() }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, persistentMapOf())
 
     private val _timeRange = MutableStateFlow(TimeRange.DAYS_28)
     val timeRange: StateFlow<TimeRange> = _timeRange.asStateFlow()
@@ -86,8 +93,10 @@ constructor(
     private val _priceStat = MutableStateFlow(PriceStat.TRIMMED_MEAN)
     val priceStat: StateFlow<PriceStat> = _priceStat.asStateFlow()
 
-    private val _prices = MutableStateFlow<Map<String, List<DailyMedianPrice>>>(emptyMap())
-    val prices: StateFlow<Map<String, List<DailyMedianPrice>>> = _prices.asStateFlow()
+    private val _prices =
+        MutableStateFlow<ImmutableMap<String, ImmutableList<DailyMedianPrice>>>(persistentMapOf())
+    val prices: StateFlow<ImmutableMap<String, ImmutableList<DailyMedianPrice>>> =
+        _prices.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -134,7 +143,11 @@ constructor(
             when (val result = statsRepository.getDailyPrices(timeRange, stat)) {
                 is ApiResult.Success -> {
                     Timber.tag(TAG).d("fetchPrices SUCCESS (%d items)", result.data.size)
-                    _prices.value = result.data.groupBy { it.fuelType }
+                    _prices.value =
+                        result.data
+                            .groupBy { it.fuelType }
+                            .mapValues { (_, entries) -> entries.toImmutableList() }
+                            .toImmutableMap()
                 }
                 is ApiResult.Failure -> {
                     when (result) {
