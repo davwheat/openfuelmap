@@ -16,12 +16,6 @@
     ~ You should have received a copy of the GNU General Public License
     ~ along with this program. If not, see <http://www.gnu.org/licenses/>.
 -->
-
-<!--
-    play-services-oss-licenses resolves its layouts and view IDs at runtime with
-    Resources.getIdentifier, so the resource shrinker sees no references and strips them.
-    The lookups then return 0 and the licences screen crashes on start.
--->
 <resources xmlns:tools="http://schemas.android.com/tools"
     tools:keep="
         @layout/libraries_social_licenses_license,
