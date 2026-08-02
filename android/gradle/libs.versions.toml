@@ -122,7 +122,11 @@ kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 androidx-material3-adaptive-navigation3 = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation3", version.ref = "material3AdaptiveNav3" }
 
 # MapLibre
-maplibre-native = { module = "org.maplibre.gl:android-sdk", version.ref = "maplibreNative" }
+# `android-sdk` renders with Vulkan and declares a required `android.hardware.vulkan.version`
+# feature, thus Play hides it from devices without Vulkan. `android-sdk-opengl` has no such
+# limit. The `mapRenderer` flavor selects one of the two.
+maplibre-native-vulkan = { module = "org.maplibre.gl:android-sdk", version.ref = "maplibreNative" }
+maplibre-native-opengl = { module = "org.maplibre.gl:android-sdk-opengl", version.ref = "maplibreNative" }
 maplibre-plugin-annotation = { module = "org.maplibre.gl:android-plugin-annotation", version.ref = "maplibreAnnotationPlugin" }
 
 # Shimmer (skeleton loading)

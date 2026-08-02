@@ -38,12 +38,22 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
     buildFeatures { compose = true }
+
+    // Declared here, and not only in the root build file, because the `vulkanApi` and `openglApi`
+    // configurations must exist while the `dependencies` block below runs. The root declaration
+    // happens in an `afterEvaluate` callback, thus too late for this module.
+    flavorDimensions += "mapRenderer"
+    productFlavors {
+        create("vulkan") { dimension = "mapRenderer" }
+        create("opengl") { dimension = "mapRenderer" }
+    }
 }
 
 dependencies {
     // `api` gives MapLibreMap, Style, and the annotation managers (SymbolManager, CircleManager,
     // and the others) to the modules that use this one. They do not declare MapLibre themselves.
-    api(libs.maplibre.native)
+    "vulkanApi"(libs.maplibre.native.vulkan)
+    "openglApi"(libs.maplibre.native.opengl)
     // The plugin has an older android-sdk. Remove it, thus only the version above is on the
     // classpath.
     api(libs.maplibre.plugin.annotation) {

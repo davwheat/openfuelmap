@@ -85,8 +85,10 @@ jobs:
           export debug=${{ inputs.debug && 'debug' || 'release' }}
           echo "debug=$debug" >> $GITHUB_OUTPUT
           echo "build_command=bundle${DEBUG_OR_RELEASE^} assemble${DEBUG_OR_RELEASE^}" >> $GITHUB_OUTPUT
-          echo "aabPath=./android/app/build/outputs/bundle/${DEBUG_OR_RELEASE}/*.aab" >> $GITHUB_OUTPUT
-          echo "apkPath=./android/app/build/outputs/apk/${DEBUG_OR_RELEASE}/*.apk" >> $GITHUB_OUTPUT
+          # The `mapRenderer` flavor gives a Vulkan and an OpenGL output. The glob covers both:
+          # bundles go to `bundle/<flavor><BuildType>/`, and APKs to `apk/<flavor>/<buildType>/`.
+          echo "aabPath=./android/app/build/outputs/bundle/*${DEBUG_OR_RELEASE^}/*.aab" >> $GITHUB_OUTPUT
+          echo "apkPath=./android/app/build/outputs/apk/*/${DEBUG_OR_RELEASE}/*.apk" >> $GITHUB_OUTPUT
         env:
           DEBUG_OR_RELEASE: ${{ inputs.debug && 'debug' || 'release' }}
 

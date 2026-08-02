@@ -89,6 +89,19 @@ android {
     }
 }
 
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        // The two renderer bundles go into one Play release, thus each needs its own version
+        // code. Vulkan keeps the base code, thus Play prefers it where the device supports
+        // Vulkan. OpenGL serves the devices that the Vulkan bundle's `uses-feature` hides it
+        // from.
+        val isOpengl = variant.productFlavors.any { (_, flavor) -> flavor == "opengl" }
+        val versionCode = if (isOpengl) appBuildNumber - 1 else appBuildNumber
+
+        variant.outputs.forEach { output -> output.versionCode.set(versionCode) }
+    }
+}
+
 dependencies {
     implementation(libs.androidx.annotation.experimental)
     implementation(libs.androidx.appcompat)

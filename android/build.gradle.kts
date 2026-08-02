@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import com.android.build.api.dsl.CommonExtension
 import com.diffplug.spotless.extra.wtp.EclipseWtpFormatterStep
 import java.text.SimpleDateFormat
 import java.time.Duration
@@ -62,6 +63,30 @@ ext {
             Integer.parseInt(df.format(java.util.Date()) + String.format("%02d", twoDigitSuffix))
         },
     )
+}
+
+subprojects {
+    afterEvaluate {
+        // Each Android module needs the `mapRenderer` dimension, not only the two that use it.
+        // Gradle matches variants along the full dependency chain, thus a module between `:app`
+        // and `:common:maps` without the dimension breaks the match.
+        //
+        // `:common:maps` declares the same dimension itself, because its `vulkanApi` and
+        // `openglApi` configurations must exist while its own `dependencies` block runs, which
+        // is before this callback. The guards below make the two declarations merge.
+        extensions.findByType<CommonExtension>()?.apply {
+            if (!flavorDimensions.contains("mapRenderer")) {
+                flavorDimensions += "mapRenderer"
+            }
+
+            //noinspection WrongGradleMethod
+            listOf("vulkan", "opengl").forEach { flavor ->
+                if (productFlavors.findByName(flavor) == null) {
+                    productFlavors.create(flavor).dimension = "mapRenderer"
+                }
+            }
+        }
+    }
 }
 
 spotless {
