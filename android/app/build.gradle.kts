@@ -44,7 +44,7 @@ android {
     defaultConfig {
         applicationId = "dev.davwheat.openfuelmap"
         minSdk = appMinSdk
-        targetSdk = 36
+        targetSdk = 37
         versionCode = appBuildNumber
         versionName = appVersionName
 
