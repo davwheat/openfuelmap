@@ -3,4 +3,8 @@
     <!-- StepChart default formatters -->
     <string name="chart_tooltip_format">%1$sp %2$s</string>
     <string name="chart_axis_format">%1$sp</string>
+
+    <!-- Messages for a request that fails -->
+    <string name="error_network">No connection. Examine your network, then try again.</string>
+    <string name="error_unexpected_response">Open Fuel Map cannot read the answer from the server. Try again later.</string>
 </resources>

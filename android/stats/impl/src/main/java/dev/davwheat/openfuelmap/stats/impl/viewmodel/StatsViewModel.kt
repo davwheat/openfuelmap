@@ -101,8 +101,8 @@ constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
+    private val _error = MutableStateFlow<ApiResult.Failure?>(null)
+    val error: StateFlow<ApiResult.Failure?> = _error.asStateFlow()
 
     /** Bumped by [retry] to re-run the fetch with unchanged parameters. */
     private val _refreshTrigger = MutableStateFlow(0)
@@ -154,10 +154,13 @@ constructor(
                         is ApiResult.NetworkError ->
                             Timber.tag(TAG)
                                 .w(result.cause, "fetchPrices network error: %s", result.message)
+                        is ApiResult.ParseError ->
+                            Timber.tag(TAG)
+                                .e(result.cause, "fetchPrices parse error: %s", result.message)
                         is ApiResult.ApiError ->
                             Timber.tag(TAG).w("fetchPrices API error: %s", result.message)
                     }
-                    _error.value = result.message
+                    _error.value = result
                 }
             }
         } catch (e: CancellationException) {

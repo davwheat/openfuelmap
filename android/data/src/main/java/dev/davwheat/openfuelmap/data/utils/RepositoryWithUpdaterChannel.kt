@@ -17,6 +17,7 @@
  */
 package dev.davwheat.openfuelmap.data.utils
 
+import dev.davwheat.openfuelmap.data.result.isNetworkError
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel

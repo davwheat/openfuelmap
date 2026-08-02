@@ -54,11 +54,13 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
 import dev.davwheat.openfuelmap.app.api.ProvideTopBar
 import dev.davwheat.openfuelmap.common.ui.chart.ChartDataPoint
+import dev.davwheat.openfuelmap.common.ui.userMessage
 import dev.davwheat.openfuelmap.data.db.FuelTypeIds
 import dev.davwheat.openfuelmap.stats.api.model.DailyMedianPrice
 import dev.davwheat.openfuelmap.stats.api.model.PriceStat
@@ -208,8 +210,10 @@ fun StatsScreen(viewModel: StatsViewModel) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = stringResource(R.string.stats_failed_to_load),
+                        text =
+                            error?.userMessage() ?: stringResource(R.string.stats_failed_to_load),
                         style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedButton(onClick = dropUnlessResumed { viewModel.retry() }) {

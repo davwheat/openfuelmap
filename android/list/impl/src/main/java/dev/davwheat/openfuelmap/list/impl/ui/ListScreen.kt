@@ -79,6 +79,7 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import dev.davwheat.openfuelmap.app.api.ProvideTopBar
 import dev.davwheat.openfuelmap.common.location.rememberLocationPermissionState
 import dev.davwheat.openfuelmap.common.ui.SimpleTooltip
+import dev.davwheat.openfuelmap.common.ui.userMessage
 import dev.davwheat.openfuelmap.data.DistanceUnit
 import dev.davwheat.openfuelmap.forecourts.impl.detail.ForecourtDetailSheet
 import dev.davwheat.openfuelmap.list.impl.R
@@ -201,9 +202,7 @@ fun ListScreen(viewModel: ListViewModel) {
                 when {
                     searchCenter == null && !isLoading -> ListEmptyReason.NoLocation
                     error != null && results.isEmpty() ->
-                        ListEmptyReason.Error(
-                            message = error ?: stringResource(R.string.empty_unknown_error)
-                        )
+                        ListEmptyReason.Error(message = error!!.userMessage())
                     results.isEmpty() && !isLoading ->
                         ListEmptyReason.NoneInRadius(
                             radiusMi = radiusMi,
@@ -269,7 +268,7 @@ fun ListScreen(viewModel: ListViewModel) {
                         liveRegion = LiveRegionMode.Assertive
                     }
             ) {
-                Text(error!!)
+                Text(error!!.userMessage())
             }
         }
     }

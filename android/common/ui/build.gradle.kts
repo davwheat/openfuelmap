@@ -42,6 +42,8 @@ android {
 
 dependencies {
     implementation(libs.androidx.annotation.experimental)
+    // `api` because `ApiResult.Failure` is in the signature of `userMessage`.
+    api(project(":data"))
     implementation(libs.androidx.browser)
     implementation(libs.androidx.core.ktx)
     api(platform(libs.androidx.compose.bom))

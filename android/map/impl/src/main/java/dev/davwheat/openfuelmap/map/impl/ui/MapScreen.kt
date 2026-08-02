@@ -64,6 +64,7 @@ import dev.davwheat.openfuelmap.common.maps.createSymbolManagerOrNull
 import dev.davwheat.openfuelmap.common.maps.destroyIfStyleLoaded
 import dev.davwheat.openfuelmap.common.maps.rememberMapStyleUrl
 import dev.davwheat.openfuelmap.common.ui.SimpleTooltip
+import dev.davwheat.openfuelmap.common.ui.userMessage
 import dev.davwheat.openfuelmap.data.repository.SavedCameraPosition
 import dev.davwheat.openfuelmap.forecourts.api.model.BoundingBox
 import dev.davwheat.openfuelmap.forecourts.impl.detail.ForecourtDetailSheet
@@ -453,8 +454,10 @@ fun MapScreen(viewModel: MapViewModel) {
                 textSide = Alignment.End,
             )
 
-            error?.let { errorMessage ->
-                Snackbar(modifier = Modifier.align(Alignment.BottomCenter)) { Text(errorMessage) }
+            error?.let { failure ->
+                Snackbar(modifier = Modifier.align(Alignment.BottomCenter)) {
+                    Text(failure.userMessage())
+                }
             }
         }
     }

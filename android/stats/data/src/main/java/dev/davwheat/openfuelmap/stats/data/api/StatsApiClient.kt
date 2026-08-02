@@ -65,7 +65,7 @@ constructor(
             } catch (e: IOException) {
                 ApiResult.NetworkError("Network error: ${e.message}", e)
             } catch (e: SerializationException) {
-                ApiResult.NetworkError("Failed to parse response: ${e.message}", e)
+                ApiResult.ParseError("Failed to parse response: ${e.message}", e)
             }
         }
 }

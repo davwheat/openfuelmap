@@ -66,5 +66,3 @@ abstract class NetworkBoundResource<ResultType, RequestType> {
         }
     }
 }
-
-internal fun Exception.isNetworkError(): Boolean = this is IOException

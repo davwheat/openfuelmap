@@ -180,8 +180,8 @@ constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
+    private val _error = MutableStateFlow<ApiResult.Failure?>(null)
+    val error: StateFlow<ApiResult.Failure?> = _error.asStateFlow()
 
     private val _selectedStation = MutableStateFlow<SelectedListStation?>(null)
     val selectedStation: StateFlow<SelectedListStation?> = _selectedStation.asStateFlow()
@@ -281,7 +281,7 @@ constructor(
                 }
                 is ApiResult.Failure -> {
                     logFailure("selectStation(nodeId=${station.nodeId})", result)
-                    _error.value = result.message
+                    _error.value = result
                 }
             }
         }
@@ -353,7 +353,7 @@ constructor(
                 _results.value = withContext(Dispatchers.Default) { sortByPriceAsc(result.data) }
             is ApiResult.Failure -> {
                 logFailure("fetchForecourts", result)
-                _error.value = result.message
+                _error.value = result
             }
         }
         _isLoading.value = false
@@ -363,6 +363,8 @@ constructor(
         when (failure) {
             is ApiResult.NetworkError ->
                 Timber.w(failure.cause, "%s network error: %s", operation, failure.message)
+            is ApiResult.ParseError ->
+                Timber.e(failure.cause, "%s parse error: %s", operation, failure.message)
             is ApiResult.ApiError -> Timber.w("%s API error: %s", operation, failure.message)
         }
     }

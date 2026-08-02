@@ -24,7 +24,16 @@ sealed interface ApiResult<out T> {
         val message: String
     }
 
+    /** The server answered, but it reports that it cannot complete the request. */
     data class ApiError(override val message: String) : Failure
 
+    /** The app cannot reach the server. See [isNetworkError] for the causes. */
     data class NetworkError(override val message: String, val cause: Throwable? = null) : Failure
+
+    /**
+     * The server answered, but the app cannot read the answer. This is a fault in the app or in the
+     * API, and not a fault of the connection of the user. Thus it stays separate from
+     * [NetworkError]: a message that tells the user to examine their connection would be incorrect.
+     */
+    data class ParseError(override val message: String, val cause: Throwable? = null) : Failure
 }
