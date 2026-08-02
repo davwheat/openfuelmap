@@ -34,15 +34,33 @@ class BaselineProfileGenerator {
 
     @get:Rule val rule = BaselineProfileRule()
 
+    /**
+     * Cold start only. This feeds the startup profile, which orders the dex file, so anything past
+     * the first frame belongs in [journey] instead.
+     */
     @Test
-    fun generate() =
+    fun startup() =
         rule.collect(
             packageName = targetPackage,
-            // Cold start plus a full pass over every tab is long. More iterations add little
-            // beyond this, and each one costs a device minute.
-            maxIterations = 8,
+            maxIterations = 6,
             stableIterations = 2,
             includeInStartupProfile = true,
+        ) {
+            pressHome()
+            startActivityAndWait()
+            device.waitForAppContent()
+        }
+
+    /** A pass over every tab, so the classes each screen needs are compiled ahead of time. */
+    @Test
+    fun journey() =
+        rule.collect(
+            packageName = targetPackage,
+            // A full pass over every tab is slow. Beyond this the rule set stops changing, and
+            // each further iteration costs about a device minute.
+            maxIterations = 6,
+            stableIterations = 2,
+            includeInStartupProfile = false,
         ) {
             pressHome()
             startActivityAndWait()
