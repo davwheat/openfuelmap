@@ -239,6 +239,11 @@ constructor(
     fun onCameraIdle(bounds: BoundingBox, position: SavedCameraPosition) {
         Timber.d("MapViewModel: onCameraIdle bounds=%s", bounds)
         _currentBounds.value = bounds
+        // Hold the position here as well as in the store. This ViewModel outlives the composition
+        // of the map screen, thus a return to the map reads the position immediately and puts the
+        // camera in place on the first frame. A read from the store is asynchronous, and the map
+        // would show a different area until it completes.
+        _initialPosition.value = InitialPosition.Loaded(position)
         viewModelScope.launch { userPreferencesRepository.setLastCameraPosition(position) }
     }
 

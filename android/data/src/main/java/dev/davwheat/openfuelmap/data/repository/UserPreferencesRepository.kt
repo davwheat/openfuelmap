@@ -39,7 +39,16 @@ private val Context.dataStore: DataStore<Preferences> by
     preferencesDataStore(name = "user_preferences")
 
 @Immutable
-data class SavedCameraPosition(val latitude: Double, val longitude: Double, val zoom: Float)
+data class SavedCameraPosition(
+    val latitude: Double,
+    val longitude: Double,
+    val zoom: Float,
+    /**
+     * Degrees clockwise from north. The map permits rotation, thus the direction is part of the
+     * position that the user selects.
+     */
+    val bearing: Double = 0.0,
+)
 
 /** A user-chosen pin on the map, used by the List screen when "custom location" is selected. */
 @Immutable data class SavedLocation(val latitude: Double, val longitude: Double)
@@ -58,6 +67,7 @@ constructor(@param:ApplicationContext private val context: Context) {
         val CAMERA_LAT = doublePreferencesKey("camera_latitude")
         val CAMERA_LNG = doublePreferencesKey("camera_longitude")
         val CAMERA_ZOOM = floatPreferencesKey("camera_zoom")
+        val CAMERA_BEARING = doublePreferencesKey("camera_bearing")
         val SEARCH_RADIUS_MI = floatPreferencesKey("search_radius_mi")
         val CUSTOM_SEARCH_LAT = doublePreferencesKey("custom_search_lat")
         val CUSTOM_SEARCH_LNG = doublePreferencesKey("custom_search_lng")
@@ -89,7 +99,9 @@ constructor(@param:ApplicationContext private val context: Context) {
             val lng = prefs[Keys.CAMERA_LNG]
             val zoom = prefs[Keys.CAMERA_ZOOM]
             if (lat != null && lng != null && zoom != null) {
-                SavedCameraPosition(lat, lng, zoom)
+                // The bearing arrived after the other three, thus a stored position from an older
+                // version has none. North is the correct value for those.
+                SavedCameraPosition(lat, lng, zoom, prefs[Keys.CAMERA_BEARING] ?: 0.0)
             } else {
                 null
             }
@@ -100,6 +112,7 @@ constructor(@param:ApplicationContext private val context: Context) {
             prefs[Keys.CAMERA_LAT] = position.latitude
             prefs[Keys.CAMERA_LNG] = position.longitude
             prefs[Keys.CAMERA_ZOOM] = position.zoom
+            prefs[Keys.CAMERA_BEARING] = position.bearing
         }
     }
 

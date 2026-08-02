@@ -239,9 +239,6 @@ fun MapScreen(viewModel: MapViewModel) {
                 map.uiSettings.isLogoEnabled = false
                 // [MapCompass] replaces the native compass, thus only one needle is on the map.
                 map.uiSettings.isCompassEnabled = false
-                // Show a known area while the saved position or the first device position loads.
-                // Without this, the map starts at latitude 0, longitude 0, at world zoom.
-                map.moveCamera(CameraUpdateFactory.newLatLngZoom(LONDON, DEFAULT_ZOOM))
             }
 
             // This flag records that the first position, from the store or from the device, is
@@ -252,17 +249,28 @@ fun MapScreen(viewModel: MapViewModel) {
                 if (initialPositionApplied) return@LaunchedEffect
                 val loaded = (initialPosition as? InitialPosition.Loaded) ?: return@LaunchedEffect
                 val saved = loaded.position
-                val target =
+                val position =
                     when {
+                        // The user was here before, thus put the camera where they left it: the
+                        // same place, the same zoom level, and the same direction.
                         saved != null ->
-                            LatLng(saved.latitude, saved.longitude) to saved.zoom.toDouble()
+                            CameraPosition.Builder()
+                                .target(LatLng(saved.latitude, saved.longitude))
+                                .zoom(saved.zoom.toDouble())
+                                .bearing(saved.bearing)
+                                .build()
                         else -> {
-                            val loc = userLocation ?: return@LaunchedEffect
-                            LatLng(loc.latitude, loc.longitude) to DEFAULT_ZOOM
+                            // No stored position. Use the device, or London while the first
+                            // position of the device is not available.
+                            val start =
+                                userLocation?.let { LatLng(it.latitude, it.longitude) } ?: LONDON
+                            CameraPosition.Builder().target(start).zoom(DEFAULT_ZOOM).build()
                         }
                     }
-                map.moveCamera(CameraUpdateFactory.newLatLngZoom(target.first, target.second))
-                initialPositionApplied = true
+                map.moveCamera(CameraUpdateFactory.newCameraPosition(position))
+                // A move to London is a position of last resort, thus keep the flag clear and put
+                // the camera on the device as soon as its position arrives.
+                initialPositionApplied = saved != null || userLocation != null
             }
 
             val currentViewModel by rememberUpdatedState(viewModel)
@@ -289,6 +297,7 @@ fun MapScreen(viewModel: MapViewModel) {
                                 latitude = target.latitude,
                                 longitude = target.longitude,
                                 zoom = position.zoom.toFloat(),
+                                bearing = position.bearing,
                             ),
                     )
                 }
