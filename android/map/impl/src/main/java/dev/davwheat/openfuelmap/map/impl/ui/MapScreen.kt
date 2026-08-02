@@ -63,6 +63,7 @@ import dev.davwheat.openfuelmap.common.maps.attributionHtml
 import dev.davwheat.openfuelmap.common.maps.createSymbolManagerOrNull
 import dev.davwheat.openfuelmap.common.maps.destroyIfStyleLoaded
 import dev.davwheat.openfuelmap.common.maps.rememberMapStyleUrl
+import dev.davwheat.openfuelmap.common.maps.rememberTextureModeMapOptions
 import dev.davwheat.openfuelmap.common.ui.SimpleTooltip
 import dev.davwheat.openfuelmap.common.ui.userMessage
 import dev.davwheat.openfuelmap.data.repository.SavedCameraPosition
@@ -73,6 +74,7 @@ import dev.davwheat.openfuelmap.map.impl.viewmodel.InitialPosition
 import dev.davwheat.openfuelmap.map.impl.viewmodel.MapViewModel
 import kotlin.math.log2
 import kotlin.math.min
+import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
@@ -210,7 +212,11 @@ fun MapScreen(viewModel: MapViewModel) {
     var lockNeedsZoom by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        MapSurface(styleUrl = styleUrl, modifier = Modifier.fillMaxSize()) { mapView, map, style ->
+        MapSurface(
+            styleUrl = styleUrl,
+            modifier = Modifier.fillMaxSize(),
+            mapOptions = rememberTextureModeMapOptions(),
+        ) { mapView, map, style ->
             DisposableEffect(map) {
                 mapRef = map
                 onDispose { mapRef = null }

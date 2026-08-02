@@ -58,6 +58,7 @@ import dev.davwheat.openfuelmap.common.maps.MapAttributionControl
 import dev.davwheat.openfuelmap.common.maps.MapSurface
 import dev.davwheat.openfuelmap.common.maps.attributionHtml
 import dev.davwheat.openfuelmap.common.maps.rememberMapStyleUrl
+import dev.davwheat.openfuelmap.common.maps.rememberTextureModeMapOptions
 import dev.davwheat.openfuelmap.data.repository.SavedLocation
 import dev.davwheat.openfuelmap.list.impl.R
 import org.maplibre.android.camera.CameraUpdateFactory
@@ -112,6 +113,9 @@ fun CustomLocationPickerSheet(
                 MapSurface(
                     styleUrl = styleUrl,
                     modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+                    // The sheet opens with a movement above the screen below it, thus the map has
+                    // the same problem as a movement between screens.
+                    mapOptions = rememberTextureModeMapOptions(),
                 ) { _, mapLibreMap, style ->
                     DisposableEffect(mapLibreMap) {
                         map = mapLibreMap
