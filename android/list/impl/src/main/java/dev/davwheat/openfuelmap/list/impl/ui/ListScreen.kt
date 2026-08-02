@@ -74,6 +74,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
 import dev.davwheat.openfuelmap.app.api.ProvideTopBar
@@ -158,9 +159,15 @@ fun ListScreen(viewModel: ListViewModel) {
         }
     }
 
-    // The VM watches location updates itself; we just tell it when permission changes.
+    // The VM watches location updates itself; we just tell it when permission changes and while
+    // the screen is visible, so the location hardware stays idle in the background.
     LaunchedEffect(hasLocationPermission) {
         viewModel.setHasLocationPermission(hasLocationPermission)
+    }
+
+    LifecycleStartEffect(viewModel) {
+        viewModel.setScreenVisible(true)
+        onStopOrDispose { viewModel.setScreenVisible(false) }
     }
 
     val listState = rememberLazyListState()

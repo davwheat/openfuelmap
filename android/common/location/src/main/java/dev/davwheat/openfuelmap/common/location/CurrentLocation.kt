@@ -17,9 +17,6 @@
  */
 package dev.davwheat.openfuelmap.common.location
 
-import android.annotation.SuppressLint
-import android.content.Context
-import android.os.Looper
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -29,14 +26,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 
 /** The time in milliseconds between two position calculations. */
 private const val DEFAULT_UPDATE_INTERVAL_MS = 5_000L
@@ -68,38 +57,10 @@ fun rememberCurrentLocation(
     LaunchedEffect(hasPermission, context, lifecycleOwner, updateIntervalMillis) {
         if (!hasPermission) return@LaunchedEffect
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            locationUpdates(context, updateIntervalMillis).collect { state.value = it }
+            fusedLocationUpdates(context, updateIntervalMillis, MIN_UPDATE_DISTANCE_M).collect {
+                state.value = it
+            }
         }
     }
     return state
 }
-
-/**
- * The positions from the fused location provider. The first value is the last known position, which
- * is available immediately. The values after it come from the location hardware.
- *
- * The permission check occurs in [rememberCurrentLocation], thus the suppression below is correct.
- */
-@SuppressLint("MissingPermission")
-private fun locationUpdates(context: Context, updateIntervalMillis: Long): Flow<UserLocation> =
-    callbackFlow {
-        val client = LocationServices.getFusedLocationProviderClient(context)
-        val callback =
-            object : LocationCallback() {
-                override fun onLocationResult(result: LocationResult) {
-                    val location = result.lastLocation ?: return
-                    trySend(UserLocation(location.latitude, location.longitude))
-                }
-            }
-        client.lastLocation.addOnSuccessListener { location ->
-            if (location != null) trySend(UserLocation(location.latitude, location.longitude))
-        }
-        client.requestLocationUpdates(
-            LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, updateIntervalMillis)
-                .setMinUpdateDistanceMeters(MIN_UPDATE_DISTANCE_M)
-                .build(),
-            callback,
-            Looper.getMainLooper(),
-        )
-        awaitClose { client.removeLocationUpdates(callback) }
-    }

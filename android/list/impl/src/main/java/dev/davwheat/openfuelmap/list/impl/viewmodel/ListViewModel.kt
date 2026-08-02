@@ -106,6 +106,12 @@ constructor(
     private val _hasLocationPermission = MutableStateFlow(false)
 
     /**
+     * Flipped by the screen as it starts and stops. The location hardware stays idle while the user
+     * cannot see the list, which mirrors how the map screen watches the device position.
+     */
+    private val _isScreenVisible = MutableStateFlow(false)
+
+    /**
      * Continuous device location, driven by [LocationUpdatesProvider]. Pauses when either location
      * permission is missing or the user has a custom pin set (in which case the device location
      * isn't used by the search). Exposed publicly so the custom-location picker can centre its map
@@ -230,19 +236,25 @@ constructor(
 
         // Watch device location whenever permission is granted AND the user isn't overriding with
         // a custom pin. flatMapLatest tears down the subscription (and thus the fused-location
-        // callback) whenever either gate closes, and re-subscribes when both are true again.
+        // callback) whenever a gate closes, and re-subscribes when all of them open again.
         viewModelScope.launch {
-            combine(_hasLocationPermission, customLocation) { hasPerm, custom ->
-                    hasPerm && custom == null
+            combine(_hasLocationPermission, customLocation, _isScreenVisible) {
+                    hasPerm,
+                    custom,
+                    visible ->
+                    LocationGate(usesDeviceLocation = hasPerm && custom == null, visible = visible)
                 }
                 .distinctUntilChanged()
-                .flatMapLatest { shouldWatch ->
-                    if (shouldWatch) {
+                .flatMapLatest { gate ->
+                    // Clear to null so stale positions don't drive the search when the device
+                    // location no longer applies (permission revoked or custom pin picked). A
+                    // screen that merely went to the background keeps its last position, thus the
+                    // list stays put until a new fix arrives.
+                    if (!gate.usesDeviceLocation) _userLocation.value = null
+
+                    if (gate.usesDeviceLocation && gate.visible) {
                         locationUpdatesProvider.locationUpdates(MIN_LOCATION_UPDATE_DISTANCE_METERS)
                     } else {
-                        // Clear to null so stale positions don't drive the search when we've
-                        // stopped watching (permission revoked or custom pin picked).
-                        _userLocation.value = null
                         emptyFlow()
                     }
                 }
@@ -252,6 +264,10 @@ constructor(
 
     fun setHasLocationPermission(granted: Boolean) {
         _hasLocationPermission.value = granted
+    }
+
+    fun setScreenVisible(visible: Boolean) {
+        _isScreenVisible.value = visible
     }
 
     fun setRadiusMi(radius: Float) {
@@ -374,3 +390,6 @@ constructor(
 @Immutable data class SelectedListStation(val basic: Forecourt, val detail: ForecourtDetail? = null)
 
 private data class Quadruple<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
+
+/** The conditions that together decide whether the device location stream runs. */
+private data class LocationGate(val usesDeviceLocation: Boolean, val visible: Boolean)
