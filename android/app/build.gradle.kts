@@ -30,12 +30,13 @@ plugins {
 
     alias(libs.plugins.stability.analyzer)
     alias(libs.plugins.ossLicenses)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
-val appCompileSdk: Int by rootProject.extra
-val appMinSdk: Int by rootProject.extra
-val appBuildNumber: Int by rootProject.extra
-val appVersionName: String by rootProject.extra
+val appCompileSdk = rootProject.extra["appCompileSdk"] as Int
+val appMinSdk = rootProject.extra["appMinSdk"] as Int
+val appBuildNumber = rootProject.extra["appBuildNumber"] as Int
+val appVersionName = rootProject.extra["appVersionName"] as String
 
 android {
     namespace = "dev.davwheat.openfuelmap"
@@ -74,7 +75,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            signingConfig = signingConfigs.getByName("release")
+
+            // The baseline profile plugin copies this build type into `benchmarkRelease` and
+            // `nonMinifiedRelease`, thus the signing config must resolve on a machine without
+            // the upload keystore too. Those two builds never ship, so the debug key is enough.
+            signingConfig =
+                signingConfigs.getByName(
+                    if (signingConfigs.getByName("release").storeFile != null) "release"
+                    else "debug"
+                )
         }
     }
 
@@ -87,6 +96,16 @@ android {
         compose = true
         buildConfig = true
     }
+}
+
+baselineProfile {
+    // Both renderer flavors run the same UI journey, thus one merged profile in `src/main` is
+    // enough and keeps a single file under review.
+    mergeIntoMain = true
+
+    // A device generates the profile, not the build. Keeping this off means a normal release
+    // build never waits for a connected device.
+    automaticGenerationDuringBuild = false
 }
 
 androidComponents {
@@ -107,6 +126,8 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.splashscreen)
+    // Installs the baseline profile on devices that Play does not serve a cloud profile to.
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -160,4 +181,6 @@ dependencies {
     implementation(project(":stats:api"))
     implementation(project(":stats:data"))
     implementation(project(":stats:impl"))
+
+    baselineProfile(project(":baselineprofile"))
 }

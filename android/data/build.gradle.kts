@@ -25,8 +25,8 @@ plugins {
     alias(libs.plugins.androidx.room)
 }
 
-val appCompileSdk: Int by rootProject.extra
-val appMinSdk: Int by rootProject.extra
+val appCompileSdk = rootProject.extra["appCompileSdk"] as Int
+val appMinSdk = rootProject.extra["appMinSdk"] as Int
 
 android {
     namespace = "dev.davwheat.openfuelmap.data"

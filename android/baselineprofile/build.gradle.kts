@@ -16,43 +16,49 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.hilt)
+    alias(libs.plugins.android.test)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 val appCompileSdk = rootProject.extra["appCompileSdk"] as Int
-val appMinSdk = rootProject.extra["appMinSdk"] as Int
 
 android {
-    namespace = "dev.davwheat.openfuelmap.forecourts.data"
+    namespace = "dev.davwheat.openfuelmap.baselineprofile"
     compileSdk = appCompileSdk
 
     defaultConfig {
-        minSdk = appMinSdk
+        // Macrobenchmark and profile generation need `CompilationMode` control, which the
+        // platform only offers from API 28.
+        minSdk = 28
+        targetSdk = 36
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    targetProjectPath = ":app"
 }
 
+baselineProfile { useConnectedDevices = true }
+
 dependencies {
-    implementation(libs.androidx.annotation.experimental)
+    implementation(libs.androidx.junit)
+    implementation(libs.androidx.espresso.core)
+    implementation(libs.androidx.uiautomator)
+    implementation(libs.androidx.benchmark.macro.junit4)
+}
 
-    implementation(project(":forecourts:api"))
-    implementation(project(":data"))
+androidComponents {
+    onVariants { variant ->
+        val artifactsLoader = variant.artifacts.getBuiltArtifactsLoader()
 
-    implementation(platform(libs.square.okhttp.bom))
-    implementation(libs.square.okhttp)
-    implementation(libs.square.okhttp.loggingInterceptor)
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.kotlinx.coroutines.core)
-
-    implementation(libs.dagger.hilt.android)
-    ksp(libs.dagger.hilt.compiler)
+        variant.instrumentationRunnerArguments.put(
+            "targetAppId",
+            variant.testedApks.map { artifactsLoader.load(it)?.applicationId!! },
+        )
+    }
 }

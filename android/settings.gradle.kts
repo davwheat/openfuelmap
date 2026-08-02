@@ -45,6 +45,8 @@ include(":app")
 
 include(":app:api")
 
+include(":baselineprofile")
+
 include(":common:location")
 
 include(":common:maps")
