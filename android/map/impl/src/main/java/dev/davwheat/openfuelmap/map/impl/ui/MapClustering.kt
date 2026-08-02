@@ -52,8 +52,9 @@ internal sealed interface MapCluster {
         val centroidLng: Double,
         val count: Int,
         /**
-         * The cheapest (lowest) `colorPosition` among members, used to colour the badge. `null`
-         * when no member has price data.
+         * The cheapest (lowest) `colorPosition` among members, used to colour the badge. Members
+         * with a possibly incorrect price are not included, because one bad price makes the whole
+         * cluster look cheaper than it is. `null` when no member has a price you can trust.
          */
         val minColorPosition: Float?,
         /** Bounding box of the member stations, for zoom-to-cluster on tap. */
@@ -107,7 +108,7 @@ internal fun clusterMarkers(markers: List<StationMarker>, zoom: Float): List<Map
             if (lng < minLng) minLng = lng
             if (lat > maxLat) maxLat = lat
             if (lng > maxLng) maxLng = lng
-            val cp = m.colorPosition
+            val cp = if (m.isPriceInaccurate) null else m.colorPosition
             if (cp != null && (minColor == null || cp < minColor)) {
                 minColor = cp
             }
