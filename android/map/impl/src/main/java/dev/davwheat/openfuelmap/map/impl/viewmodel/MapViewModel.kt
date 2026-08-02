@@ -125,6 +125,18 @@ constructor(
     private val _initialPosition = MutableStateFlow<InitialPosition>(InitialPosition.Loading)
     val initialPosition: StateFlow<InitialPosition> = _initialPosition.asStateFlow()
 
+    private val _hasLoadedOnce = MutableStateFlow(false)
+
+    /**
+     * True only after a fetch completes with no stations in the visible area. It stays false before
+     * the first fetch, thus the map does not show the empty message while it still has no data.
+     */
+    val isAreaEmpty: StateFlow<Boolean> =
+        combine(_hasLoadedOnce, _isLoading, _error, markers) { hasLoaded, loading, error, markers ->
+                hasLoaded && !loading && error == null && markers.isEmpty()
+            }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
     val fuelTypes: StateFlow<List<FuelTypeEntity>> =
         fuelTypeRepository
             .getAllFuelTypes()
@@ -216,6 +228,7 @@ constructor(
             .onEach {
                 _forecourtResult.value = it
                 _isLoading.value = false
+                _hasLoadedOnce.value = true
             }
             .stateIn(
                 viewModelScope,
@@ -304,6 +317,7 @@ constructor(
             // zIndex. Stations with no price sit beneath all priced markers.
             val zIndex = stationPrice?.let { -it.toFloat() } ?: -1_000_000f
             StationMarker(
+                isPriceInaccurate = station.price?.possiblyInaccurate != null,
                 station = station,
                 label = label,
                 colorPosition = colorPosition,

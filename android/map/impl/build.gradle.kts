@@ -49,6 +49,7 @@ dependencies {
 
     implementation(project(":common:ui"))
     implementation(project(":common:location"))
+    implementation(project(":common:maps"))
     implementation(project(":common:nav"))
     implementation(project(":app:api"))
     implementation(project(":map:api"))
@@ -69,8 +70,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
-    // Google Maps Compose
-    implementation(libs.google.maps.compose)
+    implementation(libs.androidx.compose.foundation)
 
     // Nav3
     implementation(libs.androidx.navigation3.runtime)

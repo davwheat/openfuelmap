@@ -47,6 +47,8 @@ include(":app:api")
 
 include(":common:location")
 
+include(":common:maps")
+
 include(":common:nav")
 
 include(":common:ui")

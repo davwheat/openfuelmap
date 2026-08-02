@@ -34,12 +34,6 @@ another feature's `:impl`.
 
 You need JDK 21 and Android SDK with compileSdk 37.
 
-Add a `local.properties` file here with at minimum:
-
-```properties
-MAPS_API_KEY=your_google_maps_api_key
-```
-
 For release builds, also add signing config:
 
 ```properties

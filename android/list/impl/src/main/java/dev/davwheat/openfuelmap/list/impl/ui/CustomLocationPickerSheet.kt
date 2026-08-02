@@ -42,22 +42,30 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.CameraPositionState
-import com.google.maps.android.compose.ComposeMapColorScheme
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.rememberCameraPositionState
+import dev.davwheat.openfuelmap.common.maps.MapAttributionControl
+import dev.davwheat.openfuelmap.common.maps.MapSurface
+import dev.davwheat.openfuelmap.common.maps.attributionHtml
+import dev.davwheat.openfuelmap.common.maps.rememberMapStyleUrl
 import dev.davwheat.openfuelmap.data.repository.SavedLocation
 import dev.davwheat.openfuelmap.list.impl.R
+import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.maps.MapLibreMap
+
+/** The zoom level when the picker opens. At town level the user can put a pin with a small move. */
+private const val PICKER_ZOOM: Double = 11.0
 
 /**
  * Modal sheet hosting a map whose centre stays pinned under a fixed crosshair. The caller commits
@@ -75,9 +83,9 @@ fun CustomLocationPickerSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val initial = remember(currentCenter) { currentCenter }
-    val cameraPositionState: CameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(initial, 11f)
-    }
+    val styleUrl = rememberMapStyleUrl()
+    var map by remember { mutableStateOf<MapLibreMap?>(null) }
+    var attributionHtml by remember { mutableStateOf<String?>(null) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -101,17 +109,31 @@ fun CustomLocationPickerSheet(
             // its content). 420dp is large enough for accurate placement without forcing the sheet
             // to eat the whole screen on shorter phones.
             Box(modifier = Modifier.fillMaxWidth().height(420.dp)) {
-                GoogleMap(
+                MapSurface(
+                    styleUrl = styleUrl,
                     modifier = Modifier.fillMaxWidth().fillMaxHeight(),
-                    cameraPositionState = cameraPositionState,
-                    uiSettings =
-                        MapUiSettings(
-                            zoomControlsEnabled = false,
-                            mapToolbarEnabled = false,
-                            myLocationButtonEnabled = false,
-                        ),
-                    mapColorScheme = ComposeMapColorScheme.FOLLOW_SYSTEM,
-                )
+                ) { _, mapLibreMap, style ->
+                    DisposableEffect(mapLibreMap) {
+                        map = mapLibreMap
+                        onDispose { map = null }
+                    }
+                    DisposableEffect(style) {
+                        attributionHtml = style.attributionHtml()
+                        onDispose { attributionHtml = null }
+                    }
+                    LaunchedEffect(mapLibreMap) {
+                        // With pitch, the crosshair is not above the target of the camera.
+                        mapLibreMap.setMinPitchPreference(0.0)
+                        mapLibreMap.setMaxPitchPreference(0.0)
+                        mapLibreMap.uiSettings.isRotateGesturesEnabled = false
+                        // [MapAttributionControl] gives the credit in place of the native widgets.
+                        mapLibreMap.uiSettings.isAttributionEnabled = false
+                        mapLibreMap.uiSettings.isLogoEnabled = false
+                        mapLibreMap.moveCamera(
+                            CameraUpdateFactory.newLatLngZoom(initial, PICKER_ZOOM)
+                        )
+                    }
+                }
                 // Pin is drawn as an overlay anchored to the centre of the viewport — the camera's
                 // target is always under it, so the user drags the map beneath a stationary pin.
                 Icon(
@@ -119,6 +141,11 @@ fun CustomLocationPickerSheet(
                     contentDescription = stringResource(R.string.picker_pin_description),
                     modifier = Modifier.align(Alignment.Center).size(48.dp).offset(y = (-48).dp),
                     tint = MaterialTheme.colorScheme.primary,
+                )
+                MapAttributionControl(
+                    attributionHtml = attributionHtml,
+                    modifier = Modifier.align(Alignment.BottomStart).padding(8.dp),
+                    textSide = Alignment.End,
                 )
             }
             Row(
@@ -129,16 +156,17 @@ fun CustomLocationPickerSheet(
                     Text(stringResource(R.string.picker_cancel))
                 }
                 Button(
+                    enabled = map != null,
                     onClick =
                         dropUnlessResumed {
-                            val target = cameraPositionState.position.target
+                            val target = map?.cameraPosition?.target ?: return@dropUnlessResumed
                             onConfirm(
                                 SavedLocation(
                                     latitude = target.latitude,
                                     longitude = target.longitude,
                                 )
                             )
-                        }
+                        },
                 ) {
                     Text(stringResource(R.string.picker_confirm))
                 }

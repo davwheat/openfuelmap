@@ -34,4 +34,10 @@ data class StationMarker(
      */
     val colorPosition: Float?,
     val zIndex: Float,
+    /**
+     * `true` when the API reports the price of this station as possibly incorrect, for example an
+     * old price or a price that is too low. The pill then shows a warning glyph, in the same way as
+     * the list row and the detail sheet.
+     */
+    val isPriceInaccurate: Boolean = false,
 )

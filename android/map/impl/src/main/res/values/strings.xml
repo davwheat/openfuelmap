@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="map_title">Open Fuel Map</string>
+    <string name="map_recenter_on_me">Show my location</string>
+    <string name="map_no_forecourts_in_area">No forecourts in this area</string>
 </resources>

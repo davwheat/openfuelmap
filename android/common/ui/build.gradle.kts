@@ -42,6 +42,8 @@ android {
 
 dependencies {
     implementation(libs.androidx.annotation.experimental)
+    implementation(libs.androidx.browser)
+    implementation(libs.androidx.core.ktx)
     api(platform(libs.androidx.compose.bom))
     api(libs.androidx.compose.runtime.annotation)
     api(libs.kotlinx.collections.immutable)

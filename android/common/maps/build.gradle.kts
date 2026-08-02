@@ -18,16 +18,13 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.hilt)
 }
 
 val appCompileSdk: Int by rootProject.extra
 val appMinSdk: Int by rootProject.extra
 
 android {
-    namespace = "dev.davwheat.openfuelmap.list.impl"
+    namespace = "dev.davwheat.openfuelmap.common.maps"
     compileSdk = appCompileSdk
 
     defaultConfig {
@@ -44,45 +41,25 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.annotation.experimental)
-    implementation(libs.kotlinx.collections.immutable)
+    // `api` gives MapLibreMap, Style, and the annotation managers (SymbolManager, CircleManager,
+    // and the others) to the modules that use this one. They do not declare MapLibre themselves.
+    api(libs.maplibre.native)
+    // The plugin has an older android-sdk. Remove it, thus only the version above is on the
+    // classpath.
+    api(libs.maplibre.plugin.annotation) {
+        exclude(group = "org.maplibre.gl", module = "android-sdk")
+    }
 
     implementation(project(":common:ui"))
-    implementation(project(":common:location"))
-    implementation(project(":common:nav"))
-    implementation(project(":app:api"))
-    implementation(project(":list:api"))
-    implementation(project(":forecourts:api"))
-    implementation(project(":forecourts:impl"))
-    implementation(project(":data"))
 
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material.iconsCore)
     implementation(libs.androidx.compose.material.iconsExtended)
-
-    // Compose
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-
-    // MapLibre. Only the custom location picker sheet uses it.
-    implementation(project(":common:maps"))
-
-    // Nav3
-    implementation(libs.androidx.navigation3.runtime)
-    implementation(libs.kotlinx.serialization.core)
-
-    // Hilt
-    implementation(libs.dagger.hilt.android)
-    ksp(libs.dagger.hilt.compiler)
-    implementation(libs.androidx.hilt.navigationCompose)
-
-    // Lifecycle
-    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.kotlinx.coroutines.android)
 
-    implementation(libs.timber)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.kotlinx.coroutines.core)
 }

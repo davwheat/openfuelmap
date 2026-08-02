@@ -76,7 +76,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
-import com.google.android.gms.maps.model.LatLng
 import dev.davwheat.openfuelmap.app.api.ProvideTopBar
 import dev.davwheat.openfuelmap.common.location.rememberLocationPermissionState
 import dev.davwheat.openfuelmap.common.ui.SimpleTooltip
@@ -85,6 +84,7 @@ import dev.davwheat.openfuelmap.forecourts.impl.detail.ForecourtDetailSheet
 import dev.davwheat.openfuelmap.list.impl.R
 import dev.davwheat.openfuelmap.list.impl.viewmodel.ListViewModel
 import dev.davwheat.openfuelmap.list.impl.viewmodel.SearchCenter
+import org.maplibre.android.geometry.LatLng
 
 /** UK centroid — used as fallback centre when we have neither a device fix nor a custom pin. */
 private val UK_CENTROID = LatLng(54.5, -2.5)

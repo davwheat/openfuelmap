@@ -27,12 +27,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.ImageBitmapConfig
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -40,10 +43,14 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import com.google.android.gms.maps.model.BitmapDescriptor
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
+import dev.davwheat.openfuelmap.common.ui.R as CommonUiR
+import dev.davwheat.openfuelmap.map.impl.viewmodel.StationMarker
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
@@ -58,6 +65,20 @@ private val ColorblindCheapColor = Color(0xFF1565C0) // blue 800
 private val ColorblindExpensiveColor = Color(0xFFEF6C00) // orange 800
 private val PriceMissingColor = Color(0xFF757575) // grey 600
 
+/** One pill to draw. */
+internal data class PillRequest(
+    val label: String,
+    val colorPosition: Float?,
+    /** Draws a warning glyph before the label when the price can be incorrect. */
+    val showWarning: Boolean,
+)
+
+internal fun StationMarker.toPillRequest(): PillRequest =
+    PillRequest(label = label, colorPosition = colorPosition, showWarning = isPriceInaccurate)
+
+/** The size the warning glyph rasterises at. The pill scales it down to the height of the label. */
+private const val WARNING_GLYPH_PX = 64
+
 /**
  * Number of discrete buckets to quantise `colorPosition` into. Quantising lets the icon cache
  * collapse arbitrarily-close floating-point positions onto a finite set of keys so that the bitmap
@@ -66,17 +87,13 @@ private val PriceMissingColor = Color(0xFF757575) // grey 600
 private const val COLOR_BUCKETS = 24
 
 /**
- * Builds and caches [BitmapDescriptor]s for the price-pill and cluster-badge marker icons.
+ * Makes and keeps the bitmaps for the price pills and the cluster badges. Each bitmap has a stable
+ * image ID. The map adds the bitmap with `Style.addImage` and uses that ID in
+ * `SymbolOptions.withIconImage`.
  *
- * Previously the map used `MarkerComposable` which — per marker, on the main thread — spins up a
- * `ComposeView`, runs measure/layout/draw, and captures the result to a bitmap. That was the source
- * of significant jank when the viewport's station set changed (every marker has a distinct `nodeId`
- * key so nothing was ever cached).
- *
- * This cache renders icons directly via [CanvasDrawScope] (no view hierarchy) on
- * [Dispatchers.Default], memoises the result by `(label, quantised colour bucket)`, and exposes
- * them via a snapshot state map so the main thread only ever does cheap lookups. A fresh viewport
- * only generates a handful of unique bitmaps regardless of how many stations are visible.
+ * A [CanvasDrawScope] draws each bitmap on [Dispatchers.Default], with no view hierarchy. The cache
+ * keeps each result by `(label, colour bucket)` in a snapshot state map. Thus the main thread does
+ * only quick reads, and a new view of the map makes only a small number of bitmaps.
  */
 @Composable
 internal fun rememberPriceMarkerIconCache(colorblindMode: Boolean = false): PriceMarkerIconCache {
@@ -91,6 +108,17 @@ internal fun rememberPriceMarkerIconCache(colorblindMode: Boolean = false): Pric
         )
     val clusterTextStyle =
         MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, color = Color.White)
+
+    // The warning glyph is a vector drawable, and the pill draws onto a Canvas. Rasterise it one
+    // time here, then each pill scales the result to the height of its label.
+    val context = LocalContext.current
+    val warningGlyph =
+        remember(context) {
+            ContextCompat.getDrawable(context, CommonUiR.drawable.warning_24dp)
+                ?.toBitmap(WARNING_GLYPH_PX, WARNING_GLYPH_PX)
+                ?.asImageBitmap()
+        }
+
     return remember(
         density,
         textMeasurer,
@@ -98,6 +126,7 @@ internal fun rememberPriceMarkerIconCache(colorblindMode: Boolean = false): Pric
         clusterTextStyle,
         cheapColor,
         expensiveColor,
+        warningGlyph,
     ) {
         PriceMarkerIconCache(
             density,
@@ -106,6 +135,7 @@ internal fun rememberPriceMarkerIconCache(colorblindMode: Boolean = false): Pric
             clusterTextStyle,
             cheapColor,
             expensiveColor,
+            warningGlyph,
         )
     }
 }
@@ -117,25 +147,33 @@ internal class PriceMarkerIconCache(
     private val clusterTextStyle: TextStyle,
     private val cheapColor: Color,
     private val expensiveColor: Color,
+    private val warningGlyph: ImageBitmap?,
 ) {
-    private val descriptors = mutableStateMapOf<Key, BitmapDescriptor>()
+    private val bitmaps = mutableStateMapOf<Key, android.graphics.Bitmap>()
     private val renderMutex = Mutex()
 
-    /** Returns the cached pill descriptor for this station, or null if it's not yet rendered. */
-    fun getOrNull(label: String, colorPosition: Float?): BitmapDescriptor? =
-        descriptors[pillKey(label, colorPosition)]
+    /**
+     * All the bitmaps, with the image ID that the map must use for each one. A read from a
+     * composition also gets the new bitmaps.
+     */
+    val images: Map<String, android.graphics.Bitmap>
+        get() = bitmaps.mapKeys { (key, _) -> key.imageId }
 
-    /** Returns the cached cluster badge descriptor, or null if it's not yet rendered. */
-    fun getClusterBadgeOrNull(countLabel: String, colorPosition: Float?): BitmapDescriptor? =
-        descriptors[clusterKey(countLabel, colorPosition)]
+    /** The image ID of the pill of this station, or null if the bitmap is not ready. */
+    fun getOrNull(request: PillRequest): String? =
+        pillKey(request).takeIf { it in bitmaps }?.imageId
+
+    /** The image ID of this cluster badge, or null if the bitmap is not ready. */
+    fun getClusterBadgeOrNull(countLabel: String, colorPosition: Float?): String? =
+        clusterKey(countLabel, colorPosition).takeIf { it in bitmaps }?.imageId
 
     /**
      * Render any pills not already in the cache on [Dispatchers.Default]. Completes once every
      * requested combination has a descriptor available via [getOrNull]. Safe to call on every
      * marker list update — already-cached entries are skipped.
      */
-    suspend fun ensure(requests: List<Pair<String, Float?>>) {
-        ensureAll(requests.map { (label, cp) -> pillKey(label, cp) })
+    suspend fun ensure(requests: List<PillRequest>) {
+        ensureAll(requests.map(::pillKey))
     }
 
     /**
@@ -148,27 +186,26 @@ internal class PriceMarkerIconCache(
 
     private suspend fun ensureAll(keys: List<Key>) {
         if (keys.isEmpty()) return
-        val missing = buildSet { for (key in keys) if (key !in descriptors) add(key) }
+        val missing = buildSet { for (key in keys) if (key !in bitmaps) add(key) }
         if (missing.isEmpty()) return
         withContext(Dispatchers.Default) {
             renderMutex.withLock {
                 for (key in missing) {
                     yield()
-                    if (key in descriptors) continue
+                    if (key in bitmaps) continue
                     val color = colorFor(key.colorBucket)
-                    val bitmap =
+                    bitmaps[key] =
                         when (key) {
-                            is Key.Pill -> renderPillBitmap(key.label, color)
+                            is Key.Pill -> renderPillBitmap(key.label, color, key.showWarning)
                             is Key.ClusterBadge -> renderClusterBadgeBitmap(key.countLabel, color)
                         }
-                    descriptors[key] = BitmapDescriptorFactory.fromBitmap(bitmap)
                 }
             }
         }
     }
 
-    private fun pillKey(label: String, colorPosition: Float?): Key.Pill =
-        Key.Pill(label, bucketOf(colorPosition))
+    private fun pillKey(request: PillRequest): Key.Pill =
+        Key.Pill(request.label, bucketOf(request.colorPosition), request.showWarning)
 
     private fun clusterKey(countLabel: String, colorPosition: Float?): Key.ClusterBadge =
         Key.ClusterBadge(countLabel, bucketOf(colorPosition))
@@ -184,13 +221,22 @@ internal class PriceMarkerIconCache(
             PriceMissingColor
         }
 
-    private fun renderPillBitmap(label: String, pillColor: Color): android.graphics.Bitmap {
+    private fun renderPillBitmap(
+        label: String,
+        pillColor: Color,
+        showWarning: Boolean,
+    ): android.graphics.Bitmap {
         val layout = textMeasurer.measure(label, pillTextStyle)
         val paddingH = with(density) { 8.dp.roundToPx() }
         val paddingV = with(density) { 4.dp.roundToPx() }
         val borderPx = with(density) { 1.dp.toPx() }
 
-        val totalWidth = layout.size.width + paddingH * 2
+        // The glyph gets the height of the text, thus it stays in proportion with the label at
+        // each font scale.
+        val warningSize = if (showWarning) layout.size.height else 0
+        val warningGap = if (showWarning) with(density) { 3.dp.roundToPx() } else 0
+
+        val totalWidth = layout.size.width + warningSize + warningGap + paddingH * 2
         val totalHeight = layout.size.height + paddingV * 2
 
         val imageBitmap = ImageBitmap(totalWidth, totalHeight, ImageBitmapConfig.Argb8888)
@@ -213,9 +259,20 @@ internal class PriceMarkerIconCache(
                 cornerRadius = strokeRadius,
                 style = Stroke(width = borderPx),
             )
+            if (showWarning && warningGlyph != null) {
+                // White, in the same way as the label. The pill colour goes from green to red with
+                // the price, thus the orange of the list row has too little contrast on some pills.
+                drawImage(
+                    image = warningGlyph,
+                    dstOffset = IntOffset(paddingH, paddingV),
+                    dstSize = IntSize(warningSize, warningSize),
+                    colorFilter = ColorFilter.tint(Color.White),
+                )
+            }
             drawText(
                 textLayoutResult = layout,
-                topLeft = Offset(paddingH.toFloat(), paddingV.toFloat()),
+                topLeft =
+                    Offset((paddingH + warningSize + warningGap).toFloat(), paddingV.toFloat()),
             )
         }
 
@@ -264,11 +321,11 @@ internal class PriceMarkerIconCache(
     }
 
     /**
-     * Bitmap.createBitmap(w, h) (used internally by ImageBitmap) leaves the bitmap's density at the
-     * default 160dpi. Google Maps interprets that as an mdpi-authored icon and upscales it to match
-     * the device density — but the bitmap is *already* in device pixels, so the extra scaling
-     * produces blurry edges. Stamping the device density makes the SDK draw the bitmap 1:1 in
-     * physical pixels.
+     * Bitmap.createBitmap(w, h), which ImageBitmap uses, gives the bitmap the default density of
+     * 160 dpi. MapLibre calculates the pixel ratio of an image from that density, thus it makes the
+     * bitmap larger for the device. But the bitmap is already in device pixels, and the increase in
+     * size makes the edges unclear. Set the density of the device, and the renderer draws the
+     * bitmap 1:1 in physical pixels.
      */
     private fun stampDeviceDensity(bitmap: android.graphics.Bitmap): android.graphics.Bitmap =
         bitmap.also {
@@ -278,8 +335,21 @@ internal class PriceMarkerIconCache(
     private sealed interface Key {
         val colorBucket: Int?
 
-        data class Pill(val label: String, override val colorBucket: Int?) : Key
+        /** The identifier of this icon in the image list of the map style. */
+        val imageId: String
 
-        data class ClusterBadge(val countLabel: String, override val colorBucket: Int?) : Key
+        data class Pill(
+            val label: String,
+            override val colorBucket: Int?,
+            val showWarning: Boolean,
+        ) : Key {
+            override val imageId: String
+                get() = "ofm-pill-$colorBucket-${if (showWarning) "w" else "n"}-$label"
+        }
+
+        data class ClusterBadge(val countLabel: String, override val colorBucket: Int?) : Key {
+            override val imageId: String
+                get() = "ofm-cluster-$colorBucket-$countLabel"
+        }
     }
 }

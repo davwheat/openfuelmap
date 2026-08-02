@@ -29,7 +29,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 
     alias(libs.plugins.stability.analyzer)
-    alias(libs.plugins.secrets)
     alias(libs.plugins.ossLicenses)
 }
 
@@ -88,15 +87,6 @@ android {
         compose = true
         buildConfig = true
     }
-}
-
-secrets {
-    propertiesFileName = "local.properties"
-
-    ignoreList += "signing.storeFilePath"
-    ignoreList += "signing.storePassword"
-    ignoreList += "signing.keyAlias"
-    ignoreList += "signing.keyPassword"
 }
 
 dependencies {

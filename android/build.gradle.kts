@@ -36,7 +36,6 @@ plugins {
 
     alias(libs.plugins.androidx.room) apply false
     alias(libs.plugins.android.library) apply false
-    alias(libs.plugins.secrets) apply false
 }
 
 ext {
