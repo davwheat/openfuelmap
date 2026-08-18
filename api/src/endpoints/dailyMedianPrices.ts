@@ -19,9 +19,9 @@
 import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
 import {
-  computeDailyStats,
   DAILY_STATS_CACHE_TTL_SECONDS,
   dailyStatsCacheKey,
+  readDailyStats,
   type DailyPriceStat,
 } from "../cache/derived";
 import type { AppContext } from "../types";
@@ -80,8 +80,10 @@ export class DailyMedianPrices extends OpenAPIRoute {
     let all = await c.env.KV.get<DailyPriceStat[]>(cacheKey, "json");
 
     if (!all) {
-      // Fallback path: the sync normally keeps this warm.
-      all = await computeDailyStats(c.env.fuel_prices_db, stat);
+      // Fallback path: the sync normally keeps this warm. Reads the stored
+      // aggregate rather than rebuilding it, so a cold cache cannot put a
+      // history-wide scan behind a user request.
+      all = await readDailyStats(c.env.fuel_prices_db, stat);
 
       c.executionCtx.waitUntil(
         c.env.KV.put(cacheKey, JSON.stringify(all), {

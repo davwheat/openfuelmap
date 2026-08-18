@@ -18,7 +18,12 @@
 
 import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
-import { FUEL_TYPE_NAMES } from "../config";
+import {
+  computeFuelTypes,
+  FUEL_TYPES_CACHE_KEY,
+  FUEL_TYPES_CACHE_TTL_SECONDS,
+  type FuelType,
+} from "../cache/derived";
 import type { AppContext } from "../types";
 
 const FuelTypeSchema = z.object({
@@ -49,16 +54,22 @@ export class FuelTypeList extends OpenAPIRoute {
   };
 
   async handle(c: AppContext) {
-    const rows = await c.env.fuel_prices_db
-      .prepare(
-        `SELECT DISTINCT fuel_type FROM fuel_prices WHERE is_latest = 1 ORDER BY fuel_type`,
-      )
-      .all<{ fuel_type: string }>();
+    const cached = await c.env.KV.get<FuelType[]>(FUEL_TYPES_CACHE_KEY, "json");
+    if (cached) {
+      return {
+        success: true,
+        result: { fuel_types: cached },
+      };
+    }
 
-    const fuel_types = rows.results.map((row) => ({
-      id: row.fuel_type,
-      name: FUEL_TYPE_NAMES[row.fuel_type] ?? row.fuel_type,
-    }));
+    // Fallback path: the sync normally keeps this warm.
+    const fuel_types = await computeFuelTypes(c.env.fuel_prices_db);
+
+    c.executionCtx.waitUntil(
+      c.env.KV.put(FUEL_TYPES_CACHE_KEY, JSON.stringify(fuel_types), {
+        expirationTtl: FUEL_TYPES_CACHE_TTL_SECONDS,
+      }),
+    );
 
     return {
       success: true,

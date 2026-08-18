@@ -177,11 +177,6 @@ export class ForecourtList extends OpenAPIRoute {
     const where =
       conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-    const countRow = await c.env.fuel_prices_db
-      .prepare(`SELECT COUNT(*) as total FROM forecourts f ${where}`)
-      .bind(...whereParams)
-      .first<{ total: number }>();
-
     const priceJoin = fuel_type
       ? "LEFT JOIN fuel_prices fp ON fp.node_id = f.node_id AND fp.is_latest = 1 AND fp.fuel_type = ?"
       : "";
@@ -205,6 +200,19 @@ export class ForecourtList extends OpenAPIRoute {
       )
       .bind(...joinParams, ...whereParams, limit, offset)
       .all();
+
+    // A page that came back short is the last one, so its length already gives
+    // the total. Only a full page leaves the question open, and only then is
+    // the extra count worth scanning for.
+    const total =
+      rows.results.length < limit
+        ? offset + rows.results.length
+        : ((
+            await c.env.fuel_prices_db
+              .prepare(`SELECT COUNT(*) as total FROM forecourts f ${where}`)
+              .bind(...whereParams)
+              .first<{ total: number }>()
+          )?.total ?? 0);
 
     const forecourts = rows.results.map((row: Record<string, unknown>) => {
       const base = {
@@ -291,7 +299,7 @@ export class ForecourtList extends OpenAPIRoute {
       result: {
         forecourts,
         price_percentiles,
-        total: countRow?.total ?? 0,
+        total,
         page,
         limit,
       },

@@ -26,8 +26,11 @@ import dev.davwheat.openfuelmap.forecourts.data.api.dto.ForecourtDetailResponse
 import dev.davwheat.openfuelmap.forecourts.data.api.dto.ForecourtListResponse
 import dev.davwheat.openfuelmap.forecourts.data.api.dto.PriceHistoryResponse
 import java.io.IOException
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Named
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +40,31 @@ import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+
+/**
+ * Size of the grid that map bounds are snapped to before they reach the API.
+ *
+ * Roughly 5.5km of latitude -- small enough that the extra area fetched is a thin margin around the
+ * viewport, large enough that panning across a town keeps landing on the same few grid cells.
+ */
+private const val CACHE_GRID_DEGREES = 0.05
+
+/**
+ * Both the on-device HTTP cache and the API's edge cache key on the full request URL. Camera bounds
+ * are continuous, so two looks at the same streets practically never produce the same URL and
+ * neither cache is ever able to serve a hit. Snapping outward onto a fixed grid collapses nearby
+ * viewports onto a shared key; the cost is fetching slightly beyond what is on screen.
+ */
+private fun BoundingBox.snapToCacheGrid(): BoundingBox =
+    BoundingBox(
+        swLat = floor(swLat / CACHE_GRID_DEGREES) * CACHE_GRID_DEGREES,
+        swLng = floor(swLng / CACHE_GRID_DEGREES) * CACHE_GRID_DEGREES,
+        neLat = ceil(neLat / CACHE_GRID_DEGREES) * CACHE_GRID_DEGREES,
+        neLng = ceil(neLng / CACHE_GRID_DEGREES) * CACHE_GRID_DEGREES,
+    )
+
+/** Snapped values still carry binary rounding error, which would defeat the grid. */
+private fun Double.asCoordinate(): String = String.format(Locale.ROOT, "%.2f", this)
 
 class FuelPricesApiClient
 @Inject
@@ -53,14 +81,15 @@ constructor(
     ): ApiResult<ForecourtListResult> =
         withContext(Dispatchers.IO) {
             try {
+                val snapped = bounds.snapToCacheGrid()
                 val url =
                     "$baseUrl/api/forecourts"
                         .toHttpUrl()
                         .newBuilder()
-                        .addQueryParameter("sw_lat", bounds.swLat.toString())
-                        .addQueryParameter("sw_lng", bounds.swLng.toString())
-                        .addQueryParameter("ne_lat", bounds.neLat.toString())
-                        .addQueryParameter("ne_lng", bounds.neLng.toString())
+                        .addQueryParameter("sw_lat", snapped.swLat.asCoordinate())
+                        .addQueryParameter("sw_lng", snapped.swLng.asCoordinate())
+                        .addQueryParameter("ne_lat", snapped.neLat.asCoordinate())
+                        .addQueryParameter("ne_lng", snapped.neLng.asCoordinate())
                         .addQueryParameter("limit", limit.toString())
                         .apply {
                             if (fuelType != null) addQueryParameter("fuel_type", fuelType)
