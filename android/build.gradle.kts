@@ -47,7 +47,7 @@ ext {
 
     val appVersionMajor = 0
     val appVersionMinor = 1
-    val appVersionPoint = 0
+    val appVersionPoint = 1
     set("appVersionMajor", appVersionMajor)
     set("appVersionMinor", appVersionMinor)
     set("appVersionPoint", appVersionPoint)
