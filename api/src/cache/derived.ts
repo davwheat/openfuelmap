@@ -25,6 +25,7 @@
 
 import { PRICE_PERCENTILE_HIGH, PRICE_PERCENTILE_LOW } from "../types";
 import { FUEL_TYPE_NAMES } from "../config";
+import { getLastSync, setLastSync } from "../db/syncMeta";
 
 export interface Brand {
   name: string;
@@ -72,6 +73,8 @@ const STATS_MAX_RANGE_DAYS = 365;
  * of putting one enormous query in front of a single run.
  */
 const DAILY_STATS_MAX_BACKFILL_DAYS = 30;
+
+const DAILY_STATS_PROGRESS_KEY = "daily-stats:finalised-through:v1";
 
 const WRITE_BATCH_SIZE = 100;
 
@@ -390,21 +393,20 @@ async function refreshPercentiles(
  * Bounded per run: a cold table catches up over successive syncs rather than
  * running a single query across the entire history.
  */
-async function finaliseCompletedDays(db: D1Database): Promise<number> {
+async function finaliseCompletedDays(
+  db: D1Database,
+  kv: KVNamespace,
+): Promise<number> {
   const now = today();
   const yesterday = addDays(now, -1);
 
-  // Progress is read back from the rows themselves rather than tracked
-  // alongside them, so the two cannot drift apart: a wiped table refills, and
-  // history written by hand is picked up without being told about it.
-  const latest = await db
-    .prepare(
-      "SELECT MAX(date) AS date FROM daily_price_stats WHERE stat = ? AND date < ?",
-    )
-    .bind(DAILY_STATS[0], now)
-    .first<{ date: string | null }>();
+  // Progress is tracked apart from the table because the table also holds
+  // provisional rows for the current day. Deriving progress from the latest
+  // stored date lets one of those rows jump the backfill past days that were
+  // never written. Delete the key to rebuild everything from STATS_MIN_DATE.
+  const finalisedThrough = await getLastSync(kv, DAILY_STATS_PROGRESS_KEY);
 
-  const from = latest?.date ? addDays(latest.date, 1) : STATS_MIN_DATE;
+  const from = finalisedThrough ? addDays(finalisedThrough, 1) : STATS_MIN_DATE;
   if (from > yesterday) return 0;
 
   const chunkEnd = addDays(from, DAILY_STATS_MAX_BACKFILL_DAYS - 1);
@@ -417,6 +419,7 @@ async function finaliseCompletedDays(db: D1Database): Promise<number> {
   }
 
   await writeDailyStats(db, stats);
+  await setLastSync(kv, DAILY_STATS_PROGRESS_KEY, to);
 
   console.log(
     `[cache] Finalised daily stats for ${from}..${to} (${stats.length} rows)`,
@@ -428,7 +431,7 @@ async function refreshDailyStats(
   db: D1Database,
   kv: KVNamespace,
 ): Promise<{ finalised: number; currentDay: number }> {
-  const finalised = await finaliseCompletedDays(db);
+  const finalised = await finaliseCompletedDays(db, kv);
 
   const currentDay = await computeCurrentDayStats(db);
   await writeDailyStats(db, currentDay);
